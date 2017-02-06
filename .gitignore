@@ -87,3 +87,8 @@ ENV/
 
 # Rope project settings
 .ropeproject
+.idea/
+sql/tv_info.data_only.sql
+config.yml
+settings.json
+dome.py
