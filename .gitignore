@@ -87,6 +87,8 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# This project
 .idea/
 sql/tv_info.data_only.sql
 config.yml
