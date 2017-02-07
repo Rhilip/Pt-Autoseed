@@ -204,7 +204,7 @@ def seed_post(tid):
                 get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(
                     seed_torrent_download_id)  # 下载种子，并更新
     else:  # 如果种子存在（已经有人发布）  -> 辅种
-        print("Find dupe torrent,which id: '%d'.Ohhhhh") % tag
+        print("Find dupe torrent,which id: {0}.Ohhhhh".format(tag))
         get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(tag)
 
 
