@@ -95,13 +95,19 @@ def del_torrent_with_data_and_db():
     for t in result:
         if t[2] != 0:
             seed_torrent = tc.get_torrent(t[2])
-            if seed_torrent.rateUpload == 0:  # seed_torrent没有上传速度 -> 种子达到最小发布时间 -> 种子达到最大发布时间或达到设定分享率 -> 删除种子
-                if (int(time.time()) - seed_torrent.doneDate) >= setting.torrent_minSeedTime and (seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (int(time.time()) - seed_torrent.doneDate) >= setting.torrent_maxSeedTime):
-                    sql = "DELETE FROM seed_list WHERE id = '%d'" % (t[0])
-                    commit_cursor_into_db(sql)
-                    tc.remove_torrent(t[2], delete_data=True)
-                    tc.remove_torrent(t[1])
-                    print("Delete torrent: {0} {1},Which name {2}".format(t[1], t[2], seed_torrent.name))
+            if seed_torrent.status == "seeding" and seed_torrent.rateUpload == 0:
+                if ((int(time.time()) - seed_torrent.doneDate) >= setting.torrent_minSeedTime) and (seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (int(time.time()) - seed_torrent.doneDate) >= setting.torrent_maxSeedTime):
+                    tc.stop_torrent(t[2])
+                    tc.stop_torrent(t[1])
+                    print("Reach The Setting Seed time or ratio,Torrents will be delete torrent in next check time.")
+            if seed_torrent.status == "stopped":
+                time.sleep(5)
+                sql = "DELETE FROM seed_list WHERE id = '%d'" % (t[0])
+                commit_cursor_into_db(sql)
+                tc.remove_torrent(t[2], delete_data=True)
+                tc.remove_torrent(t[1], delete_data=True)
+                print("Delete torrent: {0} {1},Which name {2}".format(t[1], t[2], seed_torrent.name))
+
 
 
 # 从数据库中获取剧集简介
