@@ -156,12 +156,18 @@ def get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(to
                           data={"id": str(torrent_download_id)})  # 自动感谢发布者。。。。。
             update_torrent_info_from_rpc_to_db()  # 更新数据库
             break
+        time.sleep(5)
 
 
 # 发布
 def seed_post(tid):
     tag = exist_judge(tid)
+    while True:  # 检查下载种子情况,等待种子下载完成
+        if tc.get_torrent(tid).status == "seeding":
+            break
+        time.sleep(1)
     if tag == 0:  # 种子不存在，则准备发布
+        print("Begin post~")
         t = tc.get_torrent(tid)
         torrent_full_name = t.name
         torrent_name = re.search("torrents/(.+?\.torrent)", t.torrentFile).group(1)
@@ -190,9 +196,6 @@ def seed_post(tid):
                 ("descr", ('', torrent_info_raw_from_db[14])),
                 ("uplver", ('', torrent_info_raw_from_db[15])),
             )
-            while True:  # 检查下载种子情况,等待种子下载完成
-                if tc.get_torrent(tid).status == "seeding":
-                    break
             # 发布种子
             post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=cookies, files=multipart_data)
             if post.url != "http://bt.byr.cn/takeupload.php":  # 发布检查
@@ -201,6 +204,7 @@ def seed_post(tid):
                 get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(
                     seed_torrent_download_id)  # 下载种子，并更新
     else:  # 如果种子存在（已经有人发布）  -> 辅种
+        print("Find dupe torrent,which id: '%d'.Ohhhhh") % tag
         get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(tag)
 
 
@@ -213,9 +217,7 @@ def seed_judge():
             print("New get torrent:" + torrent_full_name)
             torrent_info_search = re.search(search_pattern, torrent_full_name)
             if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
-                print("Begin post~")
                 seed_post(t[1])  # 发布种子
-                update_torrent_info_from_rpc_to_db()
             else:  # 不符合，更新seed_id为-1
                 sql = "UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0]
                 commit_cursor_into_db(sql)
