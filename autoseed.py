@@ -93,21 +93,25 @@ def update_torrent_info_from_rpc_to_db():
 def del_torrent_with_data_and_db():
     result = get_table_seed_list()
     for t in result:
-        if t[2] != 0:
-            seed_torrent = tc.get_torrent(t[2])
-            if seed_torrent.status == "seeding" and seed_torrent.rateUpload == 0:
-                if ((int(time.time()) - seed_torrent.doneDate) >= setting.torrent_minSeedTime) and (seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (int(time.time()) - seed_torrent.doneDate) >= setting.torrent_maxSeedTime):
-                    tc.stop_torrent(t[2])
-                    tc.stop_torrent(t[1])
-                    print("Reach The Setting Seed time or ratio,Torrents will be delete torrent in next check time.")
-            if seed_torrent.status == "stopped":
-                time.sleep(5)
-                sql = "DELETE FROM seed_list WHERE id = '%d'" % (t[0])
-                commit_cursor_into_db(sql)
-                tc.remove_torrent(t[2], delete_data=True)
-                tc.remove_torrent(t[1], delete_data=True)
-                print("Delete torrent: {0} {1},Which name {2}".format(t[1], t[2], seed_torrent.name))
-
+        if t[2] > 0:
+            try:
+                seed_torrent = tc.get_torrent(t[2])
+            except KeyError as err:
+                print(err)
+                continue
+            else:
+                if seed_torrent.status == "seeding" and seed_torrent.rateUpload == 0:
+                    if ((int(time.time()) - seed_torrent.doneDate) >= setting.torrent_minSeedTime) and (seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (int(time.time()) - seed_torrent.doneDate) >= setting.torrent_maxSeedTime):
+                        tc.stop_torrent(t[2])
+                        tc.stop_torrent(t[1])
+                        print("Reach The Setting Seed time or ratio,Torrents will be delete torrent in next check time.")
+                if seed_torrent.status == "stopped":
+                    time.sleep(5)
+                    sql = "DELETE FROM seed_list WHERE id = '%d'" % (t[0])
+                    commit_cursor_into_db(sql)
+                    tc.remove_torrent(t[2], delete_data=True)
+                    tc.remove_torrent(t[1], delete_data=True)
+                    print("Delete torrent: {0} {1},Which name {2}".format(t[1], t[2], seed_torrent.name))
 
 
 # 从数据库中获取剧集简介
@@ -225,6 +229,7 @@ def seed_judge():
             if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
                 seed_post(t[1])  # 发布种子
             else:  # 不符合，更新seed_id为-1
+                print("Mark Torrent {0} (Name :{1}) As Un-reseed torrent".format(t[1],torrent_full_name))
                 sql = "UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0]
                 commit_cursor_into_db(sql)
 
