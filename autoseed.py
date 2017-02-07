@@ -95,12 +95,13 @@ def del_torrent_with_data_and_db():
     for t in result:
         if t[2] != 0:
             seed_torrent = tc.get_torrent(t[2])
-            if seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (
-                        int(time.time()) - seed_torrent.addedDate) >= setting.torrent_maxSeedTime:
-                sql = "DELETE FROM seed_list WHERE id = '%d'" % (t[0])
-                commit_cursor_into_db(sql)
-                tc.remove_torrent(t[2], delete_data=True)
-                tc.remove_torrent(t[1])
+            if seed_torrent.rateUpload != 0:  # seed_torrent没有上传速度 -> 种子达到最小发布时间 -> 种子达到最大发布时间或达到设定分享率 -> 删除种子
+                if (int(time.time()) - seed_torrent.doneDate) >= setting.torrent_minSeedTime and (seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (int(time.time()) - seed_torrent.doneDate) >= setting.torrent_maxSeedTime):
+                    sql = "DELETE FROM seed_list WHERE id = '%d'" % (t[0])
+                    commit_cursor_into_db(sql)
+                    tc.remove_torrent(t[2], delete_data=True)
+                    tc.remove_torrent(t[1])
+                    print("Delete torrent: '%d' '%d',Which name '%s'") % (t[1], t[2], seed_torrent.name)
 
 
 # 从数据库中获取剧集简介
@@ -167,11 +168,11 @@ def seed_post(tid):
         torrent_info_search = re.search(search_pattern, torrent_full_name)
         try:
             torrent_info_raw_from_db = get_info_from_db(torrent_info_search.group("search_name"))  # 从数据库中获取该美剧信息
-        except IndexError: # 数据库没有该种子数据
+        except IndexError:  # 数据库没有该种子数据
             print("Not Find info of torrent: " + torrent_name + ",Stop post!!")
             sql = "UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % t[0]
             commit_cursor_into_db(sql)
-        else: # 数据库中有该剧集信息
+        else:  # 数据库中有该剧集信息
             multipart_data = (
                 ("type", ('', str(torrent_info_raw_from_db[1]))),
                 ("second_type", ('', str(torrent_info_raw_from_db[2]))),

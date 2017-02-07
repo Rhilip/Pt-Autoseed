@@ -11,6 +11,7 @@
   "db_password": "",
   "db_name": "",
   "byr_cookies": "",
-  "torrent_maxUploadRatio" : 2,
+  "torrent_maxUploadRatio" : 3,
+  "torrent_minSeedTime": 86400,
   "torrent_maxSeedTime": 691200
 }
