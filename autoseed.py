@@ -90,7 +90,7 @@ def update_torrent_info_from_rpc_to_db():
 
 
 # 从transmission和数据库中删除种子及其数据
-def del_torrent_with_data_and_db():
+def check_to_del_torrent_with_data_and_db():
     result = get_table_seed_list()
     for t in result:
         if t[2] > 0:
@@ -233,16 +233,29 @@ def seed_judge():
                 sql = "UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0]
                 commit_cursor_into_db(sql)
 
+'''
+def generate_web_json():
+    print("adfa")
+'''
 
 def main():
     print("Autoseed start~")
     i = 0
     while True:
         print("Check time " + str(i) + " At Time: " + str(time.asctime(time.localtime(time.time()))))
-        update_torrent_info_from_rpc_to_db()
-        seed_judge()
-        del_torrent_with_data_and_db()
-        time.sleep(setting.sleep_time)
+        if i == 0:    # 第一次启动时清除数据表seed_list(因为每次启动tr，种子的id都不同)
+            commit_cursor_into_db(sql="TRUNCATE seed_list")
+        update_torrent_info_from_rpc_to_db()   # 更新表
+        seed_judge()   # reseed判断主函数
+        if i % 5 == 0:  # 每5次运行检查一遍
+            check_to_del_torrent_with_data_and_db()   # 清理种子
+            # generate_web_json()   # 生成展示信息
+        now_hour = int(time.strftime("%H", time.localtime()))
+        if 9 < now_hour < 14:
+            sleep_time = setting.sleep_busy_time
+        else:
+            sleep_time = setting.sleep_free_time
+        time.sleep(sleep_time)
         i += 1
 
 

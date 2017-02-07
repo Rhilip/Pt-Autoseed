@@ -1,5 +1,6 @@
 {
-  "sleep_time": 120,
+  "sleep_busy_time": 120,
+  "sleep_free_time": 600,
   "trans_address": "localhost",
   "trans_port": 9091,
   "trans_user": "",
@@ -13,5 +14,6 @@
   "byr_cookies": "",
   "torrent_maxUploadRatio" : 3,
   "torrent_minSeedTime": 86400,
-  "torrent_maxSeedTime": 691200
+  "torrent_maxSeedTime": 691200,
+  "web_loc":""
 }

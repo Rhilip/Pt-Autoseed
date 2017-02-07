@@ -93,3 +93,6 @@ ENV/
 config.yml
 settings.json
 dome.py
+
+/web-part/img/alipay.jpg
+/web-part/img/WeChat.jpg
