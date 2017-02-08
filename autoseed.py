@@ -101,6 +101,7 @@ def check_to_del_torrent_with_data_and_db():
                 print(err)
                 continue
             else:
+                # 发布种子无上传速度  ->  达到最小做种时间  ->   达到最大做种时间  或者 最大分享率  -> 暂停种子
                 if seed_torrent.status == "seeding" and seed_torrent.rateUpload == 0:
                     if ((int(time.time()) - seed_torrent.addedDate) >= setting.torrent_minSeedTime) and (
                             seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (
@@ -108,7 +109,7 @@ def check_to_del_torrent_with_data_and_db():
                         tc.stop_torrent(t[2])
                         print(
                             "Reach The Setting Seed time or ratio,Torrents will be delete torrent in next check time.")
-                if seed_torrent.status == "stopped":
+                if seed_torrent.status == "stopped":  # 前一轮暂停的种子 -> 删除种子及其文件，清理db条目
                     time.sleep(5)
                     sql = "DELETE FROM seed_list WHERE id = '%d'" % (t[0])
                     commit_cursor_into_db(sql)
@@ -175,47 +176,46 @@ def get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(to
 # 发布
 def seed_post(tid):
     tag = exist_judge(tid)
-    while True:  # 检查下载种子情况,等待种子下载完成
-        if tc.get_torrent(tid).status == "seeding":
-            break
-        time.sleep(1)
     if tag == 0:  # 种子不存在，则准备发布
-        print("Begin post~")
-        t = tc.get_torrent(tid)
-        torrent_full_name = t.name
-        torrent_name = re.search("torrents/(.+?\.torrent)", t.torrentFile).group(1)
-        torrent_info_search = re.search(search_pattern, torrent_full_name)
-        try:
-            torrent_info_raw_from_db = get_info_from_db(torrent_info_search.group("search_name"))  # 从数据库中获取该美剧信息
-        except IndexError:  # 数据库没有该种子数据
-            print("Not Find info of torrent: " + torrent_name + ",Stop post!!")
-            sql = "UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % t[0]
-            commit_cursor_into_db(sql)
-        else:  # 数据库中有该剧集信息
-            multipart_data = (
-                ("type", ('', str(torrent_info_raw_from_db[1]))),
-                ("second_type", ('', str(torrent_info_raw_from_db[2]))),
-                ("file", (torrent_name, open(t.torrentFile, 'rb'), 'application/x-bittorrent')),
-                ("tv_type", ('', str(torrent_info_raw_from_db[4]))),
-                ("cname", ('', torrent_info_raw_from_db[5])),
-                ("tv_ename", ('', torrent_info_search.group("full_name"))),
-                ("tv_season", ('', torrent_info_search.group("tv_season"))),
-                ("tv_filetype", ('', torrent_info_raw_from_db[8])),
-                ("type", ('', str(torrent_info_raw_from_db[9]))),
-                ("small_descr", ('', torrent_info_raw_from_db[10])),
-                ("url", ('', torrent_info_raw_from_db[11])),
-                ("dburl", ('', torrent_info_raw_from_db[12])),
-                ("nfo", ('', torrent_info_raw_from_db[13])),
-                ("descr", ('', torrent_info_raw_from_db[14])),
-                ("uplver", ('', torrent_info_raw_from_db[15])),
-            )
-            # 发布种子
-            post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=cookies, files=multipart_data)
-            if post.url != "http://bt.byr.cn/takeupload.php":  # 发布检查
-                seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
-                print("Post OK,the torrent id :" + seed_torrent_download_id)
-                get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(
-                    seed_torrent_download_id)  # 下载种子，并更新
+        if tc.get_torrent(tid).status == "seeding":   # 种子下载完成
+            print("Begin post~")
+            t = tc.get_torrent(tid)
+            torrent_full_name = t.name
+            torrent_name = re.search("torrents/(.+?\.torrent)", t.torrentFile).group(1)
+            torrent_info_search = re.search(search_pattern, torrent_full_name)
+            try:
+                torrent_info_raw_from_db = get_info_from_db(torrent_info_search.group("search_name"))  # 从数据库中获取该美剧信息
+            except IndexError:  # 数据库没有该种子数据
+                print("Not Find info of torrent: " + torrent_name + ",Stop post!!")
+                sql = "UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % t[0]
+                commit_cursor_into_db(sql)
+            else:  # 数据库中有该剧集信息
+                multipart_data = (
+                    ("type", ('', str(torrent_info_raw_from_db[1]))),
+                    ("second_type", ('', str(torrent_info_raw_from_db[2]))),
+                    ("file", (torrent_name, open(t.torrentFile, 'rb'), 'application/x-bittorrent')),
+                    ("tv_type", ('', str(torrent_info_raw_from_db[4]))),
+                    ("cname", ('', torrent_info_raw_from_db[5])),
+                    ("tv_ename", ('', torrent_info_search.group("full_name"))),
+                    ("tv_season", ('', torrent_info_search.group("tv_season"))),
+                    ("tv_filetype", ('', torrent_info_raw_from_db[8])),
+                    ("type", ('', str(torrent_info_raw_from_db[9]))),
+                    ("small_descr", ('', torrent_info_raw_from_db[10])),
+                    ("url", ('', torrent_info_raw_from_db[11])),
+                    ("dburl", ('', torrent_info_raw_from_db[12])),
+                    ("nfo", ('', torrent_info_raw_from_db[13])),
+                    ("descr", ('', torrent_info_raw_from_db[14])),
+                    ("uplver", ('', torrent_info_raw_from_db[15])),
+                )
+                # 发布种子
+                post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=cookies, files=multipart_data)
+                if post.url != "http://bt.byr.cn/takeupload.php":  # 发布检查
+                    seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
+                    print("Post OK,the torrent id :" + seed_torrent_download_id)
+                    get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(
+                        seed_torrent_download_id)  # 下载种子，并更新
+        else:
+            print("This torrent is still download.Wait until next check time.")
     else:  # 如果种子存在（已经有人发布）  -> 辅种
         print("Find dupe torrent,which id: {0}.Ohhhhh".format(tag))
         get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(tag)
