@@ -7,6 +7,7 @@ import time
 import os
 from http.cookies import SimpleCookie
 import logging
+from logging.handlers import RotatingFileHandler
 
 import pymysql
 import transmissionrpc
@@ -33,12 +34,22 @@ for key, morsel in cookie.items():
 search_pattern = re.compile(
     "(?P<full_name>(?P<search_name>.+?)\.(?P<tv_season>[S|s]\d+(?:(?:[E|e]\d+)|(?:[E|e]\d+-[E|e]\d+)))\..+?-(?P<group>.+?))\.(?P<tv_filetype>mkv)")
 
-logging.basicConfig(level=logging.INFO,
-                    filename='autoseed.log',
-                    filemode='w',
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    datefmt='%m/%d/%Y %I:%M:%S %p')
+# transmissionrpc日志监控
 logging.getLogger('transmissionrpc').setLevel(logging.INFO)
+
+# 日志在主程序中打印
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console.setFormatter(formatter)
+logging.getLogger('').addHandler(console)
+
+# 日志保存
+Rthandler = RotatingFileHandler('autoseed.log', maxBytes=10 * 1024 * 1024, backupCount=5)
+Rthandler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+Rthandler.setFormatter(formatter)
+logging.getLogger('').addHandler(Rthandler)
 
 
 # 提交SQL语句
@@ -295,7 +306,7 @@ def main():
             sleep_time = setting.sleep_busy_time
         else:
             sleep_time = setting.sleep_free_time
-        logging.info("Check time " + str(i) + "OK,Will Sleep for " + sleep_time +"seconds.")
+        logging.info("Check time " + str(i) + "OK,Will Sleep for " + str(sleep_time) + "seconds.")
         time.sleep(sleep_time)
         i += 1
 
