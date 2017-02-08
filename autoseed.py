@@ -255,8 +255,8 @@ def generate_web_json():
             sort_id = t[0]
             info_dict = {
                 "title": download_torrent.name,
-                "size": str(download_torrent.totalSize / (1024 * 1024)) + " MB",
-                "download_start_time": str(download_torrent.addedDate),
+                "size": str('%.2f' % (download_torrent.totalSize / (1024 * 1024))) + " MB",
+                "download_start_time": download_torrent.addedDate,
                 "download_status": download_torrent.status,
                 "download_upload_ratio": str('%.2f' % download_torrent.uploadRatio),
                 "reseed_status": reseed_status,
@@ -280,11 +280,13 @@ def main():
             commit_cursor_into_db(sql="DELETE * FROM seed_list")
         update_torrent_info_from_rpc_to_db()  # 更新表
         seed_judge()  # reseed判断主函数
+        """
         if i % 5 == 0:  # 每5次运行检查一遍
             check_to_del_torrent_with_data_and_db()  # 清理种子
+        """
         generate_web_json()   # 生成展示信息
         now_hour = int(time.strftime("%H", time.localtime()))
-        if 9 < now_hour < 14:
+        if 8 < now_hour < 16:
             sleep_time = setting.sleep_busy_time
         else:
             sleep_time = setting.sleep_free_time
