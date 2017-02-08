@@ -34,8 +34,6 @@ for key, morsel in cookie.items():
 search_pattern = re.compile(
     "(?P<full_name>(?P<search_name>.+?)\.(?P<tv_season>[S|s]\d+(?:(?:[E|e]\d+)|(?:[E|e]\d+-[E|e]\d+)))\..+?-(?P<group>.+?))\.(?P<tv_filetype>mkv)")
 
-# transmissionrpc日志监控
-logging.getLogger('transmissionrpc').setLevel(logging.WARNING)
 
 logging.basicConfig(level=logging.INFO,
                     filename='autoseed.log',
