@@ -38,6 +38,7 @@ logging.basicConfig(level=logging.INFO,
                     filemode='w',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     datefmt='%m/%d/%Y %I:%M:%S %p')
+logging.getLogger('transmissionrpc').setLevel(logging.INFO)
 
 
 # 提交SQL语句
