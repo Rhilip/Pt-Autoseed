@@ -6,6 +6,7 @@ import re
 import time
 import os
 from http.cookies import SimpleCookie
+import logging
 
 import pymysql
 import transmissionrpc
@@ -31,6 +32,12 @@ for key, morsel in cookie.items():
 
 search_pattern = re.compile(
     "(?P<full_name>(?P<search_name>.+?)\.(?P<tv_season>[S|s]\d+(?:(?:[E|e]\d+)|(?:[E|e]\d+-[E|e]\d+)))\..+?-(?P<group>.+?))\.(?P<tv_filetype>mkv)")
+
+logging.basicConfig(level=logging.INFO,
+                    filename='autoseed.log',
+                    filemode='w',
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    datefmt='%m/%d/%Y %I:%M:%S %p')
 
 
 # 提交SQL语句
@@ -87,7 +94,7 @@ def update_torrent_info_from_rpc_to_db():
             elif t.trackers[0]["announce"].find("tracker.byr.cn") == -1:
                 sql = "INSERT INTO seed_list (title,download_id) VALUES ('%s','%d')" % (t.name, t.id)
                 commit_cursor_into_db(sql)
-    print("Update torrent info from rpc to db OK~")
+    logging.info("Update torrent info from rpc to db OK~")
 
 
 # 从transmission和数据库中删除种子及其数据
@@ -98,16 +105,16 @@ def check_to_del_torrent_with_data_and_db():
             try:
                 seed_torrent = tc.get_torrent(t[2])
             except KeyError as err:
-                print(err)
+                logging.error(err)
                 continue
             else:
                 # 发布种子无上传速度  ->  达到最小做种时间  ->   达到最大做种时间  或者 最大分享率  -> 暂停种子
                 if seed_torrent.status == "seeding" and seed_torrent.rateUpload == 0:
                     if ((int(time.time()) - seed_torrent.addedDate) >= setting.torrent_minSeedTime) and (
-                            seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (
-                        int(time.time()) - seed_torrent.addedDate) >= setting.torrent_maxSeedTime):
+                                    seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (
+                                        int(time.time()) - seed_torrent.addedDate) >= setting.torrent_maxSeedTime):
                         tc.stop_torrent(t[2])
-                        print(
+                        logging.info(
                             "Reach The Setting Seed time or ratio,Torrents will be delete torrent in next check time.")
                 if seed_torrent.status == "stopped":  # 前一轮暂停的种子 -> 删除种子及其文件，清理db条目
                     time.sleep(5)
@@ -115,7 +122,7 @@ def check_to_del_torrent_with_data_and_db():
                     commit_cursor_into_db(sql)
                     tc.remove_torrent(t[2], delete_data=True)
                     tc.remove_torrent(t[1], delete_data=True)
-                    print("Delete torrent: {0} {1},Which name {2}".format(t[1], t[2], seed_torrent.name))
+                    logging.warning("Delete torrent: {0} {1},Which name {2}".format(t[1], t[2], seed_torrent.name))
 
 
 # 从数据库中获取剧集简介
@@ -161,7 +168,7 @@ def get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(to
         code.write(torrent_file.content)  # 保存种子文件到watch目录
     os.rename(setting.trans_watchdir + "/" + torrent_download_id + ".torrent.get",
               setting.trans_watchdir + "/" + torrent_download_id + ".torrent")  # 下载完成后，重命名成正确的后缀名
-    print("Download Torrent which id = " + torrent_download_id + "OK!")
+    logging.info("Download Torrent which id = " + torrent_download_id + "OK!")
     time.sleep(5)  # 等待transmission读取种子文件
     new_torrent_id = tc.get_torrents()[-1].id  # 获取种子id
     while True:
@@ -177,8 +184,7 @@ def get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(to
 def seed_post(tid):
     tag = exist_judge(tid)
     if tag == 0:  # 种子不存在，则准备发布
-        if tc.get_torrent(tid).status == "seeding":   # 种子下载完成
-            print("Begin post~")
+        if tc.get_torrent(tid).status == "seeding":  # 种子下载完成
             t = tc.get_torrent(tid)
             torrent_full_name = t.name
             torrent_name = re.search("torrents/(.+?\.torrent)", t.torrentFile).group(1)
@@ -186,7 +192,7 @@ def seed_post(tid):
             try:
                 torrent_info_raw_from_db = get_info_from_db(torrent_info_search.group("search_name"))  # 从数据库中获取该美剧信息
             except IndexError:  # 数据库没有该种子数据
-                print("Not Find info of torrent: " + torrent_name + ",Stop post!!")
+                logging.info("Not Find info of torrent: " + t.name + ",Stop post!!")
                 sql = "UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % t[0]
                 commit_cursor_into_db(sql)
             else:  # 数据库中有该剧集信息
@@ -208,16 +214,17 @@ def seed_post(tid):
                     ("uplver", ('', torrent_info_raw_from_db[15])),
                 )
                 # 发布种子
+                logging.info("Begin post The torrent {0},which name :{1}".format(tid, t.name))
                 post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=cookies, files=multipart_data)
                 if post.url != "http://bt.byr.cn/takeupload.php":  # 发布检查
                     seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
-                    print("Post OK,the torrent id :" + seed_torrent_download_id)
+                    logging.info("Post OK,The torrent id in Byrbt :" + seed_torrent_download_id)
                     get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(
                         seed_torrent_download_id)  # 下载种子，并更新
         else:
-            print("This torrent is still download.Wait until next check time.")
+            logging.warning("This torrent is still download.Wait until next check time.")
     else:  # 如果种子存在（已经有人发布）  -> 辅种
-        print("Find dupe torrent,which id: {0}.Ohhhhh".format(tag))
+        logging.warning("Find dupe torrent,which id: {0}.Ohhhhh".format(tag))
         get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(tag)
 
 
@@ -227,12 +234,12 @@ def seed_judge():
         if t[2] == 0:  # 如果种子没有被重发布过(t[2] == 0)    ,另不发布(t[2] == -1)
             torrent = tc.get_torrent(t[1])  # 获取下载种子信息
             torrent_full_name = torrent.name
-            print("New get torrent:" + torrent_full_name)
+            logging.info("New get torrent:" + torrent_full_name)
             torrent_info_search = re.search(search_pattern, torrent_full_name)
             if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
                 seed_post(t[1])  # 发布种子
             else:  # 不符合，更新seed_id为-1
-                print("Mark Torrent {0} (Name :{1}) As Un-reseed torrent".format(t[1], torrent_full_name))
+                logging.info("Mark Torrent {0} (Name :{1}) As Un-reseed torrent".format(t[1], torrent_full_name))
                 sql = "UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0]
                 commit_cursor_into_db(sql)
 
@@ -271,22 +278,23 @@ def generate_web_json():
 
 
 def main():
-    print("Autoseed start~")
+    logging.info("Autoseed start~")
     i = 0
     while True:
-        print("Check time " + str(i) + " At Time: " + str(time.asctime(time.localtime(time.time()))))
         if i == 0:  # 第一次启动时清除数据表seed_list(因为每次启动tr，种子的id都不同)
+            logging.warning("First time to run Byrbt-Autoseed,db check~")
             commit_cursor_into_db(sql="DELETE FROM seed_list")
         update_torrent_info_from_rpc_to_db()  # 更新表
         seed_judge()  # reseed判断主函数
         if i % 5 == 0:  # 每5次运行检查一遍
             check_to_del_torrent_with_data_and_db()  # 清理种子
-        generate_web_json()   # 生成展示信息
+        generate_web_json()  # 生成展示信息
         now_hour = int(time.strftime("%H", time.localtime()))
         if 8 < now_hour < 16:
             sleep_time = setting.sleep_busy_time
         else:
             sleep_time = setting.sleep_free_time
+        logging.info("Check time " + str(i) + "OK,Will Sleep for " + sleep_time +"seconds.")
         time.sleep(sleep_time)
         i += 1
 
