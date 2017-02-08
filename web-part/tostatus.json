@@ -1,9 +1,29 @@
 {
-  "last_update_time":"",
-  "sort_id":{
-    "title":"",
-    "download_start_time":"",
-    "download_status":"",
-
-  }
+    "data": [
+        [
+            1,
+            {
+                "download_start_time": "13515446",
+                "download_upload_ratio": "1.5",
+                "reseed_ratio": "1.6788",
+                "download_status": "Stop",
+                "title": "sample1",
+                "size": "17 MB",
+                "reseed_status": "Stop"
+            }
+        ],
+        [
+            2,
+            {
+                "download_start_time": "1332432446",
+                "download_upload_ratio": "1",
+                "reseed_ratio": "1.6788",
+                "download_status": "Seeding",
+                "title": "sample2",
+                "size": "357 MB",
+                "reseed_status": "Stop"
+            }
+        ]
+    ],
+    "last_update_time": "2017-02-08 08:41:55"
 }

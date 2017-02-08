@@ -29,7 +29,8 @@ cookies = {}
 for key, morsel in cookie.items():
     cookies[key] = morsel.value
 
-search_pattern = re.compile("(?P<full_name>(?P<search_name>.+?)\.(?P<tv_season>[S|s]\d+(?:(?:[E|e]\d+)|(?:[E|e]\d+-[E|e]\d+)))\..+?-(?P<group>.+?))\.(?P<tv_filetype>mkv)")
+search_pattern = re.compile(
+    "(?P<full_name>(?P<search_name>.+?)\.(?P<tv_season>[S|s]\d+(?:(?:[E|e]\d+)|(?:[E|e]\d+-[E|e]\d+)))\..+?-(?P<group>.+?))\.(?P<tv_filetype>mkv)")
 
 
 # 提交SQL语句
@@ -101,10 +102,13 @@ def check_to_del_torrent_with_data_and_db():
                 continue
             else:
                 if seed_torrent.status == "seeding" and seed_torrent.rateUpload == 0:
-                    if ((int(time.time()) - seed_torrent.doneDate) >= setting.torrent_minSeedTime) and (seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (int(time.time()) - seed_torrent.doneDate) >= setting.torrent_maxSeedTime):
+                    if ((int(time.time()) - seed_torrent.doneDate) >= setting.torrent_minSeedTime) and (
+                            seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (
+                        int(time.time()) - seed_torrent.doneDate) >= setting.torrent_maxSeedTime):
                         tc.stop_torrent(t[2])
                         tc.stop_torrent(t[1])
-                        print("Reach The Setting Seed time or ratio,Torrents will be delete torrent in next check time.")
+                        print(
+                            "Reach The Setting Seed time or ratio,Torrents will be delete torrent in next check time.")
                 if seed_torrent.status == "stopped":
                     time.sleep(5)
                     sql = "DELETE FROM seed_list WHERE id = '%d'" % (t[0])
@@ -229,27 +233,56 @@ def seed_judge():
             if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
                 seed_post(t[1])  # 发布种子
             else:  # 不符合，更新seed_id为-1
-                print("Mark Torrent {0} (Name :{1}) As Un-reseed torrent".format(t[1],torrent_full_name))
+                print("Mark Torrent {0} (Name :{1}) As Un-reseed torrent".format(t[1], torrent_full_name))
                 sql = "UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0]
                 commit_cursor_into_db(sql)
 
-'''
+
 def generate_web_json():
-    print("adfa")
-'''
+    result = list(get_table_seed_list())
+    result.reverse()
+    data = []
+    for t in result:
+        if t[2] != -1:
+            download_torrent = tc.get_torrent(t[1])
+            if t[2] == 0:
+                reseed_status = "Not found."
+                reseed_ratio = 0
+            else:
+                reseed_torrent = tc.get_torrent(t[2])
+                reseed_status = reseed_torrent.status
+                reseed_ratio = reseed_torrent.uploadRatio
+            sort_id = t[0]
+            info_dict = {
+                "title": download_torrent.name,
+                "size": str(download_torrent.totalSize / (1024 * 1024)) + " MB",
+                "download_start_time": str(download_torrent.addedDate),
+                "download_status": download_torrent.status,
+                "download_upload_ratio": str('%.2f' % download_torrent.uploadRatio),
+                "reseed_status": reseed_status,
+                "reseed_ratio": str('%.2f' % reseed_ratio)
+            }
+            data.append((t[0], info_dict))
+    out_list = {
+        "last_update_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+        "data": data
+    }
+    with open(setting.web_loc + "/tostatus.json", 'wt') as f:
+        json.dump(out_list, f)
+
 
 def main():
     print("Autoseed start~")
     i = 0
     while True:
         print("Check time " + str(i) + " At Time: " + str(time.asctime(time.localtime(time.time()))))
-        if i == 0:    # 第一次启动时清除数据表seed_list(因为每次启动tr，种子的id都不同)
-            commit_cursor_into_db(sql="TRUNCATE seed_list")
-        update_torrent_info_from_rpc_to_db()   # 更新表
-        seed_judge()   # reseed判断主函数
+        if i == 0:  # 第一次启动时清除数据表seed_list(因为每次启动tr，种子的id都不同)
+            commit_cursor_into_db(sql="DELETE * FROM seed_list")
+        update_torrent_info_from_rpc_to_db()  # 更新表
+        seed_judge()  # reseed判断主函数
         if i % 5 == 0:  # 每5次运行检查一遍
-            check_to_del_torrent_with_data_and_db()   # 清理种子
-            # generate_web_json()   # 生成展示信息
+            check_to_del_torrent_with_data_and_db()  # 清理种子
+        generate_web_json()   # 生成展示信息
         now_hour = int(time.strftime("%H", time.localtime()))
         if 9 < now_hour < 14:
             sleep_time = setting.sleep_busy_time
