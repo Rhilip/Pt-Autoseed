@@ -295,8 +295,8 @@
                         </thead>
                         <tbody>
                         <tr>
-                            <td><img src="#" class="center-block" alt="支付宝"></td>
-                            <td><img src="#" class="center-block" alt="微信"></td>
+                            <td><img src="/img/alipay.jpg" class="img-responsive center-block" alt="支付宝"></td>
+                            <td><img src="/img/wechat.jpg" class="img-responsive center-block" alt="微信"></td>
                         </tr>
                         </tbody>
                     </table>
@@ -354,7 +354,9 @@
                 status_table.html(output_main)
             })
         }
-        update_info()
+
+        update_info();
+        setInterval(update_info(),120000)
     })
 </script>
 </body>

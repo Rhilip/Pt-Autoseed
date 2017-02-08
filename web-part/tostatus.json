@@ -1,29 +1,29 @@
 {
+    "last_update_time": "2017-02-08 11:04:46",
     "data": [
         [
-            1,
+            20,
             {
-                "download_start_time": "13515446",
-                "download_upload_ratio": "1.5",
-                "reseed_ratio": "1.6788",
-                "download_status": "Stop",
-                "title": "sample1",
-                "size": "17 MB",
-                "reseed_status": "Stop"
+                "title": "DCs.Legends.of.Tomorrow.S02E11.720p.HDTV.X264-DIMENSION.mkv",
+                "size": "862.99 MB",
+                "download_upload_ratio": "0.15",
+                "download_status": "seeding",
+                "reseed_ratio": "0.00",
+                "download_start_time": 1486522871,
+                "reseed_status": "seeding"
             }
         ],
         [
-            2,
+            19,
             {
-                "download_start_time": "1332432446",
-                "download_upload_ratio": "1",
-                "reseed_ratio": "1.6788",
-                "download_status": "Seeding",
-                "title": "sample2",
-                "size": "357 MB",
-                "reseed_status": "Stop"
+                "title": "New.Girl.S06E15.PROPER.720p.HDTV.x264-KILLERS.mkv",
+                "size": "460.92 MB",
+                "download_upload_ratio": "0.26",
+                "download_status": "seeding",
+                "reseed_ratio": "0.00",
+                "download_start_time": 1486521087,
+                "reseed_status": "seeding"
             }
         ]
-    ],
-    "last_update_time": "2017-02-08 08:41:55"
+    ]
 }

@@ -102,11 +102,10 @@ def check_to_del_torrent_with_data_and_db():
                 continue
             else:
                 if seed_torrent.status == "seeding" and seed_torrent.rateUpload == 0:
-                    if ((int(time.time()) - seed_torrent.doneDate) >= setting.torrent_minSeedTime) and (
+                    if ((int(time.time()) - seed_torrent.addedDate) >= setting.torrent_minSeedTime) and (
                             seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (
-                        int(time.time()) - seed_torrent.doneDate) >= setting.torrent_maxSeedTime):
+                        int(time.time()) - seed_torrent.addedDate) >= setting.torrent_maxSeedTime):
                         tc.stop_torrent(t[2])
-                        tc.stop_torrent(t[1])
                         print(
                             "Reach The Setting Seed time or ratio,Torrents will be delete torrent in next check time.")
                 if seed_torrent.status == "stopped":
@@ -280,10 +279,8 @@ def main():
             commit_cursor_into_db(sql="DELETE * FROM seed_list")
         update_torrent_info_from_rpc_to_db()  # 更新表
         seed_judge()  # reseed判断主函数
-        """
         if i % 5 == 0:  # 每5次运行检查一遍
             check_to_del_torrent_with_data_and_db()  # 清理种子
-        """
         generate_web_json()   # 生成展示信息
         now_hour = int(time.strftime("%H", time.localtime()))
         if 8 < now_hour < 16:
