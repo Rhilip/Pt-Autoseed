@@ -276,7 +276,7 @@ def main():
     while True:
         print("Check time " + str(i) + " At Time: " + str(time.asctime(time.localtime(time.time()))))
         if i == 0:  # 第一次启动时清除数据表seed_list(因为每次启动tr，种子的id都不同)
-            commit_cursor_into_db(sql="DELETE * FROM seed_list")
+            commit_cursor_into_db(sql="DELETE FROM seed_list")
         update_torrent_info_from_rpc_to_db()  # 更新表
         seed_judge()  # reseed判断主函数
         if i % 5 == 0:  # 每5次运行检查一遍
