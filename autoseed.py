@@ -86,11 +86,11 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
                 if t.name in title_list:
                     sort_id = result[title_list.index(t.name)][0]
                     if t.trackers[0]["announce"].find("tracker.byr.cn") != -1:
-                        commit_cursor_into_db(
-                            sql="UPDATE seed_list SET seed_id = '%d' WHERE id = '%d'" % (t.id, sort_id))
+                        sql = "UPDATE seed_list SET seed_id = '%d' WHERE id = '%d'" % (t.id, sort_id)
+                        commit_cursor_into_db(sql)
                 elif t.trackers[0]["announce"].find("tracker.byr.cn") == -1:
-                    commit_cursor_into_db(
-                        sql="INSERT INTO seed_list (title,download_id) VALUES ('%s','%d')" % (t.name, t.id))
+                    sql = "INSERT INTO seed_list (title,download_id) VALUES ('%s','%d')" % (t.name, t.id)
+                    commit_cursor_into_db(sql)
         logging.info("Update torrent info from rpc to db OK~")
     else:  # 第一次启动检查(force_clean_check)
         torrent_list_now_in_trans = tc.get_torrents()
@@ -103,17 +103,18 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
                 if t.name in title_list:
                     sort_id = result[title_list.index(t.name)][0]
                     if t.trackers[0]["announce"].find("tracker.byr.cn") != -1:
-                        commit_cursor_into_db(
-                            sql="UPDATE seed_list SET seed_id = '%d' WHERE id = '%d'" % (t.id, sort_id))
+                        sql = "UPDATE seed_list SET seed_id = '%d' WHERE id = '%d'" % (t.id, sort_id)
+                        commit_cursor_into_db(sql)
                     elif t.trackers[0]["announce"].find("tracker.byr.cn") == -1:
-                        commit_cursor_into_db(
-                            sql="UPDATE seed_list SET download_id = '%d' WHERE id = '%d'" % (t.id, sort_id))
+                        sql = "UPDATE seed_list SET download_id = '%d' WHERE id = '%d'" % (t.id, sort_id)
+                        commit_cursor_into_db(sql)
             logging.info("UPDATE whole TABLE seed_list OK,Begin force update check.")
             last_torrent_id_in_db_force_check = max(find_max("download_id", "seed_list"),
                                                     find_max("seed_id", "seed_list"))
             if last_torrent_id_in_db_force_check != last_torrent_id_in_tran:
                 logging.error("FORCE update error,Clean DB \"seed_list\"")
-                commit_cursor_into_db(sql="DELETE FROM seed_list")  # 直接清表
+                sql = "DELETE FROM seed_list"
+                commit_cursor_into_db(sql)  # 直接清表
         else:
             logging.info("The torrent's info in transmission match with db-records,Nothing change.")
 
@@ -141,7 +142,8 @@ def check_to_del_torrent_with_data_and_db():
                             "in next check time.".format(seed_torrent.name))
                 if seed_torrent.status == "stopped":  # 前一轮暂停的种子 -> 删除种子及其文件，清理db条目
                     logging.warning("Will delete torrent: {0} {1},Which name {2}".format(t[2], t[3], seed_torrent.name))
-                    commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
+                    sql = "DELETE FROM seed_list WHERE id = {0}".format(t[0])
+                    commit_cursor_into_db(sql)
                     tc.remove_torrent(t[3], delete_data=True)
                     tc.remove_torrent(t[2], delete_data=True)
                     logging.info(
@@ -151,7 +153,7 @@ def check_to_del_torrent_with_data_and_db():
 # 从数据库中获取剧集简介
 def get_info_from_db(torrent_search_name):
     cursor = db.cursor()
-    sql = "SELECT * FROM tv_info WHERE tv_ename={0}".format(torrent_search_name)
+    sql="SELECT * FROM tv_info WHERE tv_ename={0}".format(torrent_search_name)
     cursor.execute(sql)
     result = list(cursor.fetchall()[0])
     cursor.close()
