@@ -6,7 +6,7 @@ import re
 import time
 import os
 import logging
-from http.cookies import SimpleCookie   # Python3模块   （Py2: from Cookie import SimpleCookie）
+from http.cookies import SimpleCookie  # Python3模块   （Py2: from Cookie import SimpleCookie）
 
 import pymysql
 import transmissionrpc
@@ -32,7 +32,6 @@ for key, morsel in cookie.items():
 
 search_pattern = re.compile(
     "(?P<full_name>(?P<search_name>.+?)\.(?P<tv_season>[S|s]\d+(?:(?:[E|e]\d+)|(?:[E|e]\d+-[E|e]\d+)))\..+?-(?P<group>.+?))\.(?P<tv_filetype>mkv)")
-
 
 logging.basicConfig(level=logging.INFO,
                     filename='autoseed.log',
@@ -87,9 +86,11 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
                 if t.name in title_list:
                     sort_id = result[title_list.index(t.name)][0]
                     if t.trackers[0]["announce"].find("tracker.byr.cn") != -1:
-                        commit_cursor_into_db(sql="UPDATE seed_list SET seed_id = '%d' WHERE id = '%d'" % (t.id, sort_id))
+                        sql = "UPDATE seed_list SET seed_id = '%d' WHERE id = '%d'" % (t.id, sort_id)
+                        commit_cursor_into_db(sql)
                 elif t.trackers[0]["announce"].find("tracker.byr.cn") == -1:
-                    commit_cursor_into_db(sql="INSERT INTO seed_list (title,download_id) VALUES ('%s','%d')" % (t.name, t.id))
+                    sql = "INSERT INTO seed_list (title,download_id) VALUES ('%s','%d')" % (t.name, t.id)
+                    commit_cursor_into_db(sql)
         logging.info("Update torrent info from rpc to db OK~")
     else:  # 第一次启动检查(force_clean_check)
         torrent_list_now_in_trans = tc.get_torrents()
@@ -102,14 +103,18 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
                 if t.name in title_list:
                     sort_id = result[title_list.index(t.name)][0]
                     if t.trackers[0]["announce"].find("tracker.byr.cn") != -1:
-                        commit_cursor_into_db(sql="UPDATE seed_list SET seed_id = '%d' WHERE id = '%d'" % (t.id, sort_id))
+                        sql = "UPDATE seed_list SET seed_id = '%d' WHERE id = '%d'" % (t.id, sort_id)
+                        commit_cursor_into_db(sql)
                     elif t.trackers[0]["announce"].find("tracker.byr.cn") == -1:
-                        commit_cursor_into_db(sql="UPDATE seed_list SET download_id = '%d' WHERE id = '%d'" % (t.id, sort_id))
+                        sql = "UPDATE seed_list SET download_id = '%d' WHERE id = '%d'" % (t.id, sort_id)
+                        commit_cursor_into_db(sql)
             logging.info("UPDATE whole TABLE seed_list OK,Begin force update check.")
-            last_torrent_id_in_db_force_check = max(find_max("download_id", "seed_list"), find_max("seed_id", "seed_list"))
+            last_torrent_id_in_db_force_check = max(find_max("download_id", "seed_list"),
+                                                    find_max("seed_id", "seed_list"))
             if last_torrent_id_in_db_force_check != last_torrent_id_in_tran:
                 logging.error("FORCE update error,Clean DB \"seed_list\"")
-                commit_cursor_into_db(sql="DELETE FROM seed_list")  # 直接清表
+                sql = "DELETE FROM seed_list"
+                commit_cursor_into_db(sql)  # 直接清表
         else:
             logging.info("The torrent's info in transmission match with db-records,Nothing change.")
 
@@ -137,10 +142,12 @@ def check_to_del_torrent_with_data_and_db():
                             "in next check time.".format(seed_torrent.name))
                 if seed_torrent.status == "stopped":  # 前一轮暂停的种子 -> 删除种子及其文件，清理db条目
                     logging.warning("Will delete torrent: {0} {1},Which name {2}".format(t[2], t[3], seed_torrent.name))
-                    commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
+                    sql = "DELETE FROM seed_list WHERE id = {0}".format(t[0])
+                    commit_cursor_into_db(sql)
                     tc.remove_torrent(t[3], delete_data=True)
                     tc.remove_torrent(t[2], delete_data=True)
-                    logging.info("Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], seed_torrent.name))
+                    logging.info(
+                        "Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], seed_torrent.name))
 
 
 # 从数据库中获取剧集简介
@@ -189,7 +196,7 @@ def get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(to
     time.sleep(5)  # 等待transmission读取种子文件
     # TODO 如果从等待读取到更新完成时间，flexget向transmission添加了新的种子，可能会导致数据库记录出错（暂时还没遇到）
     update_torrent_info_from_rpc_to_db()  # 更新数据库
-    requests.post(url="http://bt.byr.cn/thanks.php", cookies=cookies,data={"id": str(torrent_download_id)})  # 自动感谢
+    requests.post(url="http://bt.byr.cn/thanks.php", cookies=cookies, data={"id": str(torrent_download_id)})  # 自动感谢
 
 
 # 发布种子主函数
@@ -224,7 +231,7 @@ def seed_post(tid):
                     ("small_descr", ('', small_descr)),
                     ("url", ('', torrent_info_raw_from_db[11])),
                     ("dburl", ('', torrent_info_raw_from_db[12])),
-                    ("nfo", ('', torrent_info_raw_from_db[13])),   # 实际上并不是这样的，但是nfo一般没有，故这么写
+                    ("nfo", ('', torrent_info_raw_from_db[13])),  # 实际上并不是这样的，但是nfo一般没有，故这么写
                     ("descr", ('', torrent_info_raw_from_db[14])),
                     ("uplver", ('', torrent_info_raw_from_db[15])),
                 )
@@ -305,7 +312,7 @@ def main():
             check_to_del_torrent_with_data_and_db()  # 清理种子
         generate_web_json()  # 生成展示信息
         now_hour = int(time.strftime("%H", time.localtime()))
-        if 8 < now_hour < 16:   # 这里假定8:00-16:00为美剧更新的频繁期
+        if 8 < now_hour < 16:  # 这里假定8:00-16:00为美剧更新的频繁期
             sleep_time = setting.sleep_busy_time
         else:
             sleep_time = setting.sleep_free_time
