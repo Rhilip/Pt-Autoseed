@@ -127,8 +127,14 @@ def check_to_del_torrent_with_data_and_db():
         if t[3] > 0:
             try:
                 seed_torrent = tc.get_torrent(t[3])
-            except KeyError as err:
+            except KeyError as err:   # 种子不存在了
                 logging.error(err)
+                sql = "DELETE FROM seed_list WHERE id = {0}".format(t[0])
+                commit_cursor_into_db(sql)
+                tc.remove_torrent(t[3], delete_data=True)
+                tc.remove_torrent(t[2], delete_data=True)
+                logging.info(
+                    "Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
                 continue
             else:
                 # 发布种子无上传速度  ->  达到最小做种时间  ->   达到最大做种时间  或者 最大分享率  -> 暂停种子
@@ -148,6 +154,26 @@ def check_to_del_torrent_with_data_and_db():
                     tc.remove_torrent(t[2], delete_data=True)
                     logging.info(
                         "Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], seed_torrent.name))
+        try:
+            download_torrent = tc.get_torrent(t[2])
+        except KeyError as err:   # 种子不存在了
+            logging.error(err)
+            sql = "DELETE FROM seed_list WHERE id = {0}".format(t[0])
+            commit_cursor_into_db(sql)
+            tc.remove_torrent(t[3], delete_data=True)
+            tc.remove_torrent(t[2], delete_data=True)
+            logging.info(
+                "Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
+            continue
+        else:
+            if download_torrent.error == 3:
+                logging.error("This torrent (Which name: {0}) has been deleted from transmission (By other "
+                              "Management software).Will also deleted from db.".format(download_torrent.name))
+                tc.remove_torrent(t[3], delete_data=True)
+                tc.remove_torrent(t[2], delete_data=True)
+                sql = "DELETE FROM seed_list WHERE id = {0}".format(t[0])
+                commit_cursor_into_db(sql)
+
 
 
 # 从数据库中获取剧集简介
@@ -275,23 +301,40 @@ def generate_web_json():
     data = []
     for t in result:
         if t[3] != -1:  # 对于不发布的种子不展示
-            download_torrent = tc.get_torrent(t[2])
-            if t[3] == 0:
-                reseed_status = "Not found."
-                reseed_ratio = 0
+            try:
+                download_torrent = tc.get_torrent(t[2])
+            except KeyError:
+                logging.error("This torrent (Which name: {0}) has been deleted from transmission(by other Management software).Will also deleted from db.".format(t[1]))
+                tc.remove_torrent(t[3], delete_data=True)
+                sql = "DELETE FROM seed_list WHERE download_id = {0}".format(t[2])
+                commit_cursor_into_db(sql)
+                continue
             else:
-                reseed_torrent = tc.get_torrent(t[3])
-                reseed_status = reseed_torrent.status
-                reseed_ratio = reseed_torrent.uploadRatio
-            info_dict = {
-                "title": download_torrent.name,
-                "size": str('%.2f' % (download_torrent.totalSize / (1024 * 1024))) + " MB",
-                "download_start_time": download_torrent.addedDate,
-                "download_status": download_torrent.status,
-                "download_upload_ratio": str('%.2f' % download_torrent.uploadRatio),
-                "reseed_status": reseed_status,
-                "reseed_ratio": str('%.2f' % reseed_ratio)
-            }
+                if t[3] == 0:
+                    reseed_status = "Not found."
+                    reseed_ratio = 0
+                else:
+                    try:
+                        reseed_torrent = tc.get_torrent(t[3])
+                    except KeyError:
+                        logging.error("This torrent (Which name: {0}) has been deleted from transmission (By other "
+                                      "Management software).Will also deleted from db.".format(t[1]))
+                        tc.remove_torrent(t[2], delete_data=True)
+                        sql = "DELETE FROM seed_list WHERE seed_id = {0}".format(t[3])
+                        commit_cursor_into_db(sql)
+                        continue
+                    else:
+                        reseed_status = reseed_torrent.status
+                        reseed_ratio = reseed_torrent.uploadRatio
+                info_dict = {
+                    "title": download_torrent.name,
+                    "size": str('%.2f' % (download_torrent.totalSize / (1024 * 1024))) + " MB",
+                    "download_start_time": download_torrent.addedDate,
+                    "download_status": download_torrent.status,
+                    "download_upload_ratio": str('%.2f' % download_torrent.uploadRatio),
+                    "reseed_status": reseed_status,
+                    "reseed_ratio": str('%.2f' % reseed_ratio)
+                }
             data.append((t[0], info_dict))
     out_list = {
         "last_update_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
