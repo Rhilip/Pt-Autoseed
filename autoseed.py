@@ -195,7 +195,7 @@ def seed_post(tid):
                 torrent_info_raw_from_db = get_info_from_db(torrent_info_search.group("search_name"))  # 从数据库中获取该美剧信息
             except IndexError:  # 数据库没有该种子数据
                 logging.info("Not Find info of torrent: " + t.name + ",Stop post!!")
-                sql = "UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % t[0]
+                sql = "UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % tid
                 commit_cursor_into_db(sql)
             else:  # 数据库中有该剧集信息
                 multipart_data = (
