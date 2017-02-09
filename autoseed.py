@@ -216,9 +216,10 @@ def seed_post(tid):
                 commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % tid)
             else:  # 数据库中有该剧集信息
                 if str(torrent_info_search.group("group")).lower() == "fleet":
-                    small_descr = torrent_info_raw_from_db[10] + torrent_info_search.group("tv_season") + "|fleet慎下"
+                    small_descr = torrent_info_raw_from_db[10] + " " + torrent_info_search.group(
+                        "tv_season") + " |fleet慎下"
                 else:
-                    small_descr = torrent_info_raw_from_db[10] + torrent_info_search.group("tv_season")
+                    small_descr = torrent_info_raw_from_db[10] + " " + torrent_info_search.group("tv_season")
                 multipart_data = (
                     ("type", ('', str(torrent_info_raw_from_db[1]))),
                     ("second_type", ('', str(torrent_info_raw_from_db[2]))),
