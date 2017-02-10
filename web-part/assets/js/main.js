@@ -53,10 +53,13 @@ jQuery(document).ready(function($) {
                     "<td>" + status["download_status"] + " R:" + status["download_upload_ratio"] + "</td>" +
                     "<td>" + status["reseed_status"] + " R:" + status["reseed_ratio"] + "</td>" +
                     "</tr>";
-                output_main = output_main.concat(output)
+                output_main = output_main.concat(output);
+                if (i>=10){
+                    break;
+                }
             }
             output_main = output_main.concat("</tbody>");
-            status_table.html(output_main)
+            status_table.html(output_main);
         })
     }
 
