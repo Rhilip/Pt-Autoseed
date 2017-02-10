@@ -127,11 +127,11 @@ def check_to_del_torrent_with_data_and_db():
         if t[3] > 0:
             try:
                 seed_torrent = tc.get_torrent(t[3])
-            except KeyError as err:   # 种子不存在了
+            except KeyError as err:  # 种子不存在了
                 logging.error(err)
                 sql = "DELETE FROM seed_list WHERE id = {0}".format(t[0])
                 commit_cursor_into_db(sql)
-                tc.remove_torrent(t[3], delete_data=True)
+                tc.remove_torrent(t[3], delete_data=True)    # remove_torrent()不会因为种子不存在而出错
                 tc.remove_torrent(t[2], delete_data=True)
                 logging.info(
                     "Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
@@ -156,7 +156,7 @@ def check_to_del_torrent_with_data_and_db():
                         "Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], seed_torrent.name))
         try:
             download_torrent = tc.get_torrent(t[2])
-        except KeyError as err:   # 种子不存在了
+        except KeyError as err:  # 种子不存在了
             logging.error(err)
             sql = "DELETE FROM seed_list WHERE id = {0}".format(t[0])
             commit_cursor_into_db(sql)
@@ -173,7 +173,6 @@ def check_to_del_torrent_with_data_and_db():
                 tc.remove_torrent(t[2], delete_data=True)
                 sql = "DELETE FROM seed_list WHERE id = {0}".format(t[0])
                 commit_cursor_into_db(sql)
-
 
 
 # 从数据库中获取剧集简介
@@ -207,9 +206,9 @@ def exist_judge(tid):
                 requests.get("http://bt.byr.cn/details.php?id=" + torrent_download_id, cookies=cookies).text,
                 "html5lib")
             tid_info_title_text = tid_info.title.get_text()  # get主标题
-            if re.search(re.compile(full_name), tid_info_title_text):  # 确认主标题（二步确认？）
+            if re.search(re.compile(torrent_info_search.group("tv_season")), tid_info_title_text):  # 确认主标题（二步确认？）
                 tag = torrent_download_id
-        return tag
+    return tag
 
 
 def get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(torrent_download_id):
@@ -221,7 +220,6 @@ def get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(to
               setting.trans_watchdir + "/" + torrent_download_id + ".torrent")  # 下载完成后，重命名成正确的后缀名
     logging.info("Download Torrent which id = " + torrent_download_id + "OK!")
     time.sleep(5)  # 等待transmission读取种子文件
-    # TODO 如果从等待读取到更新完成时间，flexget向transmission添加了新的种子，可能会导致数据库记录出错（暂时还没遇到）
     update_torrent_info_from_rpc_to_db()  # 更新数据库
     requests.post(url="http://bt.byr.cn/thanks.php", cookies=cookies, data={"id": str(torrent_download_id)})  # 自动感谢
 
@@ -246,7 +244,7 @@ def seed_post(tid):
                         "tv_season") + " |fleet慎下"
                 else:
                     small_descr = torrent_info_raw_from_db[10] + " " + torrent_info_search.group("tv_season")
-                multipart_data = (
+                multipart_data = (   # 提交表单
                     ("type", ('', str(torrent_info_raw_from_db[1]))),
                     ("second_type", ('', str(torrent_info_raw_from_db[2]))),
                     ("file", (torrent_file_name, open(download_torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
@@ -304,7 +302,10 @@ def generate_web_json():
             try:
                 download_torrent = tc.get_torrent(t[2])
             except KeyError:
-                logging.error("This torrent (Which name: {0}) has been deleted from transmission(by other Management software).Will also deleted from db.".format(t[1]))
+                # TODO 这里应该可以与前面的删种函数先结合优化。
+                logging.error(
+                    "This torrent (Which name: {0}) has been deleted from transmission(by other Management software).Will also deleted from db.".format(
+                        t[1]))
                 tc.remove_torrent(t[3], delete_data=True)
                 sql = "DELETE FROM seed_list WHERE download_id = {0}".format(t[2])
                 commit_cursor_into_db(sql)
