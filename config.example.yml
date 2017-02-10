@@ -1,6 +1,6 @@
 tasks:
   MTV:
-    rss: 
+    rss:
     series:
       settings:
         group 1:
@@ -9,6 +9,7 @@ tasks:
           propers: 1 days
       group 1:
         - 2.Broke.Girls
+        - 24.Legacy
         - American.Horror.Story
         - Arrow
         - Billions
@@ -38,6 +39,7 @@ tasks:
         - Madam.Secretary
         - Masters.of.Sex
         - Modern.Family
+        - Mom
         - Mr.Robot
         - New.Girl
         - Orphan.Black
@@ -65,10 +67,11 @@ tasks:
         - Vikings
         - Westworld
         - Z.Nation
+        - Timeless
       normal:
         - The.Big.Bang.Theory:
             qualities:
               - 720p hdtv
               - 1080p hdtv
-    download: 
+    download:
     verify_ssl_certificates: no
