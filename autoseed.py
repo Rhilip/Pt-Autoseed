@@ -13,6 +13,8 @@ import transmissionrpc
 import requests
 from bs4 import BeautifulSoup
 
+from mediainfo import show_media_info
+
 
 # Config
 class JSONObject:
@@ -31,7 +33,7 @@ for key, morsel in cookie.items():
     cookies[key] = morsel.value
 
 search_pattern = re.compile(
-    "(?P<full_name>(?P<search_name>.+?)\.(?P<tv_season>[S|s]\d+(?:(?:[E|e]\d+)|(?:[E|e]\d+-[E|e]\d+)))\..+?-(?P<group>.+?))\.(?P<tv_filetype>mkv)")
+    "(?P<full_name>(?P<search_name>.+?)(?:\.| )(?P<tv_season>[Ss]\d+(?:(?:[Ee]\d+)|(?:[Ee]\d+-[Ee]\d+))|(?:[Ee]p?\d+-[Ee]p?\d+))(?:\.| ).+-(?P<group>.+?))(?:\.(?P<tv_filetype>mkv|mp4)$|$)")
 
 logging.basicConfig(level=logging.INFO,
                     filename='autoseed.log',
@@ -48,6 +50,7 @@ def commit_cursor_into_db(sql):
         db.commit()
         cursor.close()
     except:
+        logging.error("A commit to db ERROR,DDL: " + sql)
         db.rollback()
 
 
@@ -120,6 +123,7 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
 
 
 # 从transmission和数据库中删除种子及其数据
+# TODO 优化该删种方法
 def check_to_del_torrent_with_data_and_db():
     logging.info("Begin torrent's status check.If reach condition you set at \"setting.json\",You will get a warning.")
     result = get_table_seed_list()
@@ -131,7 +135,7 @@ def check_to_del_torrent_with_data_and_db():
                 logging.error(err)
                 sql = "DELETE FROM seed_list WHERE id = {0}".format(t[0])
                 commit_cursor_into_db(sql)
-                tc.remove_torrent(t[3], delete_data=True)    # remove_torrent()不会因为种子不存在而出错
+                tc.remove_torrent(t[3], delete_data=True)  # remove_torrent()不会因为种子不存在而出错
                 tc.remove_torrent(t[2], delete_data=True)
                 logging.info(
                     "Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
@@ -239,12 +243,22 @@ def seed_post(tid):
                 logging.warning("Not Find info from db of torrent: \"" + download_torrent.name + "\",Stop post!!")
                 commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % tid)
             else:  # 数据库中有该剧集信息
+                # 副标题 small_descr
                 if str(torrent_info_search.group("group")).lower() == "fleet":
                     small_descr = torrent_info_raw_from_db[10] + " " + torrent_info_search.group(
                         "tv_season") + " |fleet慎下"
                 else:
                     small_descr = torrent_info_raw_from_db[10] + " " + torrent_info_search.group("tv_season")
-                multipart_data = (   # 提交表单
+                # 简介 descr
+                try:
+                    media_info = show_media_info(
+                        file=setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"])
+                except IndexError:
+                    logging.warning("Can't get MediaInfo,Use raw descr.")
+                    descr = torrent_info_raw_from_db[14]
+                else:
+                    descr = torrent_info_raw_from_db[14] + media_info
+                multipart_data = (  # 提交表单
                     ("type", ('', str(torrent_info_raw_from_db[1]))),
                     ("second_type", ('', str(torrent_info_raw_from_db[2]))),
                     ("file", (torrent_file_name, open(download_torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
@@ -258,7 +272,7 @@ def seed_post(tid):
                     ("url", ('', torrent_info_raw_from_db[11])),
                     ("dburl", ('', torrent_info_raw_from_db[12])),
                     ("nfo", ('', torrent_info_raw_from_db[13])),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-                    ("descr", ('', torrent_info_raw_from_db[14])),
+                    ("descr", ('', descr)),
                     ("uplver", ('', torrent_info_raw_from_db[15])),
                 )
                 # 发布种子
@@ -302,13 +316,8 @@ def generate_web_json():
             try:
                 download_torrent = tc.get_torrent(t[2])
             except KeyError:
-                # TODO 这里应该可以与前面的删种函数先结合优化。
-                logging.error(
-                    "This torrent (Which name: {0}) has been deleted from transmission(by other Management software).Will also deleted from db.".format(
-                        t[1]))
-                tc.remove_torrent(t[3], delete_data=True)
-                sql = "DELETE FROM seed_list WHERE download_id = {0}".format(t[2])
-                commit_cursor_into_db(sql)
+                logging.error("This torrent (Which name: {0}) has been deleted from transmission (By other "
+                              "Management software).".format(t[1]))
                 continue
             else:
                 if t[3] == 0:
@@ -319,10 +328,7 @@ def generate_web_json():
                         reseed_torrent = tc.get_torrent(t[3])
                     except KeyError:
                         logging.error("This torrent (Which name: {0}) has been deleted from transmission (By other "
-                                      "Management software).Will also deleted from db.".format(t[1]))
-                        tc.remove_torrent(t[2], delete_data=True)
-                        sql = "DELETE FROM seed_list WHERE seed_id = {0}".format(t[3])
-                        commit_cursor_into_db(sql)
+                                      "Management software).".format(t[1]))
                         continue
                     else:
                         reseed_status = reseed_torrent.status
@@ -358,9 +364,9 @@ def main():
             check_to_del_torrent_with_data_and_db()  # 清理种子
         generate_web_json()  # 生成展示信息
         now_hour = int(time.strftime("%H", time.localtime()))
-        if 8 < now_hour < 16:  # 这里假定8:00-16:00为美剧更新的频繁期
+        if 8 <= now_hour < 16:  # 这里假定8:00-16:00为美剧更新的频繁期
             sleep_time = setting.sleep_busy_time
-        else:
+        else:  # 其他时间段
             sleep_time = setting.sleep_free_time
         logging.info("Check time " + str(i) + " OK,Will Sleep for " + str(sleep_time) + " seconds.")
         time.sleep(sleep_time)

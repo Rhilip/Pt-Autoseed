@@ -6,6 +6,7 @@
   "trans_user": "",
   "trans_password": "",
   "trans_watchdir": "",
+  "trans_downloaddir" :"",
   "db_address": "localhost",
   "db_port": 3306,
   "db_user": "",
