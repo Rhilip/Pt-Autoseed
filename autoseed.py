@@ -33,7 +33,8 @@ for key, morsel in cookie.items():
     cookies[key] = morsel.value
 
 search_pattern = re.compile(
-    "(?P<full_name>(?P<search_name>.+?)(?:\.| )(?P<tv_season>[Ss]\d+(?:(?:[Ee]\d+)|(?:[Ee]\d+-[Ee]\d+))|(?:[Ee]p?\d+-[Ee]p?\d+))(?:\.| ).+-(?P<group>.+?))(?:\.(?P<tv_filetype>mkv|mp4)$|$)")
+    "(?P<full_name>(?P<search_name>.+?)(?:\.| )(?P<tv_season>(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?).+-(?P<group>.+?))"
+    "(?:\.(?P<tv_filetype>\w+)$|$)")
 
 logging.basicConfig(level=logging.INFO,
                     filename='autoseed.log',
@@ -123,22 +124,18 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
 
 
 # 从transmission和数据库中删除种子及其数据
-# TODO 优化该删种方法
 def check_to_del_torrent_with_data_and_db():
     logging.info("Begin torrent's status check.If reach condition you set at \"setting.json\",You will get a warning.")
     result = get_table_seed_list()
     for t in result:
-        if t[3] > 0:
+        if t[3] > 0:    # 有reseed的种子
             try:
                 seed_torrent = tc.get_torrent(t[3])
             except KeyError as err:  # 种子不存在了
                 logging.error(err)
-                sql = "DELETE FROM seed_list WHERE id = {0}".format(t[0])
-                commit_cursor_into_db(sql)
-                tc.remove_torrent(t[3], delete_data=True)  # remove_torrent()不会因为种子不存在而出错
-                tc.remove_torrent(t[2], delete_data=True)
-                logging.info(
-                    "Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
+                commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
+                tc.remove_torrent(t[2], delete_data=True)   # remove_torrent()不会因为种子不存在而出错(错了也直接打log，不会崩)
+                logging.warning("Delete torrent(id:{0} {1})'s record form db,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
                 continue
             else:
                 # 发布种子无上传速度  ->  达到最小做种时间  ->   达到最大做种时间  或者 最大分享率  -> 暂停种子
@@ -147,37 +144,24 @@ def check_to_del_torrent_with_data_and_db():
                                     seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (
                                         int(time.time()) - seed_torrent.addedDate) >= setting.torrent_maxSeedTime):
                         tc.stop_torrent(t[3])
+                        tc.stop_torrent(t[2])
                         logging.warning(
                             "Reach The Setting Seed time or ratio,Torrents (Which name:\"{0}\") will be delete"
                             "in next check time.".format(seed_torrent.name))
                 if seed_torrent.status == "stopped":  # 前一轮暂停的种子 -> 删除种子及其文件，清理db条目
-                    logging.warning("Will delete torrent: {0} {1},Which name {2}".format(t[2], t[3], seed_torrent.name))
-                    sql = "DELETE FROM seed_list WHERE id = {0}".format(t[0])
-                    commit_cursor_into_db(sql)
+                    logging.warning("Will delete torrent: {0} {1},Which name {2}".format(t[2], t[3], t[1]))
+                    commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
                     tc.remove_torrent(t[3], delete_data=True)
                     tc.remove_torrent(t[2], delete_data=True)
-                    logging.info(
-                        "Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], seed_torrent.name))
-        try:
-            download_torrent = tc.get_torrent(t[2])
-        except KeyError as err:  # 种子不存在了
-            logging.error(err)
-            sql = "DELETE FROM seed_list WHERE id = {0}".format(t[0])
-            commit_cursor_into_db(sql)
-            tc.remove_torrent(t[3], delete_data=True)
-            tc.remove_torrent(t[2], delete_data=True)
-            logging.info(
-                "Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
-            continue
-        else:
-            if download_torrent.error == 3:
-                logging.error("This torrent (Which name: {0}) has been deleted from transmission (By other "
-                              "Management software).Will also deleted from db.".format(download_torrent.name))
-                tc.remove_torrent(t[3], delete_data=True)
-                tc.remove_torrent(t[2], delete_data=True)
-                sql = "DELETE FROM seed_list WHERE id = {0}".format(t[0])
-                commit_cursor_into_db(sql)
-
+                    logging.info("Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
+        elif t[3] == -1:
+            try:
+                tc.get_torrent(t[2])
+            except KeyError as err:  # 种子不存在了
+                logging.error(err)
+                commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
+                logging.info("Delete Un-reseed torrent(id:{0})'s record form db,Which name \"{1}\" OK.".format(t[2], t[1]))
+                continue
 
 # 从数据库中获取剧集简介
 def get_info_from_db(torrent_search_name):
@@ -215,7 +199,7 @@ def exist_judge(tid):
     return tag
 
 
-def get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(torrent_download_id):
+def download_reseed_torrent_and_update_tr_with_db(torrent_download_id):
     download_torrent_link = "http://bt.byr.cn/download.php?id=" + torrent_download_id
     torrent_file = requests.get(download_torrent_link, cookies=cookies)  # 下载种子
     with open(setting.trans_watchdir + "/" + torrent_download_id + ".torrent.get", "wb") as code:
@@ -241,7 +225,7 @@ def seed_post(tid):
                 torrent_info_raw_from_db = get_info_from_db(torrent_info_search.group("search_name"))  # 从数据库中获取该美剧信息
             except IndexError:  # 数据库没有该种子数据
                 logging.warning("Not Find info from db of torrent: \"" + download_torrent.name + "\",Stop post!!")
-                commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % tid)
+                commit_cursor_into_db(sql="UPDATE seed_list SET seed_id = -1 WHERE download_id='{:d}'".format(tid))
             else:  # 数据库中有该剧集信息
                 # 副标题 small_descr
                 if str(torrent_info_search.group("group")).lower() == "fleet":
@@ -278,16 +262,15 @@ def seed_post(tid):
                 # 发布种子
                 logging.info("Begin post The torrent {0},which name :{1}".format(tid, download_torrent.name))
                 post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=cookies, files=multipart_data)
-                if post.url != "http://bt.byr.cn/takeupload.php":  # 发布检查
+                if post.url != "http://bt.byr.cn/takeupload.php":  # 发布成功检查
                     seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
                     logging.info("Post OK,The torrent id in Byrbt :" + seed_torrent_download_id)
-                    get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(
-                        seed_torrent_download_id)  # 下载种子，并更新
+                    download_reseed_torrent_and_update_tr_with_db(seed_torrent_download_id)  # 下载种子，并更新
         else:
             logging.warning("This torrent is still download.Wait until next check time.")
     else:  # 如果种子存在（已经有人发布）  -> 辅种
         logging.warning("Find dupe torrent,which id: {0}.Ohhhhh".format(tag))
-        get_torrent_from_reseed_tracker_and_add_it_to_transmission_with_db_update(tag)
+        download_reseed_torrent_and_update_tr_with_db(tag)
 
 
 # 发布判定
@@ -335,19 +318,19 @@ def generate_web_json():
                         reseed_ratio = reseed_torrent.uploadRatio
                 info_dict = {
                     "title": download_torrent.name,
-                    "size": str('%.2f' % (download_torrent.totalSize / (1024 * 1024))) + " MB",
+                    "size": "{:.2f} MiB".format(download_torrent.totalSize / (1024 * 1024)),
                     "download_start_time": download_torrent.addedDate,
                     "download_status": download_torrent.status,
-                    "download_upload_ratio": str('%.2f' % download_torrent.uploadRatio),
+                    "download_upload_ratio": "{:.2f}".format(download_torrent.uploadRatio),
                     "reseed_status": reseed_status,
-                    "reseed_ratio": str('%.2f' % reseed_ratio)
+                    "reseed_ratio": "{:.2f}".format(reseed_ratio)
                 }
             data.append((t[0], info_dict))
     out_list = {
         "last_update_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
         "data": data
     }
-    with open(setting.web_loc + "/tostatus.json", 'wt') as f:
+    with open(setting.web_loc + "/tostatus.json", "wt") as f:
         json.dump(out_list, f)
 
 
@@ -368,7 +351,7 @@ def main():
             sleep_time = setting.sleep_busy_time
         else:  # 其他时间段
             sleep_time = setting.sleep_free_time
-        logging.info("Check time " + str(i) + " OK,Will Sleep for " + str(sleep_time) + " seconds.")
+        logging.info("Check time {0} OK,Will Sleep for {1} seconds.".format(str(i), str(sleep_time)))
         time.sleep(sleep_time)
         i += 1
 

@@ -87,12 +87,12 @@ def show_media_info(file=''):
     audio_output = "<strong>Audio</strong><br>"
 
     for i in video:
-        video_output_temp = "<br>".join(i) + "<br>"
+        video_output_temp = "<br>".join(i) + "<br><br>"
         video_output += video_output_temp
 
     for i in audio:
-        audio_output_temp = "<br>".join(i) + "<br>"
+        audio_output_temp = "<br>".join(i) + "<br><br>"
         audio_output += audio_output_temp
 
-    return "<fieldset><legend><b>MediaInfo:（自动生成，仅供参考）</b></legend>{0}<br>{1}<br>{2}</fieldset> ".format(
+    return "<br><fieldset><legend><b>MediaInfo:（自动生成，仅供参考）</b></legend>{0}<br>{1}<br>{2}</fieldset> ".format(
         general_output, video_output, audio_output)
