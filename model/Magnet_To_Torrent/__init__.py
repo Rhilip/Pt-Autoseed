@@ -130,7 +130,7 @@ def main():
             sys.exit()
     #
     # Defaulting to the old of doing things
-    # 
+    #
     if output_name is None and magnet is None:
         if len(sys.argv) >= 2:
             magnet = sys.argv[1]

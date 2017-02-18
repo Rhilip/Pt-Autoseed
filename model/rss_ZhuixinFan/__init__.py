@@ -8,7 +8,7 @@ import os
 import pymysql
 import requests
 from bs4 import BeautifulSoup
-from Magnet_To_Torrent2 import magnet2torrent
+from model.Magnet_To_Torrent import magnet2torrent
 
 
 class JSONObject:
