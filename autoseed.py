@@ -101,27 +101,11 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
         last_torrent_id_in_tran = torrent_list_now_in_trans[-1].id
         last_torrent_id_in_db = max(find_max("download_id", "seed_list"), find_max("seed_id", "seed_list"))
         if last_torrent_id_in_db != last_torrent_id_in_tran:  # 如果对不上，说明系统重新启动过或者tr崩溃过
-            logging.warning(
-                "It seems that torrent's id in transmission didn't match with db-records,update the whole seed_list.")
-            for t in torrent_list_now_in_trans:
-                if t.name in title_list:
-                    sort_id = result[title_list.index(t.name)][0]
-                    if t.trackers[0]["announce"].find("tracker.byr.cn") != -1:
-                        sql = "UPDATE seed_list SET seed_id = '%d' WHERE id = '%d'" % (t.id, sort_id)
-                        commit_cursor_into_db(sql)
-                    elif t.trackers[0]["announce"].find("tracker.byr.cn") == -1:
-                        sql = "UPDATE seed_list SET download_id = '%d' WHERE id = '%d'" % (t.id, sort_id)
-                        commit_cursor_into_db(sql)
-            update_torrent_info_from_rpc_to_db()
-            logging.info("UPDATE whole TABLE seed_list OK,Begin force update check.")
-            last_torrent_id_in_db_force_check = max(find_max("download_id", "seed_list"),
-                                                    find_max("seed_id", "seed_list"))
-            if last_torrent_id_in_db_force_check != last_torrent_id_in_tran:
-                logging.error("FORCE update error,Clean DB \"seed_list\"")
-                sql = "DELETE FROM seed_list"
-                commit_cursor_into_db(sql)  # 直接清表
+            logging.error(
+                "It seems that torrent's id in transmission didn't match with db-records,Clean the whole table \"seed_list\"")
+            commit_cursor_into_db(sql="DELETE FROM seed_list")  # 直接清表
         else:
-            logging.info("The torrent's info in transmission match with db-records,Nothing change.")
+            logging.info("The torrent's info in transmission match with db-records,DB check OK~")
 
 
 # 从transmission和数据库中删除种子及其数据
@@ -136,7 +120,8 @@ def check_to_del_torrent_with_data_and_db():
                 logging.error(err)
                 commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
                 tc.remove_torrent(t[2], delete_data=True)  # remove_torrent()不会因为种子不存在而出错(错了也直接打log，不会崩)
-                logging.warning("Delete download torrent(id:{0})'s record form db,Which name \"{1}\" OK.".format(t[2], t[1]))
+                logging.warning(
+                    "Delete download torrent(id:{0})'s record form db,Which name \"{1}\" OK.".format(t[2], t[1]))
                 continue
             else:
                 # 发布种子无上传速度  ->  达到最小做种时间  ->   达到最大做种时间  或者 最大分享率  -> 暂停种子
@@ -161,7 +146,8 @@ def check_to_del_torrent_with_data_and_db():
             except KeyError as err:  # 种子不存在了
                 logging.error(err)
                 commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
-                logging.info("Delete Un-reseed torrent(id:{0})'s record form db,Which name \"{1}\" OK.".format(t[2], t[1]))
+                logging.info(
+                    "Delete Un-reseed torrent(id:{0})'s record form db,Which name \"{1}\" OK.".format(t[2], t[1]))
                 continue
 
 
