@@ -13,7 +13,7 @@ import transmissionrpc
 import requests
 from bs4 import BeautifulSoup
 
-from mediainfo import show_media_info
+from model.mediainfo import show_media_info
 
 
 # Config
@@ -128,14 +128,14 @@ def check_to_del_torrent_with_data_and_db():
     logging.info("Begin torrent's status check.If reach condition you set at \"setting.json\",You will get a warning.")
     result = get_table_seed_list()
     for t in result:
-        if t[3] > 0:    # 有reseed的种子
+        if t[3] > 0:  # 有reseed的种子
             try:
                 seed_torrent = tc.get_torrent(t[3])
             except KeyError as err:  # 种子不存在了
                 logging.error(err)
                 commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
-                tc.remove_torrent(t[2], delete_data=True)   # remove_torrent()不会因为种子不存在而出错(错了也直接打log，不会崩)
-                logging.warning("Delete torrent(id:{0} {1})'s record form db,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
+                tc.remove_torrent(t[2], delete_data=True)  # remove_torrent()不会因为种子不存在而出错(错了也直接打log，不会崩)
+                logging.warning("Delete download torrent(id:{0})'s record form db,Which name \"{1}\" OK.".format(t[2], t[1]))
                 continue
             else:
                 # 发布种子无上传速度  ->  达到最小做种时间  ->   达到最大做种时间  或者 最大分享率  -> 暂停种子
@@ -162,6 +162,7 @@ def check_to_del_torrent_with_data_and_db():
                 commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
                 logging.info("Delete Un-reseed torrent(id:{0})'s record form db,Which name \"{1}\" OK.".format(t[2], t[1]))
                 continue
+
 
 # 从数据库中获取剧集简介
 def get_info_from_db(torrent_search_name):
