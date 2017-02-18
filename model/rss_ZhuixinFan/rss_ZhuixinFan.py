@@ -30,7 +30,6 @@ def serialize_instance(obj):
     return d
 
 
-# 从数据库中获取剧集简介
 def get_info_from_db(torrent_search_name):
     db = pymysql.connect(host=main_setting.db_address, port=main_setting.db_port,
                          user=main_setting.db_user, password=main_setting.db_password,
