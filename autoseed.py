@@ -112,6 +112,7 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
                     elif t.trackers[0]["announce"].find("tracker.byr.cn") == -1:
                         sql = "UPDATE seed_list SET download_id = '%d' WHERE id = '%d'" % (t.id, sort_id)
                         commit_cursor_into_db(sql)
+            update_torrent_info_from_rpc_to_db()
             logging.info("UPDATE whole TABLE seed_list OK,Begin force update check.")
             last_torrent_id_in_db_force_check = max(find_max("download_id", "seed_list"),
                                                     find_max("seed_id", "seed_list"))
