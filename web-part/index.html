@@ -194,7 +194,7 @@
         <div class="docs-inner">
             <h2 class="title text-center">转载名录</h2>
             <div class="block">
-                <h3 class="sub-title text-center">(Last Update time in this page : 2017.02.09)</h3>
+                <h3 class="sub-title text-center">(Last Update time in this page : 2017.02.20)</h3>
                 <ul>
                     <li><p>更新历史：<a href="https://github.com/Rhilip/Byrbt-Autoseed/commits/master/config.example.yml" target="_blank">History for config.example.yml - Rhilip/Byrbt-Autoseed</a></p></li>
                     <li><p>未注明quality的情况均为720p hdtv</p></li>
@@ -207,6 +207,7 @@
  - 24.Legacy
  - American.Horror.Story
  - Arrow
+ - APB
  - Billions
  - Black.Mirror
  - Black.Sails
@@ -240,6 +241,7 @@
                     <div class="code-block">
                         <div class="item col-md-6">
                                 <pre><code class="language-markup" id="menu_right">
+ - Mom
  - Mr.Robot
  - New.Girl
  - Orphan.Black
@@ -270,7 +272,8 @@
  - Vikings
  - Westworld
  - Z.Nation
- - Timeless        </code></pre>
+ - Timeless
+                                </code></pre>
                         </div><!--//content-->
                     </div>
                 </div>
@@ -285,24 +288,25 @@
         <div class="license-inner">
             <h2 class="title text-center">投食及其他.....</h2>
             <div class="info">
-                <div class="row">
-                    <p>嗯，如果可以滴话，欢迎给更新姬及其master投食，会大大滴感谢你滴，嗯嗯..</p>
-                    <table class="table">
-                        <thead>
-                        <tr>
-                            <th>支付宝</th>
-                            <th>微信</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr>
-                            <td><img src="img/alipay.png" class="img-responsive center-block" alt="支付宝"></td>
-                            <td><img src="img/wechat.png" class="img-responsive center-block" alt="微信"></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
                 <ul>
+                    <li><p>嗯，如果可以滴话，欢迎给更新姬及其master投食，会大大滴感谢你滴，嗯嗯..</p>
+                        <div class="row">
+                            <table class="table">
+                                <thead>
+                                <tr>
+                                    <th>支付宝</th>
+                                    <th>微信</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td><img src="img/alipay.png" class="img-responsive center-block" alt="支付宝"></td>
+                                    <td><img src="img/wechat.png" class="img-responsive center-block" alt="微信"></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </li>
                     <li>这个项目在Github上维护，如果能有帮助就更好了</li>
                 </ul>
             </div><!--//cta-container-->
@@ -325,5 +329,34 @@
 <script type="text/javascript" src="assets/plugins/jquery-scrollTo/jquery.scrollTo.min.js"></script>
 <script type="text/javascript" src="assets/plugins/prism/prism.js"></script>
 <script type="text/javascript" src="assets/js/main.js"></script>
+<script>
+    function update_info() {
+        $.getJSON("/tostatus.json", function (data) {
+            console.log("Get data success!");
+            $("#last_update_time").text(data.last_update_time);  // 更新时间戳
+            var status_table = $("#status_table");
+            var output_main = "<thead><tr><th>#</th><th class=\"text-center\">Title</th><th>Size</th><th>Started At</th><th>Download Status</th><th>Seed Status</th></tr></thead><tbody>";
+            for (var i = 0, l = data.data.length; i < l; i++) {
+                var status = data.data[i][1];
+                var output = "<tr>" +
+                    "<td>" + data.data[i][0] + "</td>" +
+                    "<td>" + status["title"] + "</td>" +
+                    "<td>" + status["size"] + "</td>" +
+                    "<td>" + status["download_start_time"] + "</td>" +
+                    "<td>" + status["download_status"] + " R:" + status["download_upload_ratio"] + "</td>" +
+                    "<td>" + status["reseed_status"] + " R:" + status["reseed_ratio"] + "</td>" +
+                    "</tr>";
+                output_main = output_main.concat(output);
+                if (i>=10){
+                    break;
+                }
+            }
+            output_main = output_main.concat("</tbody>");
+            status_table.html(output_main);
+        })
+    }
+
+    self.setInterval(update_info(),60 * 1e3);
+</script>
 </body>
 </html>
