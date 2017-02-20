@@ -3,12 +3,12 @@
 
 import json
 import re
-import os
+import shutil
 
 import pymysql
 import requests
 from bs4 import BeautifulSoup
-from model.Magnet_To_Torrent import magnet2torrent
+from Magnet_To_Torrent import magnet2torrent
 
 
 class JSONObject:
@@ -16,65 +16,72 @@ class JSONObject:
         self.__dict__ = d
 
 
-model_setting_file = "{0}/model_rss_ZhuixinFan.json".format(os.getcwd())
+setting = json.loads(open("settings.json", "r").read(), object_hook=JSONObject)
 
-model_setting = json.loads(open(model_setting_file, "r").read(), object_hook=JSONObject)
-main_setting = json.loads(open(model_setting.main_setting_loc, "r").read(), object_hook=JSONObject)
-
+db = pymysql.connect(host=setting.db_address, port=setting.db_port,
+                     user=setting.db_user, password=setting.db_password,
+                     db=setting.db_name, charset='utf8')
 search_pattern = re.compile(
-    "(?P<full_name>(?P<search_name>.+?)(?:\.| )(?P<tv_season>(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?).+-(?P<group>.+?))"
+    "(?:[\W]+?\.|^)(?P<full_name>(?P<search_name>[\w.]+?)(?:\.| )(?P<tv_season>(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?).+-(?P<group>.+?))"
     "(?:\.(?P<tv_filetype>\w+)$|$)")
 
 
-def serialize_instance(obj):
-    d = {'last_check_id': obj.last_check_id}
-    d.update(vars(obj))
-    return d
-
-
-def get_table_tv_ename_list():
-    db = pymysql.connect(host=main_setting.db_address, port=main_setting.db_port,
-                         user=main_setting.db_user, password=main_setting.db_password,
-                         db=main_setting.db_name, charset='utf8')
+def find_max_in_rss_record():
     cursor = db.cursor()
-    cursor.execute("SELECT tv_ename FROM tv_info")
-    return_title_raw = cursor.fetchall()
-    return_title = []
-    for i in return_title_raw:
-        return_title.append(i[0])
-    db.close()
-    return return_title
+    sql = "SELECT MAX(id) FROM `ZhuixinFan`"
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    cursor.close()
+    t = result[0][0]
+    if not t:
+        t = 0
+    return t
 
 
-def main():
-    i = model_setting.last_check_id
-    title_list = get_table_tv_ename_list()
+def commit_cursor_into_db(sql):
+    cursor = db.cursor()
+    try:
+        cursor.execute(sql)
+        db.commit()
+        cursor.close()
+    except:
+        db.rollback()
+
+
+# 从数据库中获取剧集简介
+def get_info_from_db(torrent_search_name):
+    cursor = db.cursor()
+    sql = "SELECT * FROM tv_info WHERE tv_ename='%s'" % torrent_search_name
+    cursor.execute(sql)
+    result = list(cursor.fetchall()[0])
+    cursor.close()
+    return result
+
+
+def find_new():
+    i = find_max_in_rss_record()
     while True:
         bs_page = BeautifulSoup(
             requests.get("http://www.zhuixinfan.com/main.php?mod=viewresource&sid={0}".format(i)).text, "html5lib")
         series_name = bs_page.find("span", id="pdtname").get_text()
         if not series_name:
             break
-        elif series_name.find('1280X720') > 0:
+        else:
+            # 记入SQL
+            size = int(re.search(r"\d+", bs_page.find("span", text=re.compile(r"\[\d+M\]")).get_text()).group(0))
+            magnet_link = bs_page.find("dd", id="torrent_url").get_text()
+            code = re.search(r"urn\:btih\:(?P<code>\w+)", magnet_link).group("code")
+            torrent_loc = magnet2torrent(magnet_link, output_name="./torrent/{0}.torrent".format(code))
+            sql = "INSERT INTO ZhuixinFan (id,title,size,magnet_link,torrent_loc) VALUES ('%d','%s','%d','%s','%s')" \
+                  % (i, series_name, size, magnet_link, torrent_loc)
+            commit_cursor_into_db(sql=sql)
             i += 1
+            # 筛选，符合记录的种子送入watch目录
+            torrent_info_search = re.search(search_pattern, series_name)
             try:
-                search = re.search(search_pattern, series_name)
-            except AttributeError:
+                get_info_from_db(torrent_info_search.group("search_name"))
+            except IndexError:
                 continue
             else:
-                search_name = search.group("search_name")
-                try:
-                    title_list.index(search_name)
-                except ValueError:
-                    continue
-                else:
-                    magnet_link = bs_page.find("dd", id="torrent_url").get_text()
-                    magnet2torrent(magnet_link, output_name=main_setting.trans_watchdir + "/" + re.search(r"urn\:btih\:(?P<code>\w+)", magnet_link).group("code") + ".torrent")
-
-    model_setting.last_check_id = i
-    with open(model_setting_file, 'w') as f:
-        json.dump(model_setting, f, default=serialize_instance, indent=4)
-
-
-if __name__ == '__main__':
-    main()
+                if re.search(r'1280X720', series_name):
+                    shutil.move(torrent_loc, setting.trans_watchdir)
