@@ -33,7 +33,7 @@ for key, morsel in cookie.items():
     cookies[key] = morsel.value
 
 search_pattern = re.compile(
-    "(?P<full_name>(?P<search_name>.+?)(?:\.| )(?P<tv_season>(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?).+-(?P<group>.+?))"
+    "(?:[\W]+?\.|^)(?P<full_name>(?P<search_name>[\w.]+?)(?:\.| )(?P<tv_season>(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?).+-(?P<group>.+?))"
     "(?:\.(?P<tv_filetype>\w+)$|$)")
 
 logging.basicConfig(level=logging.INFO,
@@ -307,7 +307,7 @@ def generate_web_json():
                 info_dict = {
                     "title": download_torrent.name,
                     "size": "{:.2f} MiB".format(download_torrent.totalSize / (1024 * 1024)),
-                    "download_start_time": download_torrent.addedDate,
+                    "download_start_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(download_torrent.addedDate)),
                     "download_status": download_torrent.status,
                     "download_upload_ratio": "{:.2f}".format(download_torrent.uploadRatio),
                     "reseed_status": reseed_status,
