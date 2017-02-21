@@ -43,6 +43,13 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%m/%d/%Y %I:%M:%S %p')
 
 
+# 种子简介头部通知信息
+descr_header_bs = BeautifulSoup(open("descr_header.html", 'rb'))
+# 根据setting.json中的信息（最小最大数值修改header）
+descr_header_bs.find(id="min_reseed_time").string = str(int(setting.torrent_minSeedTime / 86400))
+descr_header_bs.find(id="max_reseed_time").string = str(int(setting.torrent_maxSeedTime / 86400))
+
+
 # 提交SQL语句
 def commit_cursor_into_db(sql):
     cursor = db.cursor()
@@ -227,9 +234,9 @@ def seed_post(tid):
                         file=setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"])
                 except IndexError:
                     logging.warning("Can't get MediaInfo,Use raw descr.")
-                    descr = torrent_info_raw_from_db[14]
+                    descr = str(descr_header_bs) + torrent_info_raw_from_db[14]
                 else:
-                    descr = torrent_info_raw_from_db[14] + media_info
+                    descr = str(descr_header_bs) + torrent_info_raw_from_db[14] + media_info
                 multipart_data = (  # 提交表单
                     ("type", ('', str(torrent_info_raw_from_db[1]))),
                     ("second_type", ('', str(torrent_info_raw_from_db[2]))),
@@ -307,7 +314,8 @@ def generate_web_json():
                 info_dict = {
                     "title": download_torrent.name,
                     "size": "{:.2f} MiB".format(download_torrent.totalSize / (1024 * 1024)),
-                    "download_start_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(download_torrent.addedDate)),
+                    "download_start_time": time.strftime("%Y-%m-%d %H:%M:%S",
+                                                         time.localtime(download_torrent.addedDate)),
                     "download_status": download_torrent.status,
                     "download_upload_ratio": "{:.2f}".format(download_torrent.uploadRatio),
                     "reseed_status": reseed_status,
