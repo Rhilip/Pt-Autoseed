@@ -105,9 +105,12 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
         logging.info("Update torrent info from rpc to db OK~")
     else:  # 第一次启动检查(force_clean_check)
         torrent_list_now_in_trans = tc.get_torrents()
-        last_torrent_id_in_tran = torrent_list_now_in_trans[-1].id
+        last_torrent_id_in_tran = 0
+        for t in torrent_list_now_in_trans:
+            if t.id > last_torrent_id_in_tran:
+                last_torrent_id_in_tran = t.id
         last_torrent_id_in_db = max(find_max("download_id", "seed_list"), find_max("seed_id", "seed_list"))
-        if last_torrent_id_in_db != last_torrent_id_in_tran:  # 如果对不上，说明系统重新启动过或者tr崩溃过
+        if not last_torrent_id_in_db == last_torrent_id_in_tran:  # 如果对不上，说明系统重新启动过或者tr崩溃过
             logging.error(
                 "It seems that torrent's id in transmission didn't match with db-records,Clean the whole table \"seed_list\"")
             commit_cursor_into_db(sql="DELETE FROM seed_list")  # 直接清表
@@ -229,7 +232,7 @@ def seed_post(tid):
                 else:
                     small_descr = torrent_info_raw_from_db[10] + " " + torrent_info_search.group("tv_season")
                 # 简介 descr
-                descr = str(descr_header_bs) + torrent_info_raw_from_db[14]
+                descr = str(descr_header_bs.fieldset) + "<br />" + torrent_info_raw_from_db[14]
                 try:
                     media_info = show_media_info(
                         file=setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"])
