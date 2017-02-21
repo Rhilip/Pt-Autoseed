@@ -114,6 +114,8 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
             logging.error(
                 "It seems that torrent's id in transmission didn't match with db-records,Clean the whole table \"seed_list\"")
             commit_cursor_into_db(sql="DELETE FROM seed_list")  # 直接清表
+            # 清表后首次更新，这样可以在正常更新阶段（main中）保证(?)所有种子均插入表中。防止重复下载种子
+            update_torrent_info_from_rpc_to_db()
         else:
             logging.info("The torrent's info in transmission match with db-records,DB check OK~")
 
