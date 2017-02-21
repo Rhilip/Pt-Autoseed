@@ -44,7 +44,7 @@ logging.basicConfig(level=logging.INFO,
 
 
 # 种子简介头部通知信息
-descr_header_bs = BeautifulSoup(open("descr_header.html", 'rb'))
+descr_header_bs = BeautifulSoup(open("descr_header.html", 'rb'),"html5lib")
 # 根据setting.json中的信息（最小最大数值修改header）
 descr_header_bs.find(id="min_reseed_time").string = str(int(setting.torrent_minSeedTime / 86400))
 descr_header_bs.find(id="max_reseed_time").string = str(int(setting.torrent_maxSeedTime / 86400))
@@ -229,14 +229,15 @@ def seed_post(tid):
                 else:
                     small_descr = torrent_info_raw_from_db[10] + " " + torrent_info_search.group("tv_season")
                 # 简介 descr
+                descr = str(descr_header_bs) + torrent_info_raw_from_db[14]
                 try:
                     media_info = show_media_info(
                         file=setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"])
                 except IndexError:
                     logging.warning("Can't get MediaInfo,Use raw descr.")
-                    descr = str(descr_header_bs) + torrent_info_raw_from_db[14]
                 else:
-                    descr = str(descr_header_bs) + torrent_info_raw_from_db[14] + media_info
+                    if media_info:
+                        descr += media_info
                 multipart_data = (  # 提交表单
                     ("type", ('', str(torrent_info_raw_from_db[1]))),
                     ("second_type", ('', str(torrent_info_raw_from_db[2]))),
