@@ -42,9 +42,8 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     datefmt='%m/%d/%Y %I:%M:%S %p')
 
-
 # 种子简介头部通知信息
-descr_header_bs = BeautifulSoup(open("descr_header.html", 'rb'),"html5lib")
+descr_header_bs = BeautifulSoup(open("descr_header.html", 'rb'), "html5lib")
 # 根据setting.json中的信息（最小最大数值修改header）
 descr_header_bs.find(id="min_reseed_time").string = str(int(setting.torrent_minSeedTime / 86400))
 descr_header_bs.find(id="max_reseed_time").string = str(int(setting.torrent_maxSeedTime / 86400))
@@ -152,7 +151,7 @@ def check_to_del_torrent_with_data_and_db():
                     tc.remove_torrent(t[3], delete_data=True)
                     tc.remove_torrent(t[2], delete_data=True)
                     logging.info("Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
-        elif t[3] == -1:
+        elif t[3] <= 0:  # 针对不发布种子被删除，以及未发布但原种子被删除的情况
             try:
                 tc.get_torrent(t[2])
             except KeyError as err:  # 种子不存在了
@@ -160,7 +159,6 @@ def check_to_del_torrent_with_data_and_db():
                 commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
                 logging.info(
                     "Delete Un-reseed torrent(id:{0})'s record form db,Which name \"{1}\" OK.".format(t[2], t[1]))
-                continue
 
 
 # 从数据库中获取剧集简介
@@ -199,7 +197,7 @@ def exist_judge(tid):
     return tag
 
 
-def download_reseed_torrent_and_update_tr_with_db(torrent_download_id):
+def download_reseed_torrent_and_update_tr_with_db(torrent_download_id, thanks=True):
     download_torrent_link = "http://bt.byr.cn/download.php?id=" + torrent_download_id
     torrent_file = requests.get(download_torrent_link, cookies=cookies)  # 下载种子
     with open(setting.trans_watchdir + "/" + torrent_download_id + ".torrent.get", "wb") as code:
@@ -209,14 +207,15 @@ def download_reseed_torrent_and_update_tr_with_db(torrent_download_id):
     logging.info("Download Torrent which id = " + torrent_download_id + "OK!")
     time.sleep(5)  # 等待transmission读取种子文件
     update_torrent_info_from_rpc_to_db()  # 更新数据库
-    requests.post(url="http://bt.byr.cn/thanks.php", cookies=cookies, data={"id": str(torrent_download_id)})  # 自动感谢
+    if thanks:
+        requests.post(url="http://bt.byr.cn/thanks.php", cookies=cookies, data={"id": str(torrent_download_id)})  # 自动感谢
 
 
 # 发布种子主函数
 def seed_post(tid):
-    tag = exist_judge(tid)
-    if tag == 0:  # 种子不存在，则准备发布
-        if tc.get_torrent(tid).status == "seeding":  # 种子下载完成
+    if tc.get_torrent(tid).status == "seeding":  # 种子下载完成
+        tag = exist_judge(tid)
+        if tag == 0:  # 种子不存在，则准备发布
             download_torrent = tc.get_torrent(tid)
             torrent_full_name = download_torrent.name
             torrent_file_name = re.search("torrents/(.+?\.torrent)", download_torrent.torrentFile).group(1)
@@ -267,11 +266,11 @@ def seed_post(tid):
                     seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
                     logging.info("Post OK,The torrent id in Byrbt :" + seed_torrent_download_id)
                     download_reseed_torrent_and_update_tr_with_db(seed_torrent_download_id)  # 下载种子，并更新
-        else:
-            logging.warning("This torrent is still download.Wait until next check time.")
-    else:  # 如果种子存在（已经有人发布）  -> 辅种
-        logging.warning("Find dupe torrent,which id: {0}.Ohhhhh".format(tag))
-        download_reseed_torrent_and_update_tr_with_db(tag)
+        else:  # 如果种子存在（已经有人发布）  -> 辅种
+            logging.warning("Find dupe torrent,which id: {0}.Ohhhhh".format(tag))
+            download_reseed_torrent_and_update_tr_with_db(tag, thanks=False)
+    else:
+        logging.warning("This torrent is still download.Wait until next check time.")
 
 
 # 发布判定
