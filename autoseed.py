@@ -157,8 +157,7 @@ def check_to_del_torrent_with_data_and_db():
             except KeyError as err:  # 种子不存在了
                 logging.error(err)
                 commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
-                logging.info(
-                    "Delete Un-reseed torrent(id:{0})'s record form db,Which name \"{1}\" OK.".format(t[2], t[1]))
+                logging.info("Delete The Un-found torrent's record form db,Which name \"{0}\"".format(t[1]))
 
 
 # 从数据库中获取剧集简介
@@ -278,15 +277,22 @@ def seed_judge():
     result = get_table_seed_list()  # 从数据库中获取seed_list(tuple:(id,title,download_id,seed_id))
     for t in result:  # 遍历seed_list
         if t[3] == 0:  # 如果种子没有被重发布过(t[3] == 0)    ,另不发布(t[3] == -1)
-            torrent = tc.get_torrent(t[2])  # 获取下载种子信息
-            torrent_full_name = torrent.name
-            logging.info("New get torrent: " + torrent_full_name)
-            torrent_info_search = re.search(search_pattern, torrent_full_name)
-            if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
-                seed_post(t[2])  # 发布种子
-            else:  # 不符合，更新seed_id为-1
-                logging.info("Mark Torrent {0} (Name: {1}) As Un-reseed torrent".format(t[2], torrent_full_name))
-                commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0])
+            try:
+                torrent = tc.get_torrent(t[2])  # 获取下载种子信息
+            except KeyError:  # 种子不存在了
+                logging.error(
+                    "The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
+                    "It will be deleted from db in next delete-check time".format(t[1]))
+                continue
+            else:
+                torrent_full_name = torrent.name
+                logging.info("New get torrent: " + torrent_full_name)
+                torrent_info_search = re.search(search_pattern, torrent_full_name)
+                if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
+                    seed_post(t[2])  # 发布种子
+                else:  # 不符合，更新seed_id为-1
+                    logging.info("Mark Torrent {0} (Name: {1}) As Un-reseed torrent".format(t[2], torrent_full_name))
+                    commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0])
 
 
 # 生成展示信息
