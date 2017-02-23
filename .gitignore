@@ -90,8 +90,5 @@ ENV/
 
 # This project
 .idea/
-web-part/img/
-model/rss_ZhuixinFan/model_rss_ZhuixinFan.json
 config.yml
 settings.json
-dome.py

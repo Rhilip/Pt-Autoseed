@@ -99,7 +99,7 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
                         sql = "UPDATE seed_list SET seed_id = '%d' WHERE id = '%d'" % (t.id, sort_id)
                         commit_cursor_into_db(sql)
                 elif t.trackers[0]["announce"].find("tracker.byr.cn") == -1:
-                    sql = "INSERT INTO seed_list (title,download_id) VALUES ('%s','%d')" % (t.name, t.id)
+                    sql = "INSERT INTO seed_list (title,download_id,seed_id) VALUES ('%s','%d',0)" % (t.name, t.id)
                     commit_cursor_into_db(sql)
         logging.info("Update torrent info from rpc to db OK~")
     else:  # 第一次启动检查(force_clean_check)
