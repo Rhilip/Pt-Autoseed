@@ -300,8 +300,8 @@
                                 </thead>
                                 <tbody>
                                 <tr>
-                                    <td><img src="img/alipay.png" class="img-responsive center-block" alt="支付宝"></td>
-                                    <td><img src="img/wechat.png" class="img-responsive center-block" alt="微信"></td>
+                                    <td><img src="assets/img/alipay.png" class="img-responsive center-block" alt="支付宝"></td>
+                                    <td><img src="assets/img/wechat.png" class="img-responsive center-block" alt="微信"></td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -331,7 +331,7 @@
 <script type="text/javascript" src="assets/js/main.js"></script>
 <script>
     function update_info() {
-        $.getJSON("/tostatus.json", function (data) {
+        $.getJSON("tostatus.json", function (data) {
             console.log("Get data success!");
             $("#last_update_time").text(data.last_update_time);  // 更新时间戳
             var status_table = $("#status_table");
