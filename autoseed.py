@@ -121,7 +121,7 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
 
 # 从transmission和数据库中删除种子及其数据
 def check_to_del_torrent_with_data_and_db():
-    logging.info("Begin torrent's status check.If reach condition you set at \"setting.json\",You will get a warning.")
+    logging.info("Begin torrent's status check.If reach condition you set,You will get a warning.")
     result = get_table_seed_list()
     for t in result:
         if t[3] > 0:  # 有reseed的种子
@@ -151,18 +151,16 @@ def check_to_del_torrent_with_data_and_db():
                     tc.remove_torrent(t[3], delete_data=True)
                     tc.remove_torrent(t[2], delete_data=True)
                     logging.info("Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
-        elif t[3] <= 0:  # 针对不发布种子被删除，以及未发布但原种子被删除的情况
+        else:  # 针对不发布种子被删除，以及未发布但原种子被删除的情况 (t[3] <= 0)
             try:
-                download_torrent = tc.get_torrent(t[2])
-                if download_torrent.error == 3:
-                    raise KeyError("Some thing wrong with torrent:\"{0}\"".format(download_torrent.name))
+                tc.get_torrent(t[2])
             except KeyError as err:  # 种子不存在了
                 logging.error(err)
                 commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
                 logging.info("Delete The Un-found torrent's record form db,Which name \"{0}\"".format(t[1]))
 
 
-# 从数据库中获取剧集简介
+# 从数据库中获取剧集简介（根据种子文件的search_name搜索数据库中的tv_ename）
 def get_info_from_db(torrent_search_name):
     cursor = db.cursor()
     sql = "SELECT * FROM tv_info WHERE tv_ename='%s'" % torrent_search_name
@@ -173,28 +171,16 @@ def get_info_from_db(torrent_search_name):
 
 
 # 如果种子在byr存在，返回种子id，不存在返回0
-def exist_judge(tid):
+def exist_judge(torrent_info_search):
+    full_name = torrent_info_search.group("full_name")
+    exits_judge_raw = requests.get(
+        url="http://bt.byr.cn/torrents.php?secocat=&cat=&incldead=0&spstate=0&inclbookmarked=0&search=" + full_name + "&search_area=0&search_mode=0",
+        cookies=cookies)
+    bs = BeautifulSoup(exits_judge_raw.text, "html5lib")
     tag = 0
-    t = tc.get_torrent(tid)
-    torrent_name = t.name
-    torrent_info_search = re.search(search_pattern, torrent_name)
-    if torrent_info_search:
-        full_name = torrent_info_search.group("full_name")
-        exits_judge_raw = requests.get(
-            url="http://bt.byr.cn/torrents.php?secocat=&cat=&incldead=0&spstate=0&inclbookmarked=0&search=" + full_name + "&search_area=0&search_mode=0",
-            cookies=cookies)
-        bs = BeautifulSoup(exits_judge_raw.text, "html5lib")
-        if bs.find_all(text=re.compile("没有种子")):  # 如果不存在种子
-            tag = 0  # 强调一遍。。。。
-        elif bs.find_all("a", href=re.compile("download.php"))[0]["href"]:  # 如果存在（还有人比Autoseed快。。。
-            href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
-            torrent_download_id = re.search("id=(\d+)", href).group(1)  # 找出种子id
-            tid_info = BeautifulSoup(  # 从该种子的detail.php页面，获取主标题
-                requests.get("http://bt.byr.cn/details.php?id=" + torrent_download_id, cookies=cookies).text,
-                "html5lib")
-            tid_info_title_text = tid_info.title.get_text()  # get主标题
-            if re.search(re.compile(torrent_info_search.group("tv_season")), tid_info_title_text):  # 确认主标题（二步确认？）
-                tag = torrent_download_id
+    if bs.find_all("a", href=re.compile("download.php"))[0]["href"]:  # 如果存在（还有人比Autoseed快。。。
+        href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
+        tag = re.search("id=(\d+)", href).group(1)  # 找出种子id
     return tag
 
 
@@ -213,59 +199,57 @@ def download_reseed_torrent_and_update_tr_with_db(torrent_download_id, thanks=Tr
 
 
 # 发布种子主函数
-def seed_post(tid):
+def seed_post(tid, torrent_info_search):
     if tc.get_torrent(tid).status == "seeding":  # 种子下载完成
-        tag = exist_judge(tid)
+        tag = exist_judge(torrent_info_search)
         if tag == 0:  # 种子不存在，则准备发布
             download_torrent = tc.get_torrent(tid)
-            torrent_full_name = download_torrent.name
             torrent_file_name = re.search("torrents/(.+?\.torrent)", download_torrent.torrentFile).group(1)
-            torrent_info_search = re.search(search_pattern, torrent_full_name)
             try:
                 torrent_info_raw_from_db = get_info_from_db(torrent_info_search.group("search_name"))  # 从数据库中获取该美剧信息
-            except IndexError:  # 数据库没有该种子数据
-                # TODO 使用备用剧集信息
-                logging.warning("Not Find info from db of torrent: \"" + download_torrent.name + "\",Stop post!!")
-                commit_cursor_into_db(sql="UPDATE seed_list SET seed_id = -1 WHERE download_id='{:d}'".format(tid))
-            else:  # 数据库中有该剧集信息
-                # 副标题 small_descr
-                small_descr = "{0} {1}".format(torrent_info_raw_from_db[10], torrent_info_search.group("tv_season"))
-                if str(torrent_info_search.group("group")).lower() == "fleet":
-                    small_descr += " |fleet慎下"
-                # 简介 descr
-                descr = str(descr_header_bs.fieldset) + "<br />" + torrent_info_raw_from_db[14]
-                try:
-                    media_info = show_media_info(
-                        file=setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"])
-                except IndexError:
-                    logging.warning("Can't get MediaInfo,Use raw descr.")
-                else:
-                    if media_info:
-                        descr += media_info
-                multipart_data = (  # 提交表单
-                    ("type", ('', str(torrent_info_raw_from_db[1]))),
-                    ("second_type", ('', str(torrent_info_raw_from_db[2]))),
-                    ("file", (torrent_file_name, open(download_torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-                    ("tv_type", ('', str(torrent_info_raw_from_db[4]))),
-                    ("cname", ('', torrent_info_raw_from_db[5])),
-                    ("tv_ename", ('', torrent_info_search.group("full_name"))),
-                    ("tv_season", ('', torrent_info_search.group("tv_season"))),
-                    ("tv_filetype", ('', torrent_info_raw_from_db[8])),
-                    ("type", ('', str(torrent_info_raw_from_db[9]))),
-                    ("small_descr", ('', small_descr)),
-                    ("url", ('', torrent_info_raw_from_db[11])),
-                    ("dburl", ('', torrent_info_raw_from_db[12])),
-                    ("nfo", ('', torrent_info_raw_from_db[13])),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-                    ("descr", ('', descr)),
-                    ("uplver", ('', torrent_info_raw_from_db[15])),
-                )
-                # 发布种子
-                logging.info("Begin post The torrent {0},which name :{1}".format(tid, download_torrent.name))
-                post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=cookies, files=multipart_data)
-                if post.url != "http://bt.byr.cn/takeupload.php":  # 发布成功检查
-                    seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
-                    logging.info("Post OK,The torrent id in Byrbt :" + seed_torrent_download_id)
-                    download_reseed_torrent_and_update_tr_with_db(seed_torrent_download_id)  # 下载种子，并更新
+            except IndexError:  # 数据库没有该种子数据,使用备用剧集信息
+                logging.warning(
+                    "Not Find info from db of torrent: \"{0}\",Use normal template!!".format(download_torrent.name))
+                torrent_info_raw_from_db = get_info_from_db("default")
+            # 副标题 small_descr
+            small_descr = "{0} {1}".format(torrent_info_raw_from_db[10], torrent_info_search.group("tv_season"))
+            if str(torrent_info_search.group("group")).lower() == "fleet":
+                small_descr += " |fleet慎下"
+            # 简介 descr
+            descr = str(descr_header_bs.fieldset) + "<br />" + torrent_info_raw_from_db[14]
+            try:
+                media_info = show_media_info(
+                    file=setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"])
+            except IndexError:
+                logging.warning("Can't get MediaInfo,Use raw descr.")
+            else:
+                if media_info:
+                    descr += media_info
+            # 提交表单
+            multipart_data = (
+                ("type", ('', str(torrent_info_raw_from_db[1]))),
+                ("second_type", ('', str(torrent_info_raw_from_db[2]))),
+                ("file", (torrent_file_name, open(download_torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
+                ("tv_type", ('', str(torrent_info_raw_from_db[4]))),
+                ("cname", ('', torrent_info_raw_from_db[5])),
+                ("tv_ename", ('', torrent_info_search.group("full_name"))),
+                ("tv_season", ('', torrent_info_search.group("tv_season"))),
+                ("tv_filetype", ('', torrent_info_raw_from_db[8])),
+                ("type", ('', str(torrent_info_raw_from_db[9]))),
+                ("small_descr", ('', small_descr)),
+                ("url", ('', torrent_info_raw_from_db[11])),
+                ("dburl", ('', torrent_info_raw_from_db[12])),
+                ("nfo", ('', torrent_info_raw_from_db[13])),  # 实际上并不是这样的，但是nfo一般没有，故这么写
+                ("descr", ('', descr)),
+                ("uplver", ('', torrent_info_raw_from_db[15])),
+            )
+            # 发布种子
+            logging.info("Begin post The torrent {0},which name :{1}".format(tid, download_torrent.name))
+            post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=cookies, files=multipart_data)
+            if post.url != "http://bt.byr.cn/takeupload.php":  # 发布成功检查
+                seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
+                logging.info("Post OK,The torrent id in Byrbt :" + seed_torrent_download_id)
+                download_reseed_torrent_and_update_tr_with_db(seed_torrent_download_id)  # 下载种子，并更新
         else:  # 如果种子存在（已经有人发布）  -> 辅种
             logging.warning("Find dupe torrent,which id: {0}.Ohhhhh".format(tag))
             download_reseed_torrent_and_update_tr_with_db(tag, thanks=False)
@@ -290,9 +274,10 @@ def seed_judge():
                 logging.info("New get torrent: " + torrent_full_name)
                 torrent_info_search = re.search(search_pattern, torrent_full_name)
                 if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
-                    seed_post(t[2])  # 发布种子
+                    seed_post(t[2], torrent_info_search)  # 发布种子
                 else:  # 不符合，更新seed_id为-1
-                    logging.info("Mark Torrent {0} (Name: {1}) As Un-reseed torrent".format(t[2], torrent_full_name))
+                    logging.info("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,Stop watching it.".format(t[2],
+                                                                                                                  torrent_full_name))
                     commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0])
 
 
@@ -305,24 +290,18 @@ def generate_web_json():
         if t[3] != -1:  # 对于不发布的种子不展示
             try:
                 download_torrent = tc.get_torrent(t[2])
+                if t[3] == 0:
+                    reseed_status = "Not found."
+                    reseed_ratio = 0
+                else:
+                    reseed_torrent = tc.get_torrent(t[3])
+                    reseed_status = reseed_torrent.status
+                    reseed_ratio = reseed_torrent.uploadRatio
             except KeyError:
                 logging.error("This torrent (Which name: {0}) has been deleted from transmission (By other "
                               "Management software).".format(t[1]))
                 continue
             else:
-                if t[3] == 0:
-                    reseed_status = "Not found."
-                    reseed_ratio = 0
-                else:
-                    try:
-                        reseed_torrent = tc.get_torrent(t[3])
-                    except KeyError:
-                        logging.error("This torrent (Which name: {0}) has been deleted from transmission (By other "
-                                      "Management software).".format(t[1]))
-                        continue
-                    else:
-                        reseed_status = reseed_torrent.status
-                        reseed_ratio = reseed_torrent.uploadRatio
                 info_dict = {
                     "title": download_torrent.name,
                     "size": "{:.2f} MiB".format(download_torrent.totalSize / (1024 * 1024)),
