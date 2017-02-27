@@ -1,8 +1,6 @@
 # Byrbt-Autoseed
-An Autoseed used to reseed TV-series in Byrbt
+An Autoseed used to reseed TV-series in Byrbt \
+demo: [R酱の更新姬]()
 
 ## How it Works
-
-
-## 
-[Flexget - config.yml](https://gist.github.com/Rhilip/f3e3395ed3cfe6dcf0edabaa5141b960)
+![How it Works](image/How%20it%20work.png)

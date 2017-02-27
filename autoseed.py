@@ -153,7 +153,9 @@ def check_to_del_torrent_with_data_and_db():
                     logging.info("Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
         elif t[3] <= 0:  # 针对不发布种子被删除，以及未发布但原种子被删除的情况
             try:
-                tc.get_torrent(t[2])
+                download_torrent = tc.get_torrent(t[2])
+                if download_torrent.error == 3:
+                    raise KeyError("Some thing wrong with torrent:\"{0}\"".format(download_torrent.name))
             except KeyError as err:  # 种子不存在了
                 logging.error(err)
                 commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
@@ -222,15 +224,14 @@ def seed_post(tid):
             try:
                 torrent_info_raw_from_db = get_info_from_db(torrent_info_search.group("search_name"))  # 从数据库中获取该美剧信息
             except IndexError:  # 数据库没有该种子数据
+                # TODO 使用备用剧集信息
                 logging.warning("Not Find info from db of torrent: \"" + download_torrent.name + "\",Stop post!!")
                 commit_cursor_into_db(sql="UPDATE seed_list SET seed_id = -1 WHERE download_id='{:d}'".format(tid))
             else:  # 数据库中有该剧集信息
                 # 副标题 small_descr
+                small_descr = "{0} {1}".format(torrent_info_raw_from_db[10], torrent_info_search.group("tv_season"))
                 if str(torrent_info_search.group("group")).lower() == "fleet":
-                    small_descr = torrent_info_raw_from_db[10] + " " + torrent_info_search.group(
-                        "tv_season") + " |fleet慎下"
-                else:
-                    small_descr = torrent_info_raw_from_db[10] + " " + torrent_info_search.group("tv_season")
+                    small_descr += " |fleet慎下"
                 # 简介 descr
                 descr = str(descr_header_bs.fieldset) + "<br />" + torrent_info_raw_from_db[14]
                 try:
