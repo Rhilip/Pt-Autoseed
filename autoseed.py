@@ -178,7 +178,7 @@ def exist_judge(torrent_info_search):
         cookies=cookies)
     bs = BeautifulSoup(exits_judge_raw.text, "html5lib")
     tag = 0
-    if bs.find_all("a", href=re.compile("download.php"))[0]["href"]:  # 如果存在（还有人比Autoseed快。。。
+    if bs.find_all("a", href=re.compile("download.php")):  # 如果存在（还有人比Autoseed快。。。
         href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
         tag = re.search("id=(\d+)", href).group(1)  # 找出种子id
     return tag
