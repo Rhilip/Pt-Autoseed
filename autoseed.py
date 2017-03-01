@@ -36,6 +36,9 @@ search_pattern = re.compile(
     "(?:[\W]+?\.|^)(?P<full_name>(?P<search_name>[\w\-. ]+?)(?:\.| )(?P<tv_season>(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?).+-(?P<group>.+?))"
     "(?:\.(?P<tv_filetype>\w+)$|$)")
 
+# 日志文件
+if not os.path.exists("log"):
+    os.makedirs("log")
 logging.basicConfig(level=logging.INFO,
                     filename='log/autoseed_{0}.log'.format(time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())),
                     filemode='w',
@@ -174,7 +177,7 @@ def get_info_from_db(torrent_search_name):
 def exist_judge(torrent_info_search):
     full_name = torrent_info_search.group("full_name")
     exits_judge_raw = requests.get(
-        url="http://bt.byr.cn/torrents.php?secocat=&cat=&incldead=0&spstate=0&inclbookmarked=0&search=" + full_name + "&search_area=0&search_mode=0",
+        url="http://bt.byr.cn/torrents.php?secocat=&cat=&incldead=0&spstate=0&inclbookmarked=0&search=" + full_name + "&search_area=0&search_mode=2",
         cookies=cookies)
     bs = BeautifulSoup(exits_judge_raw.text, "html5lib")
     tag = 0
