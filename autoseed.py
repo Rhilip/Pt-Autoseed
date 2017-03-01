@@ -37,7 +37,7 @@ search_pattern = re.compile(
     "(?:\.(?P<tv_filetype>\w+)$|$)")
 
 logging.basicConfig(level=logging.INFO,
-                    filename='autoseed.log',
+                    filename='log/autoseed_{0}.log'.format(time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())),
                     filemode='w',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     datefmt='%m/%d/%Y %I:%M:%S %p')
