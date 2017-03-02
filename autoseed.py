@@ -127,40 +127,34 @@ def check_to_del_torrent_with_data_and_db():
     logging.info("Begin torrent's status check.If reach condition you set,You will get a warning.")
     result = get_table_seed_list()
     for t in result:
-        if t[3] > 0:  # 有reseed的种子
-            try:
+        try:  # 本处保证t[2],t[3]对应的种子仍存在
+            tc.get_torrent(t[2])
+            if t[3] > 0:
                 seed_torrent = tc.get_torrent(t[3])
-            except KeyError as err:  # 种子不存在了
-                logging.error(err)
-                commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
-                tc.remove_torrent(t[2], delete_data=True)  # remove_torrent()不会因为种子不存在而出错(错了也直接打log，不会崩)
-                logging.warning(
-                    "Delete download torrent(id:{0})'s record form db,Which name \"{1}\" OK.".format(t[2], t[1]))
-                continue
             else:
-                # 发布种子无上传速度  ->  达到最小做种时间  ->   达到最大做种时间  或者 最大分享率  -> 暂停种子
-                if seed_torrent.status == "seeding" and seed_torrent.rateUpload == 0:
-                    if ((int(time.time()) - seed_torrent.addedDate) >= setting.torrent_minSeedTime) and (
-                                    seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (
-                                        int(time.time()) - seed_torrent.addedDate) >= setting.torrent_maxSeedTime):
-                        tc.stop_torrent(t[3])
-                        tc.stop_torrent(t[2])
-                        logging.warning(
-                            "Reach The Setting Seed time or ratio,Torrents (Which name:\"{0}\") will be delete"
-                            "in next check time.".format(seed_torrent.name))
-                if seed_torrent.status == "stopped":  # 前一轮暂停的种子 -> 删除种子及其文件，清理db条目
-                    logging.warning("Will delete torrent: {0} {1},Which name {2}".format(t[2], t[3], t[1]))
-                    commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
-                    tc.remove_torrent(t[3], delete_data=True)
-                    tc.remove_torrent(t[2], delete_data=True)
-                    logging.info("Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
-        else:  # 针对不发布种子被删除，以及未发布但原种子被删除的情况 (t[3] <= 0)
-            try:
-                tc.get_torrent(t[2])
-            except KeyError as err:  # 种子不存在了
-                logging.error(err)
+                continue     # t[3]<=0（且种子仍存在）的情况进入下一轮循环，不进入else
+        except KeyError:  # 不存在的处理方法 - 删表，清种子
+            logging.error("Torrent is not found,Witch name:\"{0}\",Will delete it's record from db".format(t[1]))
+            commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
+            tc.remove_torrent(t[2], delete_data=True)  # remove_torrent()不会因为种子不存在而出错
+            tc.remove_torrent(t[3], delete_data=True)  # (错了也直接打log，不会崩)
+        else:
+            # 发布种子无上传速度  ->  达到最小做种时间  ->   达到最大做种时间  或者 最大分享率  -> 暂停种子
+            if seed_torrent.status == "seeding" and seed_torrent.rateUpload == 0:
+                if ((int(time.time()) - seed_torrent.addedDate) >= setting.torrent_minSeedTime) and (
+                                seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (
+                                    int(time.time()) - seed_torrent.addedDate) >= setting.torrent_maxSeedTime):
+                    tc.stop_torrent(t[3])
+                    tc.stop_torrent(t[2])
+                    logging.warning(
+                        "Reach The Setting Seed time or ratio,Torrents (Which name:\"{0}\") will be delete"
+                        "in next check time.".format(seed_torrent.name))
+            if seed_torrent.status == "stopped":  # 前一轮暂停的种子 -> 删除种子及其文件，清理db条目
+                logging.warning("Will delete torrent: {0} {1},Which name {2}".format(t[2], t[3], t[1]))
                 commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
-                logging.info("Delete The Un-found torrent's record form db,Which name \"{0}\"".format(t[1]))
+                tc.remove_torrent(t[3], delete_data=True)
+                tc.remove_torrent(t[2], delete_data=True)
+                logging.info("Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
 
 
 # 从数据库中获取剧集简介（根据种子文件的search_name搜索数据库中的tv_ename）
