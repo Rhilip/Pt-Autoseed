@@ -33,7 +33,7 @@ for key, morsel in cookie.items():
     cookies[key] = morsel.value
 
 search_pattern = re.compile(
-    "(?:[\W]+?\.|^)(?P<full_name>(?P<search_name>[\w\-. ]+?)(?:\.| )(?P<tv_season>(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?).+-(?P<group>.+?))"
+    "(?:[\W]+?\.|^)(?P<full_name>(?P<search_name>[\w\-. ]+?)(?:\.| )(?P<tv_season>(?:[Ss]\d+)|(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)).+-(?P<group>.+?))"
     "(?:\.(?P<tv_filetype>\w+)$|$)")
 
 # 日志文件
