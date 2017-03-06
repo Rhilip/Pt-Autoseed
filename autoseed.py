@@ -33,7 +33,8 @@ for key, morsel in cookie.items():
     cookies[key] = morsel.value
 
 search_pattern = re.compile(
-    "(?:[\W]+?\.|^)(?P<full_name>(?P<search_name>[\w\-. ]+?)(?:\.| )(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+-(?P<group>.+?)?)"
+    "(?:[\W]+?\.|^)"
+    "(?P<full_name>(?P<search_name>[\w\-. ]+?)(?:\.| )(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+-(?P<group>.+?)?)"
     "(?:\.(?P<tv_filetype>\w+)$|$)")
 
 # 日志文件
@@ -60,7 +61,7 @@ def commit_cursor_into_db(sql):
         db.commit()
         cursor.close()
     except:
-        logging.error("A commit to db ERROR,DDL: " + sql)
+        logging.critical("A commit to db ERROR,DDL: " + sql)
         db.rollback()
 
 
@@ -114,7 +115,8 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
         last_torrent_id_in_db = max(find_max("download_id", "seed_list"), find_max("seed_id", "seed_list"))
         if not last_torrent_id_in_db == last_torrent_id_in_tran:  # 如果对不上，说明系统重新启动过或者tr崩溃过
             logging.error(
-                "It seems that torrent's id in transmission didn't match with db-records,Clean the whole table \"seed_list\"")
+                "It seems that torrent's id in transmission didn't match with db-records,"
+                "Clean the whole table \"seed_list\"")
             commit_cursor_into_db(sql="DELETE FROM seed_list")  # 直接清表
             # 清表后首次更新，这样可以在正常更新阶段（main中）保证(?)所有种子均插入表中。防止重复下载种子
             update_torrent_info_from_rpc_to_db()
@@ -171,7 +173,8 @@ def get_info_from_db(torrent_search_name):
 def exist_judge(torrent_info_search):
     full_name = torrent_info_search.group("full_name")
     exits_judge_raw = requests.get(
-        url="http://bt.byr.cn/torrents.php?secocat=&cat=&incldead=0&spstate=0&inclbookmarked=0&search=" + full_name + "&search_area=0&search_mode=2",
+        url="http://bt.byr.cn/torrents.php?secocat=&cat=&incldead=0&spstate=0&inclbookmarked=0&search="
+            + full_name + "&search_area=0&search_mode=2",
         cookies=cookies)
     bs = BeautifulSoup(exits_judge_raw.text, "html5lib")
     tag = 0
@@ -214,9 +217,10 @@ def seed_post(tid, torrent_info_search):
                 small_descr += " |fleet慎下"
             # 简介 descr
             descr = str(descr_header_bs.fieldset) + "<br />" + torrent_info_raw_from_db[14]
+            # Media Info
+            file = setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"]
             try:
-                media_info = show_media_info(
-                    file=setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"])
+                media_info = show_media_info(file=file)
             except IndexError:
                 logging.warning("Can't get MediaInfo,Use raw descr.")
             else:
@@ -273,8 +277,8 @@ def seed_judge():
                 if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
                     seed_post(t[2], torrent_info_search)  # 发布种子
                 else:  # 不符合，更新seed_id为-1
-                    logging.info("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,Stop watching it.".format(t[2],
-                                                                                                                  torrent_full_name))
+                    logging.info("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,"
+                                 "Stop watching it.".format(t[2], torrent_full_name))
                     commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0])
 
 
@@ -295,8 +299,8 @@ def generate_web_json():
                     reseed_status = reseed_torrent.status
                     reseed_ratio = reseed_torrent.uploadRatio
             except KeyError:
-                logging.error("This torrent (Which name: {0}) has been deleted from transmission (By other "
-                              "Management software).".format(t[1]))
+                logging.error("This torrent (Which name: {0}) has been deleted from transmission "
+                              "(Maybe By other Management software).".format(t[1]))
                 continue
             else:
                 info_dict = {
