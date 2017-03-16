@@ -105,7 +105,7 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
                 elif t.trackers[0]["announce"].find("tracker.byr.cn") == -1:
                     sql = "INSERT INTO seed_list (title,download_id,seed_id) VALUES ('%s','%d',0)" % (t.name, t.id)
                     commit_cursor_into_db(sql)
-        logging.info("Update torrent info from rpc to db OK~")
+        logging.debug("Update torrent info from rpc to db OK~")
     else:  # 第一次启动检查(force_clean_check)
         torrent_list_now_in_trans = tc.get_torrents()
         last_torrent_id_in_tran = 0
@@ -134,7 +134,7 @@ def check_to_del_torrent_with_data_and_db():
             if t[3] > 0:
                 seed_torrent = tc.get_torrent(t[3])
             else:
-                continue     # t[3]<=0（且种子仍存在）的情况进入下一轮循环，不进入else
+                continue  # t[3]<=0（且种子仍存在）的情况进入下一轮循环，不进入else
         except KeyError:  # 不存在的处理方法 - 删表，清种子
             logging.error("Torrent is not found,Witch name:\"{0}\",Will delete it's record from db".format(t[1]))
             commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
@@ -169,7 +169,7 @@ def get_info_from_db(torrent_search_name):
     return result
 
 
-# 如果种子在byr存在，返回种子id，不存在返回0
+# 如果种子在byr存在，返回种子id，不存在返回0，已存在且种子一致返回种子号，不一致返回-1
 def exist_judge(torrent_info_search):
     full_name = torrent_info_search.group("full_name")
     exits_judge_raw = requests.get(
@@ -180,7 +180,15 @@ def exist_judge(torrent_info_search):
     tag = 0
     if bs.find_all("a", href=re.compile("download.php")):  # 如果存在（还有人比Autoseed快。。。
         href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
-        tag = re.search("id=(\d+)", href).group(1)  # 找出种子id
+        tag_temp = re.search("id=(\d+)", href).group(1)  # 找出种子id
+        # 使用待发布种子全名匹配已有种子的名称
+        details_page = requests.get(f"http://bt.byr.cn/details.php?id={tag_temp}&hit=1", cookies=cookies)
+        details_bs = BeautifulSoup(details_page.text, "html5lib")
+        torrent_title = details_bs.find("a", class_="index", href=re.compile(r"^download.php")).string
+        if re.search(torrent_info_search.group(0), torrent_title):  # 如果匹配，返回种子号
+            tag = tag_temp
+        else:  # 如果不匹配，返回-1
+            tag = -1
     return tag
 
 
@@ -222,7 +230,7 @@ def seed_post(tid, torrent_info_search):
             try:
                 media_info = show_media_info(file=file)
             except IndexError:
-                logging.warning("Can't get MediaInfo,Use raw descr.")
+                logging.warning(f"Can't get MediaInfo,Use raw descr for torrent:\"{torrent_info_search.group(0)}\"")
             else:
                 if media_info:
                     descr += media_info
@@ -251,8 +259,12 @@ def seed_post(tid, torrent_info_search):
                 seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
                 logging.info("Post OK,The torrent id in Byrbt :" + seed_torrent_download_id)
                 download_reseed_torrent_and_update_tr_with_db(seed_torrent_download_id)  # 下载种子，并更新
+        elif tag == -1:  # 如果种子存在，但种子不一致
+            logging.warning("Find dupe torrent,and the exist torrent's title is not the same as pre-reseed torrent."
+                            "Stop Posting~")
+            commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % tid)
         else:  # 如果种子存在（已经有人发布）  -> 辅种
-            logging.warning("Find dupe torrent,which id: {0}.Ohhhhh".format(tag))
+            logging.warning("Find dupe torrent,which id: {0},will assist it~".format(tag))
             download_reseed_torrent_and_update_tr_with_db(tag, thanks=False)
     else:
         logging.warning("This torrent is still download.Wait until next check time.")
@@ -277,8 +289,8 @@ def seed_judge():
                 if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
                     seed_post(t[2], torrent_info_search)  # 发布种子
                 else:  # 不符合，更新seed_id为-1
-                    logging.info("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,"
-                                 "Stop watching it.".format(t[2], torrent_full_name))
+                    logging.warning("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,"
+                                    "Stop watching it.".format(t[2], torrent_full_name))
                     commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0])
 
 
@@ -339,7 +351,7 @@ def main():
             sleep_time = setting.sleep_busy_time
         else:  # 其他时间段
             sleep_time = setting.sleep_free_time
-        logging.info("Check time {0} OK,Will Sleep for {1} seconds.".format(str(i), str(sleep_time)))
+        logging.debug("Check time {0} OK,Will Sleep for {1} seconds.".format(str(i), str(sleep_time)))
         time.sleep(sleep_time)
         i += 1
 
