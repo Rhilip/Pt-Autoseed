@@ -230,7 +230,7 @@ def seed_post(tid, torrent_info_search):
             try:
                 media_info = show_media_info(file=file)
             except IndexError:
-                logging.warning(f"Can't get MediaInfo,Use raw descr for torrent:\"{torrent_info_search.group(0)}\"")
+                logging.warning("Can't get MediaInfo for \"{0}\",Use raw descr.".format(torrent_info_search.group(0)))
             else:
                 if media_info:
                     descr += media_info
