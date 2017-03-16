@@ -182,7 +182,8 @@ def exist_judge(torrent_info_search):
         href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
         tag_temp = re.search("id=(\d+)", href).group(1)  # 找出种子id
         # 使用待发布种子全名匹配已有种子的名称
-        details_page = requests.get(f"http://bt.byr.cn/details.php?id={tag_temp}&hit=1", cookies=cookies)
+        details_url = f"http://bt.byr.cn/details.php?id={tag_temp}&hit=1"
+        details_page = requests.get(url=details_url, cookies=cookies)
         details_bs = BeautifulSoup(details_page.text, "html5lib")
         torrent_title = details_bs.find("a", class_="index", href=re.compile(r"^download.php")).string
         if re.search(torrent_info_search.group(0), torrent_title):  # 如果匹配，返回种子号
