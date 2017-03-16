@@ -34,7 +34,8 @@ for key, morsel in cookie.items():
 
 search_pattern = re.compile(
     "(?:[\W]+?\.|^)"
-    "(?P<full_name>(?P<search_name>[\w\-. ]+?)(?:\.| )(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+-(?P<group>.+?)?)"
+    "(?P<full_name>(?P<search_name>[\w\-. ]+?)(?:\.| )"
+    "(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+-(?P<group>.+?)?)"
     "(?:\.(?P<tv_filetype>\w+)$|$)")
 
 # 日志文件
@@ -184,8 +185,9 @@ def exist_judge(torrent_info_search):
         # 使用待发布种子全名匹配已有种子的名称
         details_page = requests.get("http://bt.byr.cn/details.php?id={0}&hit=1".format(tag_temp), cookies=cookies)
         details_bs = BeautifulSoup(details_page.text, "html5lib")
-        torrent_title = details_bs.find("a", class_="index", href=re.compile(r"^download.php")).string
-        if re.search(torrent_info_search.group(0), torrent_title):  # 如果匹配，返回种子号
+        torrent_title_in_site = details_bs.find("a", class_="index", href=re.compile(r"^download.php")).string
+        torrent_title = re.search(r"\[BYRBT\]\.(.+?)\.torrent", torrent_title_in_site).group(1)
+        if torrent_info_search.group(0) == torrent_title:  # 如果匹配，返回种子号
             tag = tag_temp
         else:  # 如果不匹配，返回-1
             tag = -1
