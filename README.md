@@ -1,7 +1,7 @@
 # Byrbt-Autoseed
 An Autoseed used to reseed TV-series in Byrbt
 
-Dome : [R酱 の 更新姬](https://autoseed.rhilip.info/) - https://autoseed.rhilip.info
+Dome : [R酱 の 更新姬 - autoseed.rhilip.info](//autoseed.rhilip.info/)
 
 ## How it Works
 ![How it Works](image/How%20it%20work.png)
