@@ -163,9 +163,11 @@ def check_to_del_torrent_with_data_and_db():
 # 从数据库中获取剧集简介（根据种子文件的search_name搜索数据库中的tv_ename）
 def get_info_from_db(torrent_search_name):
     cursor = db.cursor()
-    sql = "SELECT * FROM tv_info WHERE tv_ename='%s'" % torrent_search_name
+    # 模糊匹配
+    search_name = torrent_search_name.replace(" ", "%").replace(".", "%")
+    sql = "SELECT * FROM tv_info WHERE tv_ename LIKE '%{search_name}%'".format(search_name=search_name)
     cursor.execute(sql)
-    result = list(cursor.fetchall()[0])
+    result = cursor.fetchall()[0]
     cursor.close()
     return result
 
