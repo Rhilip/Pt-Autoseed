@@ -127,7 +127,7 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
 
 # 从transmission和数据库中删除种子及其数据
 def check_to_del_torrent_with_data_and_db():
-    logging.info("Begin torrent's status check.If reach condition you set,You will get a warning.")
+    logging.debug("Begin torrent's status check.If reach condition you set,You will get a warning.")
     result = get_table_seed_list()
     for t in result:
         try:  # 本处保证t[2],t[3]对应的种子仍存在
