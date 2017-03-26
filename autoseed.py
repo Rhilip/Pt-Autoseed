@@ -269,8 +269,8 @@ def seed_post(tid, torrent_info_search):
                     for table in outer_bs.find_all("table"):
                         table.extract()
                 outer_message = outer_bs.get_text().replace("\n", "")
-                logging.error("Upload this torrent Error,The Server echo:\"{0}\"".format(outer_message))
-                pass
+                logging.error("Upload this torrent Error,The Server echo:\"{0}\",Stop Posting".format(outer_message))
+                commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % tid)
         elif tag == -1:  # 如果种子存在，但种子不一致
             logging.warning("Find dupe torrent,and the exist torrent's title is not the same as pre-reseed torrent."
                             "Stop Posting~")
