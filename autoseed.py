@@ -263,6 +263,14 @@ def seed_post(tid, torrent_info_search):
                 seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
                 logging.info("Post OK,The torrent id in Byrbt :" + seed_torrent_download_id)
                 download_reseed_torrent_and_update_tr_with_db(seed_torrent_download_id)  # 下载种子，并更新
+            else:  # 未发布成功打log
+                outer_bs = BeautifulSoup(post.text, "html5lib").find("td", id="outer")
+                if outer_bs.find_all("table"):  # 移除不必要的table信息
+                    for table in outer_bs.find_all("table"):
+                        table.extract()
+                outer_message = outer_bs.get_text().replace("\n", "")
+                logging.error("Upload this torrent Error,The Server echo:\"{0}\"".format(outer_message))
+                pass
         elif tag == -1:  # 如果种子存在，但种子不一致
             logging.warning("Find dupe torrent,and the exist torrent's title is not the same as pre-reseed torrent."
                             "Stop Posting~")
