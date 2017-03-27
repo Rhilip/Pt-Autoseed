@@ -165,7 +165,7 @@ def get_info_from_db(torrent_search_name):
     cursor = db.cursor()
     # 模糊匹配
     search_name = torrent_search_name.replace(" ", "%").replace(".", "%")
-    sql = "SELECT * FROM tv_info WHERE tv_ename LIKE '%{search_name}%'".format(search_name=search_name)
+    sql = "SELECT * FROM tv_info WHERE tv_ename LIKE '{search_name}%'".format(search_name=search_name)
     cursor.execute(sql)
     result = cursor.fetchall()[0]
     cursor.close()
