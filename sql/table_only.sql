@@ -1,24 +1,53 @@
--- --------------------------------------------------------
+-- MySQL dump 10.13  Distrib 5.5.54, for debian-linux-gnu (x86_64)
+--
+-- Host: localhost    Database: autoseed
+-- ------------------------------------------------------
+-- Server version	5.5.54-0ubuntu0.14.04.1
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- 表的结构 `seed_list`
+-- Current Database: `autoseed`
 --
 
-CREATE TABLE IF NOT EXISTS `seed_list` (
-  `id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `autoseed` /*!40100 DEFAULT CHARACTER SET latin1 */;
+
+USE `autoseed`;
+
+--
+-- Table structure for table `seed_list`
+--
+
+DROP TABLE IF EXISTS `seed_list`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `seed_list` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `title` text NOT NULL,
   `download_id` int(11) NOT NULL,
-  `seed_id` int(11) NOT NULL
+  `seed_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- --------------------------------------------------------
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- 表的结构 `tv_info`
+-- Table structure for table `tv_info`
 --
 
-CREATE TABLE IF NOT EXISTS `tv_info` (
-  `sort_id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+DROP TABLE IF EXISTS `tv_info`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tv_info` (
+  `sort_id` int(11) NOT NULL AUTO_INCREMENT,
   `type` smallint(6) NOT NULL COMMENT '一级分类',
   `second_type` tinyint(4) NOT NULL COMMENT '二级分类',
   `file` text NOT NULL COMMENT '种子文件',
@@ -33,7 +62,18 @@ CREATE TABLE IF NOT EXISTS `tv_info` (
   `dburl` text NOT NULL COMMENT '豆瓣链接',
   `nfo` text NOT NULL COMMENT 'NFO文件',
   `descr` text NOT NULL COMMENT '简介',
-  `uplver` text NOT NULL COMMENT '匿名发布'
+  `uplver` text NOT NULL COMMENT '匿名发布',
+  PRIMARY KEY (`sort_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
--- --------------------------------------------------------
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2017-03-27 12:26:21

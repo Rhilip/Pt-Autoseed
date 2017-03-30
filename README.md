@@ -33,6 +33,10 @@ apt-get -y install mysql-server
 ```
 apt-get -y install mediainfo
 ```
+* ffmpeg
+```
+apt-get -y install ffmpeg
+```
 * Python3 model
 ```
 apt-get -y install python3-pip

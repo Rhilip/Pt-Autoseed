@@ -16,5 +16,6 @@
   "torrent_maxUploadRatio" : 3,
   "torrent_minSeedTime": 86400,
   "torrent_maxSeedTime": 691200,
+  "web_url":"",
   "web_loc":""
 }
