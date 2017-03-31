@@ -241,7 +241,7 @@ def seed_post(tid, torrent_info_search):
             screenshot = os.system(ffmpeg_sh)
             if screenshot == 0:
                 descr_header_bs.find("img")["src"] = "{web_url}/{s_file}".format(web_url=setting.web_url,s_file=screenshot_file)
-                descr += descr_header_bs.find("fieldset",class_="screenshot")
+                descr += str(descr_header_bs.find("fieldset",class_="screenshot"))
             else:
                 logging.warning("Can't get Screenshot for \"{0}\".".format(torrent_info_search.group(0)))
 
