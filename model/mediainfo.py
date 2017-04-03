@@ -9,6 +9,7 @@ def sort_mkv_info(media_info_raw):
     audio = []
     for track in media_info_raw.tracks:
         if track.track_type == 'General':
+            # TODO 当为fleet组时，使用other_unique_id[0]会出现Error
             general = ["File Name : {0}".format(track.file_name + "." + track.file_extension),
                        "Unique ID : {0}".format(track.other_unique_id[0]),
                        "Format : {0}".format(track.format),
