@@ -48,12 +48,14 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%m/%d/%Y %I:%M:%S %p')
 
 # 种子简介头部通知信息
-descr_header_bs = BeautifulSoup(open("descr_header.html", 'rb'), "html5lib")
+descr_raw = BeautifulSoup(open("descr_raw.html", 'rb'), "html5lib")
 # 根据setting.json中的信息（最小最大数值修改header）
-descr_header_bs.find(id="min_reseed_time").string = str(int(setting.torrent_minSeedTime / 86400))
-descr_header_bs.find(id="max_reseed_time").string = str(int(setting.torrent_maxSeedTime / 86400))
-web_loc_tag = descr_header_bs.find(id="web_loc")
-web_loc_tag["href"] = setting.web_url
+descr_raw.find(id="min_reseed_time").string = str(int(setting.torrent_minSeedTime / 86400))
+descr_raw.find(id="max_reseed_time").string = str(int(setting.torrent_maxSeedTime / 86400))
+web_loc_tag = descr_raw.find(id="web_loc")
+if web_loc_tag:
+    web_loc_tag["href"] = setting.web_url
+
 
 # 提交SQL语句
 def commit_cursor_into_db(sql):
@@ -229,9 +231,10 @@ def seed_post(tid, torrent_info_search):
             if str(torrent_info_search.group("group")).lower() == "fleet":
                 small_descr += " |fleet慎下"
             # 简介 descr
-            descr = str(descr_header_bs.find("fieldset",class_="before")) + "<br />" + torrent_info_raw_from_db[14]
+            descr = str(descr_raw.find("fieldset", class_="before")) + "<br />" + torrent_info_raw_from_db[14]
 
             file = setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"]
+
             # Screen shot
             screenshot_file = "screenshot/{file}.png".format(
                 file=str(download_torrent.files()[0]["name"]).split("/")[-1])
@@ -240,12 +243,13 @@ def seed_post(tid, torrent_info_search):
                                                                                                 s_file=screenshot_file)
             screenshot = os.system(ffmpeg_sh)
             if screenshot == 0:
-                descr_header_bs.find("img")["src"] = "{web_url}/{s_file}".format(web_url=setting.web_url,s_file=screenshot_file)
-                descr += str(descr_header_bs.find("fieldset",class_="screenshot"))
+                descr_raw.find("img")["src"] = "{web_url}/{s_file}".format(web_url=setting.web_url,
+                                                                           s_file=screenshot_file)
+                descr += str(descr_raw.find("fieldset", class_="screenshot"))
             else:
                 logging.warning("Can't get Screenshot for \"{0}\".".format(torrent_info_search.group(0)))
 
-            # Media Info
+            # MediaInfo
             try:
                 media_info = show_media_info(file=file)
             except IndexError:
