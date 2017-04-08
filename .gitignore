@@ -91,3 +91,5 @@ ENV/
 # This project
 .idea/
 backup/
+model/rss/userconfig.py
+log/

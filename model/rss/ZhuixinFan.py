@@ -3,7 +3,6 @@
 
 import PyRSS2Gen
 import datetime
-import pymysql
 import re
 import requests
 from bs4 import BeautifulSoup
