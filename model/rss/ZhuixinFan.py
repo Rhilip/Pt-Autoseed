@@ -49,7 +49,7 @@ def create_rss_feed():
     item = []
     for tid, time, title, magnet_link in result:
         rss_item = PyRSS2Gen.RSSItem(
-            title="{0}".format(title.encode('utf-8').decode('unicode_escape')),
+            title="{0}".format(title),
             link="{0}".format(magnet_link),
             description="http://www.zhuixinfan.com/main.php?mod=viewresource&sid={0}".format(tid),
             pubDate="{0}".format(time)
