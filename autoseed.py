@@ -33,9 +33,9 @@ for key, morsel in cookie.items():
     cookies[key] = morsel.value
 
 search_pattern = re.compile(
-    "(?:[\W]+?\.|^)"
-    "(?P<full_name>(?P<search_name>[\w\-. ]+?)(?:\.| )"
-    "(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+-(?P<group>.+?)?)"
+    u"(?:^[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff:：]+[. ]?|^)"    # 移除平假名、片假名、中文
+    "(?P<full_name>(?P<search_name>[\w\-. ]+?)[. ]"
+    "(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
     "(?:\.(?P<tv_filetype>\w+)$|$)")
 
 # 日志文件
@@ -281,7 +281,7 @@ def seed_post(tid, torrent_info_search):
             post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=cookies, files=multipart_data)
             if post.url != "http://bt.byr.cn/takeupload.php":  # 发布成功检查
                 seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
-                logging.info("Post OK,The torrent id in Byrbt :" + seed_torrent_download_id)
+                logging.info("Post OK,The torrent id in Byrbt: " + seed_torrent_download_id)
                 download_reseed_torrent_and_update_tr_with_db(seed_torrent_download_id)  # 下载种子，并更新
             else:  # 未发布成功打log
                 outer_bs = BeautifulSoup(post.text, "html5lib").find("td", id="outer")
