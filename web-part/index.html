@@ -336,7 +336,7 @@
             $("#last_update_time").text(data.last_update_time);  // 更新时间戳
             var status_table = $("#status_table");
             var output_main = "<thead><tr><th>#</th><th class=\"text-center\">Title</th><th>Size</th><th>Started At</th><th>Download Status</th><th>Seed Status</th></tr></thead><tbody>";
-            for (var i = 0, l = Math.min(10,data.data.length); i <= l; i++) {
+            for (var i = 0, l = data.data.length; i <= l; i++) {
                 var status = data.data[i];
                 var output = "<tr>" +
                     "<td>" + status["id"] + "</td>" +

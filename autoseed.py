@@ -33,7 +33,7 @@ for key, morsel in cookie.items():
     cookies[key] = morsel.value
 
 search_pattern = re.compile(
-    u"(?:^[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff:：]+[. ]?|^)"    # 移除平假名、片假名、中文
+    u"(?:^[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff:：]+[. ]?|^)"  # 移除平假名、片假名、中文
     "(?P<full_name>(?P<search_name>[\w\-. ]+?)[. ]"
     "(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
     "(?:\.(?P<tv_filetype>\w+)$|$)")
@@ -83,9 +83,13 @@ def find_max(column, table):
 
 
 # 从db获取seed_list
-def get_table_seed_list():
+def get_table_seed_list(out_json=False, pre_seed=False):
     cursor = db.cursor()
     sql = "SELECT id,title,download_id,seed_id FROM seed_list"
+    if out_json:
+        sql = "SELECT id,title,download_id,seed_id FROM seed_list ORDER BY id DESC LIMIT 10"
+    if pre_seed:
+        sql = "SELECT id,title,download_id,seed_id FROM seed_list WHERE seed_id = 0"
     cursor.execute(sql)
     return_info = cursor.fetchall()
     cursor.close()
@@ -304,32 +308,29 @@ def seed_post(tid, torrent_info_search):
 
 # 发布判定
 def seed_judge():
-    result = get_table_seed_list()  # 从数据库中获取seed_list(tuple:(id,title,download_id,seed_id))
+    result = get_table_seed_list(pre_seed=True)  # 从数据库中获取seed_list(tuple:(id,title,download_id,seed_id))
     for t in result:  # 遍历seed_list
-        if t[3] == 0:  # 如果种子没有被重发布过(t[3] == 0)    ,另不发布(t[3] == -1)
-            try:
-                torrent = tc.get_torrent(t[2])  # 获取下载种子信息
-            except KeyError:  # 种子不存在了
-                logging.error(
-                    "The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
-                    "It will be deleted from db in next delete-check time".format(t[1]))
-                continue
-            else:
-                torrent_full_name = torrent.name
-                logging.info("New get torrent: " + torrent_full_name)
-                torrent_info_search = re.search(search_pattern, torrent_full_name)
-                if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
-                    seed_post(t[2], torrent_info_search)  # 发布种子
-                else:  # 不符合，更新seed_id为-1
-                    logging.warning("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,"
-                                    "Stop watching it.".format(t[2], torrent_full_name))
-                    commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0])
+        try:
+            torrent = tc.get_torrent(t[2])  # 获取下载种子信息
+        except KeyError:  # 种子不存在了
+            logging.error("The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
+                          "It will be deleted from db in next delete-check time".format(t[1]))
+            continue
+        else:
+            torrent_full_name = torrent.name
+            logging.info("New get torrent: " + torrent_full_name)
+            torrent_info_search = re.search(search_pattern, torrent_full_name)
+            if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
+                seed_post(t[2], torrent_info_search)  # 发布种子
+            else:  # 不符合，更新seed_id为-1
+                logging.warning("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,"
+                                "Stop watching it.".format(t[2], torrent_full_name))
+                commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0])
 
 
 # 生成展示信息
 def generate_web_json():
-    result = list(get_table_seed_list())
-    result.reverse()  # 倒置展示
+    result = list(get_table_seed_list(out_json=True))
     data = []
     for t in result:
         if t[3] != -1:  # 对于不发布的种子不展示
