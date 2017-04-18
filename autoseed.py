@@ -15,14 +15,11 @@ from bs4 import BeautifulSoup
 
 from utils.mediainfo import show_media_info
 
+try:
+    import usersetting as setting
+except ImportError:
+    import setting
 
-# Config
-class JSONObject:
-    def __init__(self, d):
-        self.__dict__ = d
-
-
-setting = json.loads(open("settings.json", "r").read(), object_hook=JSONObject)
 tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port, user=setting.trans_user,
                             password=setting.trans_password)
 db = pymysql.connect(host=setting.db_address, port=setting.db_port, user=setting.db_user, password=setting.db_password,
