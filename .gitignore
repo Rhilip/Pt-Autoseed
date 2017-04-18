@@ -92,4 +92,4 @@ ENV/
 .idea/
 backup/
 model/rss/userconfig.py
-log/
+usersetting.py

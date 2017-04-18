@@ -35,12 +35,8 @@ search_pattern = re.compile(
     "(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
     "(?:\.(?P<tv_filetype>\w+)$|$)")
 
-# 日志文件
-if not os.path.exists("log"):
-    os.makedirs("log")
+# 日志
 logging.basicConfig(level=logging.INFO,
-                    filename='log/autoseed_{0}.log'.format(time.strftime("%Y_%m_%d_%H_%M_%S", time.localtime())),
-                    filemode='w',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     datefmt='%m/%d/%Y %I:%M:%S %p')
 
