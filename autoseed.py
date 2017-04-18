@@ -56,10 +56,11 @@ def commit_cursor_into_db(sql):
     try:
         cursor.execute(sql)
         db.commit()
-        cursor.close()
     except:
         logging.critical("A commit to db ERROR,DDL: " + sql)
         db.rollback()
+    else:
+        cursor.close()
 
 
 # 从数据库中找到最后的发布种子
@@ -212,7 +213,6 @@ def download_reseed_torrent_and_update_tr_with_db(torrent_download_id, thanks=Tr
 
 # 发布种子主函数
 def seed_post(tid, torrent_info_search):
-    if tc.get_torrent(tid).status == "seeding":  # 种子下载完成
         tag = exist_judge(torrent_info_search)
         if tag == 0:  # 种子不存在，则准备发布
             download_torrent = tc.get_torrent(tid)
@@ -295,8 +295,6 @@ def seed_post(tid, torrent_info_search):
         else:  # 如果种子存在（已经有人发布）  -> 辅种
             logging.warning("Find dupe torrent,which id: {0},will assist it~".format(tag))
             download_reseed_torrent_and_update_tr_with_db(tag, thanks=False)
-    else:
-        logging.warning("This torrent is still download.Wait until next check time.")
 
 
 # 发布判定
@@ -314,7 +312,10 @@ def seed_judge():
             logging.info("New get torrent: " + torrent_full_name)
             torrent_info_search = re.search(search_pattern, torrent_full_name)
             if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
-                seed_post(t[2], torrent_info_search)  # 发布种子
+                if torrent.status == "seeding":  # 种子下载完成
+                    seed_post(t[2], torrent_info_search)  # 发布种子
+                else:
+                    logging.warning("This torrent is still download.Wait until next check time.")
             else:  # 不符合，更新seed_id为-1
                 logging.warning("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,"
                                 "Stop watching it.".format(t[2], torrent_full_name))
