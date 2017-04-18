@@ -13,7 +13,7 @@ import transmissionrpc
 import requests
 from bs4 import BeautifulSoup
 
-from model.mediainfo import show_media_info
+from utils.mediainfo import show_media_info
 
 
 # Config
