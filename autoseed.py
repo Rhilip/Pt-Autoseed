@@ -348,6 +348,7 @@ def generate_web_json():
                 continue
             else:
                 info_dict = {
+                    "id": t[0],
                     "title": download_torrent.name,
                     "size": "{:.2f} MiB".format(download_torrent.totalSize / (1024 * 1024)),
                     "download_start_time": time.strftime("%Y-%m-%d %H:%M:%S",
@@ -357,7 +358,7 @@ def generate_web_json():
                     "reseed_status": reseed_status,
                     "reseed_ratio": "{:.2f}".format(reseed_ratio)
                 }
-            data.append((t[0], info_dict))
+            data.append(info_dict)
     out_list = {
         "last_update_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
         "data": data
