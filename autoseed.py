@@ -162,11 +162,12 @@ def check_to_del_torrent_with_data_and_db():
 
 
 # 从数据库中获取剧集简介（根据种子文件的search_name搜索数据库中的tv_ename）
-def get_info_from_db(torrent_search_name):
+def get_info_from_db(torrent_search_name, table, column):
     cursor = db.cursor()
     # 模糊匹配
     search_name = torrent_search_name.replace(" ", "%").replace(".", "%")
-    sql = "SELECT * FROM tv_info WHERE tv_ename LIKE '{search_name}%'".format(search_name=search_name)
+    sql = "SELECT * FROM {table} WHERE {column} LIKE '{search_name}%'".format(table=table, column=column,
+                                                                              search_name=search_name)
     cursor.execute(sql)
     result = cursor.fetchall()[0]
     cursor.close()
@@ -213,88 +214,89 @@ def download_reseed_torrent_and_update_tr_with_db(torrent_download_id, thanks=Tr
 
 # 发布种子主函数
 def seed_post(tid, torrent_info_search):
-        tag = exist_judge(torrent_info_search)
-        if tag == 0:  # 种子不存在，则准备发布
-            download_torrent = tc.get_torrent(tid)
-            torrent_file_name = re.search("torrents/(.+?\.torrent)", download_torrent.torrentFile).group(1)
-            try:
-                torrent_info_raw_from_db = get_info_from_db(torrent_info_search.group("search_name"))  # 从数据库中获取该美剧信息
-            except IndexError:  # 数据库没有该种子数据,使用备用剧集信息
-                logging.warning(
-                    "Not Find info from db of torrent: \"{0}\",Use normal template!!".format(download_torrent.name))
-                torrent_info_raw_from_db = get_info_from_db("default")
-            # 副标题 small_descr
-            small_descr = "{0} {1}".format(torrent_info_raw_from_db[10], torrent_info_search.group("tv_season"))
-            if str(torrent_info_search.group("group")).lower() == "fleet":
-                small_descr += " |fleet慎下"
-            # 简介 descr
-            descr = str(descr_raw.find("fieldset", class_="before")) + "<br />" + torrent_info_raw_from_db[14]
+    tag = exist_judge(torrent_info_search)
+    if tag == 0:  # 种子不存在，则准备发布
+        download_torrent = tc.get_torrent(tid)
+        torrent_file_name = re.search("torrents/(.+?\.torrent)", download_torrent.torrentFile).group(1)
+        try:  # 从数据库中获取该美剧信息
+            search_name = torrent_info_search.group("search_name")
+            torrent_info_raw_from_db = get_info_from_db(search_name, table="tv_info", column="tv_ename")
+        except IndexError:  # 数据库没有该种子数据,使用备用剧集信息
+            logging.warning(
+                "Not Find info from db of torrent: \"{0}\",Use normal template!!".format(download_torrent.name))
+            torrent_info_raw_from_db = get_info_from_db("default", table="tv_info", column="tv_ename")
+        # 副标题 small_descr
+        small_descr = "{0} {1}".format(torrent_info_raw_from_db[10], torrent_info_search.group("tv_season"))
+        if str(torrent_info_search.group("group")).lower() == "fleet":
+            small_descr += " |fleet慎下"
+        # 简介 descr
+        descr = str(descr_raw.find("fieldset", class_="before")) + "<br />" + torrent_info_raw_from_db[14]
 
-            file = setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"]
+        file = setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"]
 
-            # Screen shot
-            screenshot_file = "screenshot/{file}.png".format(
-                file=str(download_torrent.files()[0]["name"]).split("/")[-1])
-            ffmpeg_sh = "ffmpeg -ss 00:10:10 -y -i {file} -vframes 1 {web_loc}/{s_file}".format(file=file,
-                                                                                                web_loc=setting.web_loc,
-                                                                                                s_file=screenshot_file)
-            screenshot = os.system(ffmpeg_sh)
-            if screenshot == 0:
-                descr_raw.find("img")["src"] = "{web_url}/{s_file}".format(web_url=setting.web_url,
-                                                                           s_file=screenshot_file)
-                descr += str(descr_raw.find("fieldset", class_="screenshot"))
-            else:
-                logging.warning("Can't get Screenshot for \"{0}\".".format(torrent_info_search.group(0)))
+        # Screen shot
+        screenshot_file = "screenshot/{file}.png".format(
+            file=str(download_torrent.files()[0]["name"]).split("/")[-1])
+        ffmpeg_sh = "ffmpeg -ss 00:10:10 -y -i {file} -vframes 1 {web_loc}/{s_file}".format(file=file,
+                                                                                            web_loc=setting.web_loc,
+                                                                                            s_file=screenshot_file)
+        screenshot = os.system(ffmpeg_sh)
+        if screenshot == 0:
+            descr_raw.find("img")["src"] = "{web_url}/{s_file}".format(web_url=setting.web_url,
+                                                                       s_file=screenshot_file)
+            descr += str(descr_raw.find("fieldset", class_="screenshot"))
+        else:
+            logging.warning("Can't get Screenshot for \"{0}\".".format(torrent_info_search.group(0)))
 
-            # MediaInfo
-            try:
-                media_info = show_media_info(file=file)
-            except IndexError:
-                logging.warning("Can't get MediaInfo for \"{0}\"".format(torrent_info_search.group(0)))
-            else:
-                if media_info:
-                    descr += media_info
+        # MediaInfo
+        try:
+            media_info = show_media_info(file=file)
+        except IndexError:
+            logging.warning("Can't get MediaInfo for \"{0}\"".format(torrent_info_search.group(0)))
+        else:
+            if media_info:
+                descr += media_info
 
-            # 提交表单
-            multipart_data = (
-                ("type", ('', str(torrent_info_raw_from_db[1]))),
-                ("second_type", ('', str(torrent_info_raw_from_db[2]))),
-                ("file", (torrent_file_name, open(download_torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-                ("tv_type", ('', str(torrent_info_raw_from_db[4]))),
-                ("cname", ('', torrent_info_raw_from_db[5])),
-                ("tv_ename", ('', torrent_info_search.group("full_name"))),
-                ("tv_season", ('', torrent_info_search.group("tv_season"))),
-                ("tv_filetype", ('', torrent_info_raw_from_db[8])),
-                ("type", ('', str(torrent_info_raw_from_db[9]))),
-                ("small_descr", ('', small_descr)),
-                ("url", ('', torrent_info_raw_from_db[11])),
-                ("dburl", ('', torrent_info_raw_from_db[12])),
-                ("nfo", ('', torrent_info_raw_from_db[13])),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-                ("descr", ('', descr)),
-                ("uplver", ('', torrent_info_raw_from_db[15])),
-            )
-            # 发布种子
-            logging.info("Begin post The torrent {0},which name :{1}".format(tid, download_torrent.name))
-            post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=cookies, files=multipart_data)
-            if post.url != "http://bt.byr.cn/takeupload.php":  # 发布成功检查
-                seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
-                logging.info("Post OK,The torrent id in Byrbt: " + seed_torrent_download_id)
-                download_reseed_torrent_and_update_tr_with_db(seed_torrent_download_id)  # 下载种子，并更新
-            else:  # 未发布成功打log
-                outer_bs = BeautifulSoup(post.text, "html5lib").find("td", id="outer")
-                if outer_bs.find_all("table"):  # 移除不必要的table信息
-                    for table in outer_bs.find_all("table"):
-                        table.extract()
-                outer_message = outer_bs.get_text().replace("\n", "")
-                logging.error("Upload this torrent Error,The Server echo:\"{0}\",Stop Posting".format(outer_message))
-                commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % tid)
-        elif tag == -1:  # 如果种子存在，但种子不一致
-            logging.warning("Find dupe torrent,and the exist torrent's title is not the same as pre-reseed torrent."
-                            "Stop Posting~")
+        # 提交表单
+        multipart_data = (
+            ("type", ('', str(torrent_info_raw_from_db[1]))),
+            ("second_type", ('', str(torrent_info_raw_from_db[2]))),
+            ("file", (torrent_file_name, open(download_torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
+            ("tv_type", ('', str(torrent_info_raw_from_db[4]))),
+            ("cname", ('', torrent_info_raw_from_db[5])),
+            ("tv_ename", ('', torrent_info_search.group("full_name"))),
+            ("tv_season", ('', torrent_info_search.group("tv_season"))),
+            ("tv_filetype", ('', torrent_info_raw_from_db[8])),
+            ("type", ('', str(torrent_info_raw_from_db[9]))),
+            ("small_descr", ('', small_descr)),
+            ("url", ('', torrent_info_raw_from_db[11])),
+            ("dburl", ('', torrent_info_raw_from_db[12])),
+            ("nfo", ('', torrent_info_raw_from_db[13])),  # 实际上并不是这样的，但是nfo一般没有，故这么写
+            ("descr", ('', descr)),
+            ("uplver", ('', torrent_info_raw_from_db[15])),
+        )
+        # 发布种子
+        logging.info("Begin post The torrent {0},which name :{1}".format(tid, download_torrent.name))
+        post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=cookies, files=multipart_data)
+        if post.url != "http://bt.byr.cn/takeupload.php":  # 发布成功检查
+            seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
+            logging.info("Post OK,The torrent id in Byrbt: " + seed_torrent_download_id)
+            download_reseed_torrent_and_update_tr_with_db(seed_torrent_download_id)  # 下载种子，并更新
+        else:  # 未发布成功打log
+            outer_bs = BeautifulSoup(post.text, "html5lib").find("td", id="outer")
+            if outer_bs.find_all("table"):  # 移除不必要的table信息
+                for table in outer_bs.find_all("table"):
+                    table.extract()
+            outer_message = outer_bs.get_text().replace("\n", "")
+            logging.error("Upload this torrent Error,The Server echo:\"{0}\",Stop Posting".format(outer_message))
             commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % tid)
-        else:  # 如果种子存在（已经有人发布）  -> 辅种
-            logging.warning("Find dupe torrent,which id: {0},will assist it~".format(tag))
-            download_reseed_torrent_and_update_tr_with_db(tag, thanks=False)
+    elif tag == -1:  # 如果种子存在，但种子不一致
+        logging.warning("Find dupe torrent,and the exist torrent's title is not the same as pre-reseed torrent."
+                        "Stop Posting~")
+        commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % tid)
+    else:  # 如果种子存在（已经有人发布）  -> 辅种
+        logging.warning("Find dupe torrent,which id: {0},will assist it~".format(tag))
+        download_reseed_torrent_and_update_tr_with_db(tag, thanks=False)
 
 
 # 发布判定
