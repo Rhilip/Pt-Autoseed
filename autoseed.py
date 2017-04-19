@@ -29,21 +29,12 @@ cookies = {}
 for key, morsel in cookie.items():
     cookies[key] = morsel.value
 
-search_pattern = re.compile(setting.series_pattern)
+search_pattern = re.compile(setting.search_series_pattern)
 
 # 日志
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     datefmt='%m/%d/%Y %I:%M:%S %p')
-
-# 种子简介头部通知信息
-descr_raw = BeautifulSoup(open("descr_raw.html", 'rb'), "html5lib")
-# 根据setting.json中的信息（最小最大数值修改header）
-descr_raw.find(id="min_reseed_time").string = str(int(setting.torrent_minSeedTime / 86400))
-descr_raw.find(id="max_reseed_time").string = str(int(setting.torrent_maxSeedTime / 86400))
-web_loc_tag = descr_raw.find(id="web_loc")
-if web_loc_tag:
-    web_loc_tag["href"] = setting.web_url
 
 
 # 提交SQL语句
@@ -223,7 +214,7 @@ def seed_post(tid, torrent_info_search):
         if str(torrent_info_search.group("group")).lower() == "fleet":
             small_descr += " |fleet慎下"
         # 简介 descr
-        descr = str(descr_raw.find("fieldset", class_="before")) + "<br />" + torrent_info_raw_from_db[14]
+        descr = setting.descr_before + torrent_info_raw_from_db[14]
 
         file = setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"]
 
@@ -235,9 +226,7 @@ def seed_post(tid, torrent_info_search):
                                                                                             s_file=screenshot_file)
         screenshot = os.system(ffmpeg_sh)
         if screenshot == 0:
-            descr_raw.find("img")["src"] = "{web_url}/{s_file}".format(web_url=setting.web_url,
-                                                                       s_file=screenshot_file)
-            descr += str(descr_raw.find("fieldset", class_="screenshot"))
+            descr += setting.descr_screenshot("{web_url}/{s_f}".format(web_url=setting.web_url, s_f=screenshot_file))
         else:
             logging.warning("Can't get Screenshot for \"{0}\".".format(torrent_info_search.group(0)))
 
@@ -248,7 +237,7 @@ def seed_post(tid, torrent_info_search):
             logging.warning("Can't get MediaInfo for \"{0}\"".format(torrent_info_search.group(0)))
         else:
             if media_info:
-                descr += media_info
+                descr += setting.descr_mediainfo(media_info)
 
         # 提交表单
         multipart_data = (

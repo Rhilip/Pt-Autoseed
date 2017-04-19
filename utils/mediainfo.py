@@ -98,9 +98,7 @@ def from_info_list_to_html(sorted_info):
     for i in sorted_info[2]:
         audio_output_temp = "<br>".join(i) + "<br><br>"
         audio_output += audio_output_temp
-    out_html = "<br><fieldset><legend><b>MediaInfo:（自动生成，仅供参考）</b></legend>{0}<br>{1}<br>{2}</fieldset> " \
-        .format(general_output, video_output, audio_output)
-    return out_html
+    return "{0}<br>{1}<br>{2}".format(general_output, video_output, audio_output)
 
 
 # 主程序调用函数
