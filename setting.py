@@ -1,6 +1,9 @@
 # Autoseed
-sleep_busy_time = 120
-sleep_free_time = 600
+sleep_free_time = 600  # 空闲期脚本每次运行间隔
+sleep_busy_time = 120  # 繁忙期脚本每次运行间隔
+busy_start_hour = 8  # 繁忙期开始钟点 [0,24)
+busy_end_hour = 14  # 繁忙期结束钟点 (busy_start_hour,24)
+delete_check_round = 5  # 每多少次运行检查一次种子删除情况
 
 # Transmission
 trans_address = "localhost"
@@ -26,9 +29,9 @@ torrent_minSeedTime = 86400
 torrent_maxSeedTime = 691200
 
 # Show_Site
-web_url = ""
-web_loc = ""
-entries_number = 10  # 展示页面显示的做种条目数量
+web_url = "http://"  # demo网站的url
+web_loc = "/var/www"  # demo网站在服务器上的地址
+web_show_entries_number = 10  # 展示页面显示的做种条目数量
 
 # Search_pattern
 series_pattern = u"(?:^[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff:：]+[. ]?|^)"  # 移除平假名、片假名、中文
@@ -36,10 +39,8 @@ series_pattern = u"(?:^[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff:：]+[. ]?|^)"  
 "(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
 "(?:\.(?P<tv_filetype>\w+)$|$)"
 
-anime_pattern = ""
 
-
-# unction
+# Function
 def pre_delete_judge(status: str, time_now: int, time_added: int, ratio: int, judge: bool = False) -> bool:
     """
     note: 根据传入的种子信息判定是否能够删除种子,预设判断流程: 发布种子无上传速度 -> 达到最小做种时间 -> 达到(最大做种时间 或者 最大分享率)

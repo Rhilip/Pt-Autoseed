@@ -319,7 +319,7 @@ def seed_judge():
 
 # 生成展示信息
 def generate_web_json():
-    result = list(get_table_seed_list(out_json=True, count=setting.entries_number))
+    result = list(get_table_seed_list(out_json=True, count=setting.web_show_entries_number))
     data = []
     for t in result:
         if t[3] != -1:  # 对于不发布的种子不展示
@@ -366,11 +366,11 @@ def main():
             update_torrent_info_from_rpc_to_db(force_clean_check=True)
         update_torrent_info_from_rpc_to_db()  # 更新表
         seed_judge()  # reseed判断主函数
-        if i % 5 == 0:  # 每5次运行检查一遍
+        if i % setting.delete_check_round == 0:  # 每5次运行检查一遍
             check_to_del_torrent_with_data_and_db()  # 清理种子
         generate_web_json()  # 生成展示信息
         now_hour = int(time.strftime("%H", time.localtime()))
-        if 8 <= now_hour < 16:  # 这里假定8:00-16:00为美剧更新的频繁期
+        if setting.busy_start_hour <= now_hour < setting.busy_end_hour:  # 这里假定8:00-16:00为美剧更新的频繁期
             sleep_time = setting.sleep_busy_time
         else:  # 其他时间段
             sleep_time = setting.sleep_free_time
