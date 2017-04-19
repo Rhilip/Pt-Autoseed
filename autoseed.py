@@ -1,7 +1,6 @@
 # ！/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import json
 import re
 import time
 import os
@@ -13,7 +12,7 @@ import transmissionrpc
 import requests
 from bs4 import BeautifulSoup
 
-from utils.mediainfo import show_media_info
+import utils
 
 try:
     import usersetting as setting
@@ -71,7 +70,7 @@ def get_table_seed_list(pre_seed=False, out_json=False, count: int = 10):
     if pre_seed:
         sql = "SELECT id,title,download_id,seed_id FROM seed_list WHERE seed_id = 0"
     if out_json:
-        sql = "SELECT id,title,download_id,seed_id FROM seed_list ORDER BY id DESC LIMIT {sum}".format(sum=count)
+        sql = "SELECT id,title,download_id,seed_id FROM seed_list WHERE seed_id != -1 ORDER BY id DESC LIMIT {sum}".format(sum=count)
     cursor.execute(sql)
     return_info = cursor.fetchall()
     cursor.close()
@@ -245,7 +244,7 @@ def data_series_raw2tuple(download_torrent) -> tuple:
 
     # MediaInfo
     try:
-        media_info = show_media_info(file=file)
+        media_info = utils.show_media_info(file=file)
     except IndexError:
         logging.warning("Can't get MediaInfo for \"{0}\"".format(torrent_info_search.group(0)))
     else:
@@ -308,46 +307,6 @@ def seed_judge():
                 commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0])
 
 
-# 生成展示信息
-def generate_web_json():
-    result = get_table_seed_list(out_json=True, count=setting.web_show_entries_number)
-    data = []
-    for t in result:
-        if t[3] != -1:  # 对于不发布的种子不展示
-            try:
-                download_torrent = tc.get_torrent(t[2])
-                if t[3] == 0:
-                    reseed_status = "Not found."
-                    reseed_ratio = 0
-                else:
-                    reseed_torrent = tc.get_torrent(t[3])
-                    reseed_status = reseed_torrent.status
-                    reseed_ratio = reseed_torrent.uploadRatio
-            except KeyError:
-                logging.error("This torrent (Which name: {0}) has been deleted from transmission "
-                              "(Maybe By other Management software).".format(t[1]))
-                continue
-            else:
-                start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(download_torrent.addedDate))
-                info_dict = {
-                    "id": t[0],
-                    "title": download_torrent.name,
-                    "size": "{:.2f} MiB".format(download_torrent.totalSize / (1024 * 1024)),
-                    "download_start_time": start_time,
-                    "download_status": download_torrent.status,
-                    "download_upload_ratio": "{:.2f}".format(download_torrent.uploadRatio),
-                    "reseed_status": reseed_status,
-                    "reseed_ratio": "{:.2f}".format(reseed_ratio)
-                }
-            data.append(info_dict)
-    out_list = {
-        "last_update_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-        "data": data
-    }
-    with open(setting.web_loc + "/tostatus.json", "wt") as f:
-        json.dump(out_list, f)
-
-
 def main():
     logging.info("Autoseed start~")
     i = 0
@@ -357,15 +316,20 @@ def main():
             update_torrent_info_from_rpc_to_db(force_clean_check=True)
         update_torrent_info_from_rpc_to_db()  # 更新表
         seed_judge()  # reseed判断主函数
-        if i % setting.delete_check_round == 0:  # 每5次运行检查一遍
+        if i % setting.delete_check_round == 0:
             check_to_del_torrent_with_data_and_db()  # 清理种子
-        generate_web_json()  # 生成展示信息
-        now_hour = int(time.strftime("%H", time.localtime()))
-        if setting.busy_start_hour <= now_hour < setting.busy_end_hour:  # 这里假定8:00-16:00为美剧更新的频繁期
+
+        if setting.web_show_status:  # 发种机运行状态展示
+            utils.generate_web_json(setting=setting, tr_client=tc,
+                                    data_list=get_table_seed_list(out_json=True, count=setting.web_show_entries_number))
+
+        if setting.busy_start_hour <= int(time.strftime("%H", time.localtime())) < setting.busy_end_hour:
             sleep_time = setting.sleep_busy_time
         else:  # 其他时间段
             sleep_time = setting.sleep_free_time
+
         logging.debug("Check time {0} OK,Will Sleep for {1} seconds.".format(str(i), str(sleep_time)))
+
         time.sleep(sleep_time)
         i += 1
 
