@@ -7,7 +7,6 @@ import os
 import logging
 from http.cookies import SimpleCookie  # Python3模块   （Py2: from Cookie import SimpleCookie）
 
-import pymysql
 import transmissionrpc
 import requests
 from bs4 import BeautifulSoup
@@ -21,8 +20,8 @@ except ImportError:
 
 tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port, user=setting.trans_user,
                             password=setting.trans_password)
-db = pymysql.connect(host=setting.db_address, port=setting.db_port, user=setting.db_user, password=setting.db_password,
-                     db=setting.db_name, charset='utf8')
+
+db = utils.Database(setting)
 
 cookie = SimpleCookie(setting.byr_cookies)
 cookies = {}
@@ -31,69 +30,28 @@ for key, morsel in cookie.items():
 
 search_pattern = re.compile(setting.search_series_pattern)
 
-# 日志
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.INFO,  # 日志
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     datefmt='%m/%d/%Y %I:%M:%S %p')
 
 
-# 提交SQL语句
-def commit_cursor_into_db(sql):
-    cursor = db.cursor()
-    try:
-        cursor.execute(sql)
-        db.commit()
-    except:
-        logging.critical("A commit to db ERROR,DDL: " + sql)
-        db.rollback()
-    else:
-        cursor.close()
-
-
-# 从数据库中找到最后的发布种子
-def find_max(column, table):
-    cursor = db.cursor()
-    sql = "SELECT MAX(" + column + ") FROM `" + table + "`"
-    cursor.execute(sql)
-    result = cursor.fetchall()
-    cursor.close()
-    t = result[0][0]
-    if not t:
-        t = 0
-    return t
-
-
-# 从db获取seed_list
-def get_table_seed_list(pre_seed=False, out_json=False, count: int = 10):
-    cursor = db.cursor()
-    sql = "SELECT id,title,download_id,seed_id FROM seed_list"
-    if pre_seed:
-        sql = "SELECT id,title,download_id,seed_id FROM seed_list WHERE seed_id = 0"
-    if out_json:
-        sql = "SELECT id,title,download_id,seed_id FROM seed_list WHERE seed_id != -1 ORDER BY id DESC LIMIT {sum}".format(sum=count)
-    cursor.execute(sql)
-    return_info = cursor.fetchall()
-    cursor.close()
-    return return_info
-
-
 def update_torrent_info_from_rpc_to_db(force_clean_check=False):
-    result = get_table_seed_list()
+    result = db.get_table_seed_list()
     title_list = []
     for i in result:
         title_list.append(i[1])
     if not force_clean_check:  # 正常更新
-        last_seed_id = find_max("seed_id", "seed_list")
+        last_seed_id = db.get_max_in_column("seed_list", "seed_id")
         for t in tc.get_torrents():
             if t.id > last_seed_id:
                 if t.name in title_list:
                     sort_id = result[title_list.index(t.name)][0]
                     if t.trackers[0]["announce"].find("tracker.byr.cn") != -1:
                         sql = "UPDATE seed_list SET seed_id = '%d' WHERE id = '%d'" % (t.id, sort_id)
-                        commit_cursor_into_db(sql)
+                        db.commit_sql(sql)
                 elif t.trackers[0]["announce"].find("tracker.byr.cn") == -1:
                     sql = "INSERT INTO seed_list (title,download_id,seed_id) VALUES ('%s','%d',0)" % (t.name, t.id)
-                    commit_cursor_into_db(sql)
+                    db.commit_sql(sql)
         logging.debug("Update torrent info from rpc to db OK~")
     else:  # 第一次启动检查(force_clean_check)
         torrent_list_now_in_trans = tc.get_torrents()
@@ -101,12 +59,13 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
         for t in torrent_list_now_in_trans:
             if t.id > last_torrent_id_in_tran:
                 last_torrent_id_in_tran = t.id
-        last_torrent_id_in_db = max(find_max("download_id", "seed_list"), find_max("seed_id", "seed_list"))
+        last_torrent_id_in_db = max(db.get_max_in_column("seed_list", "download_id"),
+                                    db.get_max_in_column("seed_list", "seed_id"))
         if not last_torrent_id_in_db == last_torrent_id_in_tran:  # 如果对不上，说明系统重新启动过或者tr崩溃过
             logging.error(
                 "It seems that torrent's id in transmission didn't match with db-records,"
                 "Clean the whole table \"seed_list\"")
-            commit_cursor_into_db(sql="DELETE FROM seed_list")  # 直接清表
+            db.commit_sql(sql="DELETE FROM seed_list")  # 直接清表
             # 清表后首次更新，这样可以在正常更新阶段（main中）保证(?)所有种子均插入表中。防止重复下载种子
             update_torrent_info_from_rpc_to_db()
         else:
@@ -116,17 +75,17 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
 # 从transmission和数据库中删除种子及其数据
 def check_to_del_torrent_with_data_and_db():
     logging.debug("Begin torrent's status check.If reach condition you set,You will get a warning.")
-    result = get_table_seed_list()
+    result = db.get_table_seed_list()
     for t in result:
         try:  # 本处保证t[2],t[3]对应的种子仍存在
             tc.get_torrent(t[2])
-            if t[3] > 0:
+            if t[3] > 0:  # TODO 通过sql来解决
                 seed_torrent = tc.get_torrent(t[3])
             else:
                 continue  # t[3]<=0（且种子仍存在）的情况进入下一轮循环，不进入else
         except KeyError:  # 不存在的处理方法 - 删表，清种子
             logging.error("Torrent is not found,Witch name:\"{0}\",Will delete it's record from db".format(t[1]))
-            commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
+            db.commit_sql(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
             tc.remove_torrent(t[2], delete_data=True)  # remove_torrent()不会因为种子不存在而出错
             tc.remove_torrent(t[3], delete_data=True)  # (错了也直接打log，不会崩)
         else:
@@ -139,23 +98,10 @@ def check_to_del_torrent_with_data_and_db():
                     "in next check time.".format(seed_torrent.name))
             if seed_torrent.status == "stopped":  # 前一轮暂停的种子 -> 删除种子及其文件，清理db条目
                 logging.warning("Will delete torrent: {0} {1},Which name {2}".format(t[2], t[3], t[1]))
-                commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
+                db.commit_sql(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
                 tc.remove_torrent(t[3], delete_data=True)
                 tc.remove_torrent(t[2], delete_data=True)
                 logging.info("Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
-
-
-# 从数据库中获取剧集简介（根据种子文件的search_name搜索对应数据库）
-def get_info_from_db(torrent_search_name, table, column):
-    cursor = db.cursor()
-    # 模糊匹配
-    search_name = torrent_search_name.replace(" ", "%").replace(".", "%")
-    sql = "SELECT * FROM {table} WHERE {column} LIKE '{search_name}%'".format(table=table, column=column,
-                                                                              search_name=search_name)
-    cursor.execute(sql)
-    result = cursor.fetchall()[0]
-    cursor.close()
-    return result
 
 
 # 如果种子在byr存在，返回种子id，不存在返回0，已存在且种子一致返回种子号，不一致返回-1
@@ -209,7 +155,7 @@ def seed_post(tid, multipart_data: tuple):
                 table.extract()
         outer_message = outer_bs.get_text().replace("\n", "")
         logging.error("Upload this torrent Error,The Server echo:\"{0}\",Stop Posting".format(outer_message))
-        commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % tid)
+        db.commit_sql("UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % tid)
 
 
 def data_series_raw2tuple(download_torrent) -> tuple:
@@ -217,10 +163,10 @@ def data_series_raw2tuple(download_torrent) -> tuple:
     torrent_file_name = re.search("torrents/(.+?\.torrent)", download_torrent.torrentFile).group(1)
     try:  # 从数据库中获取该美剧信息
         search_name = torrent_info_search.group("search_name")
-        torrent_info_raw_from_db = get_info_from_db(search_name, table="tv_info", column="tv_ename")
+        torrent_info_raw_from_db = db.get_raw_info(search_name, table="tv_info", column="tv_ename")
     except IndexError:  # 数据库没有该种子数据,使用备用剧集信息
         logging.warning("Not Find info from db of torrent: \"{0}\",Use normal template!!".format(download_torrent.name))
-        torrent_info_raw_from_db = get_info_from_db("default", table="tv_info", column="tv_ename")
+        torrent_info_raw_from_db = db.get_raw_info("default", table="tv_info", column="tv_ename")
 
     # 副标题 small_descr
     small_descr = "{0} {1}".format(torrent_info_raw_from_db[10], torrent_info_search.group("tv_season"))
@@ -272,7 +218,7 @@ def data_series_raw2tuple(download_torrent) -> tuple:
 
 # 发布判定
 def seed_judge():
-    result = get_table_seed_list(pre_seed=True)  # 从数据库中获取seed_list(tuple:(id,title,download_id,seed_id))
+    result = db.get_table_seed_list(pre_seed=True)  # 从数据库中获取seed_list(tuple:(id,title,download_id,seed_id))
     for t in result:  # 遍历seed_list
         try:
             download_torrent = tc.get_torrent(t[2])  # 获取下载种子信息
@@ -295,7 +241,7 @@ def seed_judge():
                         logging.warning(
                             "Find dupe torrent,and the exist torrent's title is not the same as pre-reseed torrent."
                             "Stop Posting~")
-                        commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % t[2])
+                        db.commit_sql("UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % t[2])
                     else:  # 如果种子存在（已经有人发布）  -> 辅种
                         logging.warning("Find dupe torrent,which id: {0},will assist it~".format(tag))
                         download_reseed_torrent_and_update_tr_with_db(tag, thanks=False)
@@ -304,7 +250,7 @@ def seed_judge():
             else:  # 不符合，更新seed_id为-1
                 logging.warning("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,"
                                 "Stop watching it.".format(t[2], torrent_full_name))
-                commit_cursor_into_db("UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0])
+                db.commit_sql("UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0])
 
 
 def main():
@@ -321,7 +267,7 @@ def main():
 
         if setting.web_show_status:  # 发种机运行状态展示
             utils.generate_web_json(setting=setting, tr_client=tc,
-                                    data_list=get_table_seed_list(out_json=True, count=setting.web_show_entries_number))
+                                    data_list=db.get_table_seed_list(out_json=True, count=setting.web_show_entries_number))
 
         if setting.busy_start_hour <= int(time.strftime("%H", time.localtime())) < setting.busy_end_hour:
             sleep_time = setting.sleep_busy_time
