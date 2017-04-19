@@ -34,10 +34,17 @@ web_loc = "/var/www"  # demo网站在服务器上的地址
 web_show_entries_number = 10  # 展示页面显示的做种条目数量
 
 # Search_pattern
-search_series_pattern = u"(?:^[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff:：]+[. ]?|^)"  # 移除平假名、片假名、中文
-"(?P<full_name>(?P<search_name>[\w\-. ]+?)[. ]"
-"(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
-"(?:\.(?P<tv_filetype>\w+)$|$)"
+search_series_pattern = (
+    u"(?:^[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff:：]+[. ]?|^)"  # 移除平假名、片假名、中文
+    "(?P<full_name>(?P<search_name>[\w\-. ]+?)[. ]"
+    "(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
+    "(?:\.(?P<tv_filetype>\w+)$|$)"
+)
+
+# TODO ServerChan
+'具体见：http://sc.ftqq.com/，用于向微信通知发种机发布状态'
+ServerChan_status = False
+ServerChan_SCKEY = ""
 
 # Extended description
 descr_before = """
@@ -67,6 +74,7 @@ def descr_screenshot(url: str) -> str:
 
 
 def descr_clone_info(before_torrent_id) -> str:
+    # TODO 暂时还用不了这个function
     return """
     <div class="byrbt_info_clone" data-clone="{torrent_id}" data-version="SP" style="display:none">
         <a href="http://github.com/Rhilip/Byrbt-Autoseed" target="_blank">Powered by Rhilip's Autoseed</a>
