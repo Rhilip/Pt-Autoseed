@@ -29,11 +29,7 @@ cookies = {}
 for key, morsel in cookie.items():
     cookies[key] = morsel.value
 
-search_pattern = re.compile(
-    u"(?:^[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff:：]+[. ]?|^)"  # 移除平假名、片假名、中文
-    "(?P<full_name>(?P<search_name>[\w\-. ]+?)[. ]"
-    "(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
-    "(?:\.(?P<tv_filetype>\w+)$|$)")
+search_pattern = re.compile(setting.series_pattern)
 
 # 日志
 logging.basicConfig(level=logging.INFO,
@@ -77,13 +73,13 @@ def find_max(column, table):
 
 
 # 从db获取seed_list
-def get_table_seed_list(out_json=False, pre_seed=False):
+def get_table_seed_list(pre_seed=False, out_json=False, count: int = 10):
     cursor = db.cursor()
     sql = "SELECT id,title,download_id,seed_id FROM seed_list"
-    if out_json:
-        sql = "SELECT id,title,download_id,seed_id FROM seed_list ORDER BY id DESC LIMIT 10"
     if pre_seed:
         sql = "SELECT id,title,download_id,seed_id FROM seed_list WHERE seed_id = 0"
+    if out_json:
+        sql = "SELECT id,title,download_id,seed_id FROM seed_list ORDER BY id DESC LIMIT {sum}".format(sum=count)
     cursor.execute(sql)
     return_info = cursor.fetchall()
     cursor.close()
@@ -158,7 +154,7 @@ def check_to_del_torrent_with_data_and_db():
                 logging.info("Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
 
 
-# 从数据库中获取剧集简介（根据种子文件的search_name搜索数据库中的tv_ename）
+# 从数据库中获取剧集简介（根据种子文件的search_name搜索对应数据库）
 def get_info_from_db(torrent_search_name, table, column):
     cursor = db.cursor()
     # 模糊匹配
@@ -323,7 +319,7 @@ def seed_judge():
 
 # 生成展示信息
 def generate_web_json():
-    result = list(get_table_seed_list(out_json=True))
+    result = list(get_table_seed_list(out_json=True, count=setting.entries_number))
     data = []
     for t in result:
         if t[3] != -1:  # 对于不发布的种子不展示
@@ -341,12 +337,12 @@ def generate_web_json():
                               "(Maybe By other Management software).".format(t[1]))
                 continue
             else:
+                start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(download_torrent.addedDate))
                 info_dict = {
                     "id": t[0],
                     "title": download_torrent.name,
                     "size": "{:.2f} MiB".format(download_torrent.totalSize / (1024 * 1024)),
-                    "download_start_time": time.strftime("%Y-%m-%d %H:%M:%S",
-                                                         time.localtime(download_torrent.addedDate)),
+                    "download_start_time": start_time,
                     "download_status": download_torrent.status,
                     "download_upload_ratio": "{:.2f}".format(download_torrent.uploadRatio),
                     "reseed_status": reseed_status,

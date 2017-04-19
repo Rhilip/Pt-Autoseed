@@ -28,16 +28,25 @@ torrent_maxSeedTime = 691200
 # Show_Site
 web_url = ""
 web_loc = ""
+entries_number = 10  # 展示页面显示的做种条目数量
+
+# Search_pattern
+series_pattern = u"(?:^[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff:：]+[. ]?|^)"  # 移除平假名、片假名、中文
+"(?P<full_name>(?P<search_name>[\w\-. ]+?)[. ]"
+"(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
+"(?:\.(?P<tv_filetype>\w+)$|$)"
+
+anime_pattern = ""
 
 
-# Function
+# unction
 def pre_delete_judge(status: str, time_now: int, time_added: int, ratio: int, judge: bool = False) -> bool:
     """
     note: 根据传入的种子信息判定是否能够删除种子,预设判断流程: 发布种子无上传速度 -> 达到最小做种时间 -> 达到(最大做种时间 或者 最大分享率)
-    :param ratio: 种子上传比率
-    :param status: 种子的状态
-    :param time_now: 当前时间
-    :param time_added: 种子添加时间
+    :param ratio: 传入种子上传比率
+    :param status: 传入种子的状态
+    :param time_now: 当前时间(传入) int(time.time())
+    :param time_added: 传入种子添加时间
     :param judge: 判定flag
     :return: 符合判定条件 -> True
     """
