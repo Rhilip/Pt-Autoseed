@@ -143,16 +143,13 @@ def check_to_del_torrent_with_data_and_db():
             tc.remove_torrent(t[2], delete_data=True)  # remove_torrent()不会因为种子不存在而出错
             tc.remove_torrent(t[3], delete_data=True)  # (错了也直接打log，不会崩)
         else:
-            # 发布种子无上传速度  ->  达到最小做种时间  ->   达到最大做种时间  或者 最大分享率  -> 暂停种子
-            if seed_torrent.status == "seeding" and seed_torrent.rateUpload == 0:
-                if ((int(time.time()) - seed_torrent.addedDate) >= setting.torrent_minSeedTime) and (
-                                seed_torrent.uploadRatio >= setting.torrent_maxUploadRatio or (
-                                    int(time.time()) - seed_torrent.addedDate) >= setting.torrent_maxSeedTime):
-                    tc.stop_torrent(t[3])
-                    tc.stop_torrent(t[2])
-                    logging.warning(
-                        "Reach The Setting Seed time or ratio,Torrents (Which name:\"{0}\") will be delete"
-                        "in next check time.".format(seed_torrent.name))
+            if setting.pre_delete_judge(seed_torrent.status, time.time(), seed_torrent.addedDate,
+                                        seed_torrent.uploadRatio):
+                tc.stop_torrent(t[3])
+                tc.stop_torrent(t[2])
+                logging.warning(
+                    "Reach The Setting Seed time or ratio,Torrents (Which name:\"{0}\") will be delete"
+                    "in next check time.".format(seed_torrent.name))
             if seed_torrent.status == "stopped":  # 前一轮暂停的种子 -> 删除种子及其文件，清理db条目
                 logging.warning("Will delete torrent: {0} {1},Which name {2}".format(t[2], t[3], t[1]))
                 commit_cursor_into_db(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
