@@ -24,6 +24,7 @@ tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_po
                             password=setting.trans_password)
 db = pymysql.connect(host=setting.db_address, port=setting.db_port, user=setting.db_user, password=setting.db_password,
                      db=setting.db_name, charset='utf8')
+
 cookie = SimpleCookie(setting.byr_cookies)
 cookies = {}
 for key, morsel in cookie.items():
@@ -159,11 +160,10 @@ def get_info_from_db(torrent_search_name, table, column):
 
 
 # 如果种子在byr存在，返回种子id，不存在返回0，已存在且种子一致返回种子号，不一致返回-1
-def exist_judge(torrent_info_search):
-    full_name = torrent_info_search.group("full_name")
+def exist_judge(search_title, torrent_file_name):
     exits_judge_raw = requests.get(
         url="http://bt.byr.cn/torrents.php?secocat=&cat=&incldead=0&spstate=0&inclbookmarked=0&search="
-            + full_name + "&search_area=0&search_mode=2",
+            + search_title + "&search_area=0&search_mode=2",
         cookies=cookies)
     bs = BeautifulSoup(exits_judge_raw.text, "html5lib")
     tag = 0
@@ -174,8 +174,8 @@ def exist_judge(torrent_info_search):
         details_page = requests.get("http://bt.byr.cn/details.php?id={0}&hit=1".format(tag_temp), cookies=cookies)
         details_bs = BeautifulSoup(details_page.text, "html5lib")
         torrent_title_in_site = details_bs.find("a", class_="index", href=re.compile(r"^download.php")).string
-        torrent_title = re.search(r"\[BYRBT\]\.(.+?)\.torrent", torrent_title_in_site).group(1)
-        if torrent_info_search.group(0) == torrent_title:  # 如果匹配，返回种子号
+        torrent_title = re.search(r"\[BYRBT\]\.(.+?\.torrent)", torrent_title_in_site).group(1)
+        if torrent_file_name == torrent_title:  # 如果匹配，返回种子号
             tag = tag_temp
         else:  # 如果不匹配，返回-1
             tag = -1
@@ -198,10 +198,10 @@ def download_reseed_torrent_and_update_tr_with_db(torrent_download_id, thanks=Tr
 
 # 发布种子主函数
 def seed_post(tid, torrent_info_search):
-    tag = exist_judge(torrent_info_search)
+    download_torrent = tc.get_torrent(tid)
+    torrent_file_name = re.search("torrents/(.+?\.torrent)", download_torrent.torrentFile).group(1)
+    tag = exist_judge(torrent_info_search.group("full_name"), torrent_file_name)
     if tag == 0:  # 种子不存在，则准备发布
-        download_torrent = tc.get_torrent(tid)
-        torrent_file_name = re.search("torrents/(.+?\.torrent)", download_torrent.torrentFile).group(1)
         try:  # 从数据库中获取该美剧信息
             search_name = torrent_info_search.group("search_name")
             torrent_info_raw_from_db = get_info_from_db(search_name, table="tv_info", column="tv_ename")
