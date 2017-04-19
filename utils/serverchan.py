@@ -10,4 +10,7 @@ class ServerChan(object):
 
     def send(self, text, desp):
         r = requests.post(url=self.key_url, data={'text': text, 'desp': desp})
-        return r.status
+        r_j = r.json()
+        # TODO 回报推送状态
+        # r.text '{"errno":0,"errmsg":"success","dataset":"done"}'
+        return r.text
