@@ -109,14 +109,14 @@ def exist_judge(search_title, torrent_file_name):
         url="http://bt.byr.cn/torrents.php?secocat=&cat=&incldead=0&spstate=0&inclbookmarked=0&search="
             + search_title + "&search_area=0&search_mode=2",
         cookies=cookies)
-    bs = BeautifulSoup(exits_judge_raw.text, "html5lib")
+    bs = BeautifulSoup(exits_judge_raw.text, "lxml")
     tag = 0
     if bs.find_all("a", href=re.compile("download.php")):  # 如果存在（还有人比Autoseed快。。。
         href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
         tag_temp = re.search("id=(\d+)", href).group(1)  # 找出种子id
         # 使用待发布种子全名匹配已有种子的名称
         details_page = requests.get("http://bt.byr.cn/details.php?id={0}&hit=1".format(tag_temp), cookies=cookies)
-        details_bs = BeautifulSoup(details_page.text, "html5lib")
+        details_bs = BeautifulSoup(details_page.text, "lxml")
         torrent_title_in_site = details_bs.find("a", class_="index", href=re.compile(r"^download.php")).string
         torrent_title = re.search(r"\[BYRBT\]\.(.+?\.torrent)", torrent_title_in_site).group(1)
         if torrent_file_name == torrent_title:  # 如果匹配，返回种子号
@@ -148,7 +148,7 @@ def seed_post(tid, multipart_data: tuple):
         logging.info("Post OK,The torrent id in Byrbt: " + seed_torrent_download_id)
         download_reseed_torrent_and_update_tr_with_db(seed_torrent_download_id)  # 下载种子，并更新
     else:  # 未发布成功打log
-        outer_bs = BeautifulSoup(post.text, "html5lib").find("td", id="outer")
+        outer_bs = BeautifulSoup(post.text, "lxml").find("td", id="outer")
         if outer_bs.find_all("table"):  # 移除不必要的table信息
             for table in outer_bs.find_all("table"):
                 table.extract()

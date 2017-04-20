@@ -36,6 +36,6 @@ apt-get -y install mediainfo
 * ~~ffmpeg~~(rtinst.sh will install it)
 * Python3 model
 ```
-apt-get -y install python3-pip
+apt-get -y install python3-pip python3-lxml
 pip3 install pymysql transmissionrpc requests bs4 pymediainfo
 ```
