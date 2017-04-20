@@ -91,19 +91,16 @@ def check_to_del_torrent_with_data_and_db():
             tc.remove_torrent(t[2], delete_data=True)  # remove_torrent()不会因为种子不存在而出错
             tc.remove_torrent(t[3], delete_data=True)  # (错了也直接打log，不会崩)
         else:
-            if setting.pre_delete_judge(seed_torrent.status, time.time(), seed_torrent.addedDate,
-                                        seed_torrent.uploadRatio):
+            seed_status = seed_torrent.status
+            if setting.pre_delete_judge(seed_status, time.time(), seed_torrent.addedDate, seed_torrent.uploadRatio):
                 tc.stop_torrent(t[3])
                 tc.stop_torrent(t[2])
-                logging.warning(
-                    "Reach The Setting Seed time or ratio,Torrents (Which name:\"{0}\") will be delete"
-                    "in next check time.".format(seed_torrent.name))
-            if seed_torrent.status == "stopped":  # 前一轮暂停的种子 -> 删除种子及其文件，清理db条目
-                logging.warning("Will delete torrent: {0} {1},Which name {2}".format(t[2], t[3], t[1]))
+                logging.warning("Reach Target you set,Torrents({0}) will be delete.".format(seed_torrent.name))
+            if seed_status == "stopped":  # 前一轮暂停的种子 -> 删除种子及其文件，清理db条目
                 db.commit_sql(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
                 tc.remove_torrent(t[3], delete_data=True)
                 tc.remove_torrent(t[2], delete_data=True)
-                logging.info("Delete torrents: {0} {1} ,Which name \"{2}\" OK.".format(t[2], t[3], t[1]))
+                logging.info("Delete torrents: {0} {1} ,Which name: \"{2}\" OK.".format(t[2], t[3], t[1]))
 
 
 # 如果种子在byr存在，返回种子id，不存在返回0，已存在且种子一致返回种子号，不一致返回-1
@@ -136,7 +133,7 @@ def download_reseed_torrent_and_update_tr_with_db(torrent_download_id, thanks=Tr
         code.write(torrent_file.content)  # 保存种子文件到watch目录
     os.rename(setting.trans_watchdir + "/" + torrent_download_id + ".torrent.get",
               setting.trans_watchdir + "/" + torrent_download_id + ".torrent")  # 下载完成后，重命名成正确的后缀名
-    logging.info("Download Torrent which id = " + torrent_download_id + "OK!")
+    logging.info("Download Torrent which id = {id} OK!".format(id=torrent_download_id))
     time.sleep(5)  # 等待transmission读取种子文件
     update_torrent_info_from_rpc_to_db()  # 更新数据库
     if thanks:
@@ -149,7 +146,7 @@ def seed_post(tid, multipart_data: tuple):
     post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=cookies, files=multipart_data)
     if post.url != "http://bt.byr.cn/takeupload.php":  # 发布成功检查
         seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
-        logging.info("Post OK,The torrent id in Byrbt: " + seed_torrent_download_id)
+        logging.info("Post OK,The torrent id in Byrbt: {id}".format(seed_torrent_download_id))
         download_reseed_torrent_and_update_tr_with_db(seed_torrent_download_id)  # 下载种子，并更新
         flag = seed_torrent_download_id
     else:  # 未发布成功打log
@@ -241,7 +238,7 @@ def seed_judge():
                 if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
                     tag = exist_judge(torrent_info_search.group("full_name"), torrent_file_name)
                     if tag == 0:  # 种子不存在，则准备发布
-                        logging.info("Begin post The torrent {0},which name :{1}".format(t[2], download_torrent.name))
+                        logging.info("Begin post The torrent {0},which name: {1}".format(t[2], download_torrent.name))
                         t_id = seed_post(t[2], data_series_raw2tuple(download_torrent))
                         if t_id is not 0 and setting.ServerChan_status:
                             server_chan.send_torrent_post_ok(dl_torrent=download_torrent)
