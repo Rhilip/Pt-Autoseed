@@ -75,14 +75,11 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
 # 从transmission和数据库中删除种子及其数据
 def check_to_del_torrent_with_data_and_db():
     logging.debug("Begin torrent's status check.If reach condition you set,You will get a warning.")
-    result = db.get_table_seed_list()
+    result = db.get_table_seed_list(decision="WHERE seed_id > 0")
     for t in result:
         try:  # 本处保证t[2],t[3]对应的种子仍存在
             tc.get_torrent(t[2])
-            if t[3] > 0:  # TODO 通过sql来解决
-                seed_torrent = tc.get_torrent(t[3])
-            else:
-                continue  # t[3]<=0（且种子仍存在）的情况进入下一轮循环，不进入else
+            seed_torrent = tc.get_torrent(t[3])
         except KeyError:  # 不存在的处理方法 - 删表，清种子
             logging.error("Torrent is not found,Witch name:\"{0}\",Will delete it's record from db".format(t[1]))
             db.commit_sql(sql="DELETE FROM seed_list WHERE id = {0}".format(t[0]))
@@ -218,7 +215,8 @@ def data_series_raw2tuple(download_torrent) -> tuple:
 
 # 发布判定
 def seed_judge():
-    result = db.get_table_seed_list(pre_seed=True)  # 从数据库中获取seed_list(tuple:(id,title,download_id,seed_id))
+    # 从数据库中获取seed_list(tuple:(id,title,download_id,seed_id))
+    result = db.get_table_seed_list(decision="WHERE seed_id = 0")
     for t in result:  # 遍历seed_list
         try:
             download_torrent = tc.get_torrent(t[2])  # 获取下载种子信息
@@ -266,8 +264,9 @@ def main():
             check_to_del_torrent_with_data_and_db()  # 清理种子
 
         if setting.web_show_status:  # 发种机运行状态展示
-            utils.generate_web_json(setting=setting, tr_client=tc,
-                                    data_list=db.get_table_seed_list(out_json=True, count=setting.web_show_entries_number))
+            data_list = db.get_table_seed_list(
+                decision="WHERE seed_id != -1 ORDER BY id DESC LIMIT {sum}".format(sum=setting.web_show_entries_number))
+            utils.generate_web_json(setting=setting, tr_client=tc, data_list=data_list)
 
         if setting.busy_start_hour <= int(time.strftime("%H", time.localtime())) < setting.busy_end_hour:
             sleep_time = setting.sleep_busy_time

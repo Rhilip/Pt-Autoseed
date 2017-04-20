@@ -41,19 +41,16 @@ class Database(object):
             t = 0
         return t
 
-    def get_table_seed_list(self, pre_seed=False, out_json=False, count=10):
+    def get_table_seed_list(self, decision: str = None):
         """从db获取seed_list"""
         sql = "SELECT id,title,download_id,seed_id FROM seed_list"
-        if pre_seed:
-            sql = "SELECT id,title,download_id,seed_id FROM seed_list WHERE seed_id = 0"
-        if out_json:
-            sql = "SELECT id,title,download_id,seed_id FROM seed_list WHERE seed_id != -1 " \
-                  "ORDER BY id DESC LIMIT {sum}".format(sum=count)
+        if decision:
+            sql = "{sql} {decision}".format(sql=sql, decision=decision)
         return self.get_sql(sql)
 
     def get_raw_info(self, torrent_search_name, table, column):
         """从数据库中获取剧集简介（根据种子文件的search_name搜索对应数据库）"""
         search_name = torrent_search_name.replace(" ", "%").replace(".", "%")  # 模糊匹配
         sql = "SELECT * FROM {table} WHERE {column} " \
-              "LIKE '{search_name}%'".format(table=table, column=column,search_name=search_name)
+              "LIKE '{search_name}%'".format(table=table, column=column, search_name=search_name)
         return self.get_sql(sql)[0]
