@@ -118,7 +118,7 @@ def exist_judge(search_title, torrent_file_name):
         details_page = requests.get("http://bt.byr.cn/details.php?id={0}&hit=1".format(tag_temp), cookies=cookies)
         details_bs = BeautifulSoup(details_page.text, "lxml")
         torrent_title_in_site = details_bs.find("a", class_="index", href=re.compile(r"^download.php")).string
-        torrent_title = re.search(r"\[BYRBT\]\.(.+?\.torrent)", torrent_title_in_site).group(1)
+        torrent_title = re.search(r"\[BYRBT\]\.(.+?)\.torrent", torrent_title_in_site).group(1)
         if torrent_file_name == torrent_title:  # 如果匹配，返回种子号
             tag = tag_temp
         else:  # 如果不匹配，返回-1
@@ -127,7 +127,7 @@ def exist_judge(search_title, torrent_file_name):
 
 
 def download_reseed_torrent_and_update_tr_with_db(torrent_download_id, thanks=True):
-    download_torrent_link = "http://bt.byr.cn/download.php?id=" + torrent_download_id
+    download_torrent_link = "http://bt.byr.cn/download.php?id={0}".format(torrent_download_id)
     torrent_file = requests.get(download_torrent_link, cookies=cookies)  # 下载种子
     with open(setting.trans_watchdir + "/" + torrent_download_id + ".torrent.get", "wb") as code:
         code.write(torrent_file.content)  # 保存种子文件到watch目录
@@ -233,12 +233,11 @@ def seed_judge():
             continue
         else:
             torrent_full_name = download_torrent.name
-            torrent_file_name = re.search("torrents/(.+?\.torrent)", download_torrent.torrentFile).group(1)
             logging.info("New get torrent: " + torrent_full_name)
             if download_torrent.status == "seeding":  # 种子下载完成
                 torrent_info_search = re.search(search_pattern, torrent_full_name)
                 if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
-                    tag = exist_judge(torrent_info_search.group("full_name"), torrent_file_name)
+                    tag = exist_judge(torrent_info_search.group("full_name"), torrent_info_search.group(0))
                     if tag == 0:  # 种子不存在，则准备发布
                         logging.info("Begin post The torrent {0},which name: {1}".format(t[2], download_torrent.name))
                         t_id = seed_post(t[2], data_series_raw2tuple(download_torrent))
