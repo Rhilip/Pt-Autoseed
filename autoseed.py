@@ -146,7 +146,7 @@ def seed_post(tid, multipart_data: tuple):
     post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=cookies, files=multipart_data)
     if post.url != "http://bt.byr.cn/takeupload.php":  # 发布成功检查
         seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
-        logging.info("Post OK,The torrent id in Byrbt: {id}".format(seed_torrent_download_id))
+        logging.info("Post OK,The torrent id in Byrbt: {id}".format(id=seed_torrent_download_id))
         download_reseed_torrent_and_update_tr_with_db(seed_torrent_download_id)  # 下载种子，并更新
         flag = seed_torrent_download_id
     else:  # 未发布成功打log
