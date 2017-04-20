@@ -34,11 +34,6 @@ web_loc = "/var/www"  # demo网站在服务器上的地址
 web_show_status = True  # 是否生成json信息
 web_show_entries_number = 10  # 展示页面显示的做种条目数量
 
-# Logging
-logging_debug_level = False  # debug模式
-logging_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-logging_datefmt = "%m/%d/%Y %I:%M:%S %p"
-
 # Search_pattern
 search_series_pattern = (
     u"(?:^[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff:：]+[. ]?|^)"  # 移除平假名、片假名、中文
@@ -46,6 +41,11 @@ search_series_pattern = (
     "(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
     "(?:\.(?P<tv_filetype>\w+)$|$)"
 )
+
+# Logging
+logging_debug_level = False  # debug模式
+logging_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+logging_datefmt = "%m/%d/%Y %I:%M:%S %p"
 
 # TODO ServerChan
 '具体见：http://sc.ftqq.com/，用于向微信通知发种机发布状态'

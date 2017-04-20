@@ -21,6 +21,7 @@ except ImportError:
 logging_level = logging.INFO
 if setting.logging_debug_level:
     logging_level = logging.DEBUG
+
 logging.basicConfig(level=logging_level, format=setting.logging_format, datefmt=setting.logging_datefmt)
 
 tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port, user=setting.trans_user,
@@ -32,6 +33,8 @@ cookie = SimpleCookie(setting.byr_cookies)
 cookies = {}
 for key, morsel in cookie.items():
     cookies[key] = morsel.value
+
+server_chan = utils.ServerChan(setting.ServerChan_SCKEY)
 
 search_pattern = re.compile(setting.search_series_pattern)
 logging.debug("Initialization settings Success~")
@@ -142,11 +145,13 @@ def download_reseed_torrent_and_update_tr_with_db(torrent_download_id, thanks=Tr
 
 # 发布种子主函数
 def seed_post(tid, multipart_data: tuple):
+    flag = 0
     post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=cookies, files=multipart_data)
     if post.url != "http://bt.byr.cn/takeupload.php":  # 发布成功检查
         seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
         logging.info("Post OK,The torrent id in Byrbt: " + seed_torrent_download_id)
         download_reseed_torrent_and_update_tr_with_db(seed_torrent_download_id)  # 下载种子，并更新
+        flag = seed_torrent_download_id
     else:  # 未发布成功打log
         outer_bs = BeautifulSoup(post.text, "lxml").find("td", id="outer")
         if outer_bs.find_all("table"):  # 移除不必要的table信息
@@ -155,6 +160,7 @@ def seed_post(tid, multipart_data: tuple):
         outer_message = outer_bs.get_text().replace("\n", "")
         logging.error("Upload this torrent Error,The Server echo:\"{0}\",Stop Posting".format(outer_message))
         db.commit_sql("UPDATE seed_list SET seed_id = -1 WHERE download_id='%d'" % tid)
+    return flag
 
 
 def data_series_raw2tuple(download_torrent) -> tuple:
@@ -236,7 +242,9 @@ def seed_judge():
                     tag = exist_judge(torrent_info_search.group("full_name"), torrent_file_name)
                     if tag == 0:  # 种子不存在，则准备发布
                         logging.info("Begin post The torrent {0},which name :{1}".format(t[2], download_torrent.name))
-                        seed_post(t[2], data_series_raw2tuple(download_torrent))
+                        t_id = seed_post(t[2], data_series_raw2tuple(download_torrent))
+                        if t_id is not 0 and setting.ServerChan_status:
+                            server_chan.send_torrent_post_ok(dl_torrent=download_torrent)
                     elif tag == -1:  # 如果种子存在，但种子不一致
                         logging.warning(
                             "Find dupe torrent,and the exist torrent's title is not the same as pre-reseed torrent."
