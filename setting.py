@@ -47,7 +47,7 @@ logging_debug_level = False  # debug模式
 logging_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 logging_datefmt = "%m/%d/%Y %I:%M:%S %p"
 
-# TODO ServerChan
+# ServerChan
 '具体见：http://sc.ftqq.com/，用于向微信通知发种机发布状态'
 ServerChan_status = False
 ServerChan_SCKEY = ""

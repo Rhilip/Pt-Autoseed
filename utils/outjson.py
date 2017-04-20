@@ -27,7 +27,7 @@ def generate_web_json(setting, tr_client, data_list):
         else:
             start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(download_torrent.addedDate))
             info_dict = {
-                "id": t[0],
+                "tid": str(t[0]),
                 "title": download_torrent.name,
                 "size": "{:.2f} MiB".format(download_torrent.totalSize / (1024 * 1024)),
                 "download_start_time": start_time,

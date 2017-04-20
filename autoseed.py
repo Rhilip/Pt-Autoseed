@@ -161,6 +161,7 @@ def seed_post(tid, multipart_data: tuple):
 
 
 def data_series_raw2tuple(download_torrent) -> tuple:
+    # TODO 拆分该模块
     torrent_info_search = re.search(search_pattern, download_torrent.name)
     torrent_file_name = re.search("torrents/(.+?\.torrent)", download_torrent.torrentFile).group(1)
     try:  # 从数据库中获取该美剧信息
