@@ -337,14 +337,14 @@
             var status_table = $("#status_table");
             var output_main = "<thead><tr><th>#</th><th class=\"text-center\">Title</th><th>Size</th><th>Started At</th><th>Download Status</th><th>Seed Status</th></tr></thead><tbody>";
             for (var i = 0, l = data.data.length; i < l; i++) {
-                var status = data.data[i][1];
+                var data_column = data.data[i];
                 var output = "<tr>" +
-                    "<td>" + data.data[i][0] + "</td>" +
-                    "<td>" + status["title"] + "</td>" +
-                    "<td>" + status["size"] + "</td>" +
-                    "<td>" + status["download_start_time"] + "</td>" +
-                    "<td>" + status["download_status"] + " R:" + status["download_upload_ratio"] + "</td>" +
-                    "<td>" + status["reseed_status"] + " R:" + status["reseed_ratio"] + "</td>" +
+                    "<td>" + data_column["tid"] + "</td>" +
+                    "<td>" + data_column["title"] + "</td>" +
+                    "<td>" + data_column["size"] + "</td>" +
+                    "<td>" + data_column["download_start_time"] + "</td>" +
+                    "<td>" + data_column["download_status"] + " R:" + data_column["download_upload_ratio"] + "</td>" +
+                    "<td>" + data_column["reseed_status"] + " R:" + data_column["reseed_ratio"] + "</td>" +
                     "</tr>";
                 output_main = output_main.concat(output);
             }
