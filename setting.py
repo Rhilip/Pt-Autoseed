@@ -44,7 +44,7 @@ search_series_pattern = (
 
 # Logging
 logging_debug_level = False  # debug模式
-logging_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+logging_format = "%(asctime)s - %(levelname)s - %(funcName)s - %(message)s"
 logging_datefmt = "%m/%d/%Y %I:%M:%S %p"
 
 # ServerChan

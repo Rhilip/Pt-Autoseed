@@ -36,7 +36,8 @@ for key, morsel in cookie.items():
 
 server_chan = utils.ServerChan(setting.ServerChan_SCKEY)
 
-search_pattern = re.compile(setting.search_series_pattern)
+search_series_pattern = re.compile(setting.search_series_pattern)
+
 logging.debug("Initialization settings Success~")
 
 
@@ -60,13 +61,13 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
         logging.debug("Update torrent info from rpc to db OK~")
     else:  # 第一次启动检查(force_clean_check)
         torrent_list_now_in_trans = tc.get_torrents()
-        last_torrent_id_in_tran = 0
+        last_id_tran = 0
         for t in torrent_list_now_in_trans:
-            if t.id > last_torrent_id_in_tran:
-                last_torrent_id_in_tran = t.id
-        last_torrent_id_in_db = max(db.get_max_in_column("seed_list", "download_id"),
-                                    db.get_max_in_column("seed_list", "seed_id"))
-        if not last_torrent_id_in_db == last_torrent_id_in_tran:  # 如果对不上，说明系统重新启动过或者tr崩溃过
+            if t.id > last_id_tran:
+                last_id_tran = t.id
+        last_id_db = max(db.get_max_in_column("seed_list", "download_id"), db.get_max_in_column("seed_list", "seed_id"))
+        logging.debug("torrent count: transmission: {tr},db-record: {db}.".format(tr=last_id_tran, db=last_id_db))
+        if not last_id_db == last_id_tran:  # 如果对不上，说明系统重新启动过或者tr崩溃过
             logging.error(
                 "It seems that torrent's id in transmission didn't match with db-records,"
                 "Clean the whole table \"seed_list\"")
@@ -162,14 +163,15 @@ def seed_post(tid, multipart_data: tuple):
 
 def data_series_raw2tuple(download_torrent) -> tuple:
     # TODO 拆分该模块
-    torrent_info_search = re.search(search_pattern, download_torrent.name)
+    torrent_info_search = re.search(search_series_pattern, download_torrent.name)
     torrent_file_name = re.search("torrents/(.+?\.torrent)", download_torrent.torrentFile).group(1)
     try:  # 从数据库中获取该美剧信息
         search_name = torrent_info_search.group("search_name")
-        torrent_info_raw_from_db = db.get_raw_info(search_name, table="tv_info", column="tv_ename")
+        torrent_info_raw_from_db = db.get_raw_info(search_name, table="info_series", column="tv_ename")
+        logging.debug("Get series info from db OK,Which search name: {name}".format(name=search_name))
     except IndexError:  # 数据库没有该种子数据,使用备用剧集信息
         logging.warning("Not Find info from db of torrent: \"{0}\",Use normal template!!".format(download_torrent.name))
-        torrent_info_raw_from_db = db.get_raw_info("default", table="tv_info", column="tv_ename")
+        torrent_info_raw_from_db = db.get_raw_info("default", table="info_series", column="tv_ename")
 
     # 副标题 small_descr
     small_descr = "{0} {1}".format(torrent_info_raw_from_db[10], torrent_info_search.group("tv_season"))
@@ -236,7 +238,7 @@ def seed_judge():
             torrent_full_name = download_torrent.name
             logging.info("New get torrent: " + torrent_full_name)
             if download_torrent.status == "seeding":  # 种子下载完成
-                torrent_info_search = re.search(search_pattern, torrent_full_name)
+                torrent_info_search = re.search(search_series_pattern, torrent_full_name)
                 if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
                     tag = exist_judge(torrent_info_search.group("full_name"), torrent_info_search.group(0))
                     if tag == 0:  # 种子不存在，则准备发布
