@@ -80,7 +80,6 @@ def descr_screenshot(url: str) -> str:
 
 
 def descr_clone_info(before_torrent_id) -> str:
-    # TODO 暂时还用不了这个function
     return """
     <div class="byrbt_info_clone" data-clone="{torrent_id}" data-version="SP" style="display:none">
         <a href="http://github.com/Rhilip/Byrbt-Autoseed" target="_blank">Powered by Rhilip's Autoseed</a>

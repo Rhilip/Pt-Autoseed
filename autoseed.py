@@ -199,6 +199,8 @@ def data_series_raw2tuple(download_torrent) -> tuple:
         if media_info:
             descr += setting.descr_mediainfo(info=media_info)
 
+    descr += setting.descr_clone_info(before_torrent_id=torrent_info_raw_from_db[16])
+
     return (  # 提交表单
         ("type", ('', str(torrent_info_raw_from_db[1]))),
         ("second_type", ('', str(torrent_info_raw_from_db[2]))),
