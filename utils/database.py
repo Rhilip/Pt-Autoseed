@@ -18,7 +18,7 @@ class Database(object):
             cursor.execute(sql)
             self.db.commit()
             cursor.close()
-            logging.debug("A commit to db success,DDL: " + sql)
+            logging.debug("A commit to db success,DDL: \"{sql}\"".format(sql=sql))
         except:
             logging.critical("A commit to db ERROR,DDL: " + sql)
             self.db.rollback()
@@ -26,10 +26,10 @@ class Database(object):
     def get_sql(self, sql: str):
         """从数据库中获取数据"""
         cursor = self.db.cursor()
-        cursor.execute(sql)
+        row = cursor.execute(sql)
         result = cursor.fetchall()
         cursor.close()
-        logging.debug("Some information from db,DDL: {sql},data: {result}".format(sql=sql, result=result))
+        logging.debug("Some information from db,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
         return result
 
     def get_max_in_column(self, table, column):

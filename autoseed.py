@@ -18,6 +18,11 @@ try:
 except ImportError:
     import setting
 
+logging_level = logging.INFO
+if setting.logging_debug_level:
+    logging_level = logging.DEBUG
+logging.basicConfig(level=logging_level, format=setting.logging_format, datefmt=setting.logging_datefmt)
+
 tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port, user=setting.trans_user,
                             password=setting.trans_password)
 
@@ -29,10 +34,7 @@ for key, morsel in cookie.items():
     cookies[key] = morsel.value
 
 search_pattern = re.compile(setting.search_series_pattern)
-
-logging.basicConfig(level=logging.INFO,  # 日志
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    datefmt='%m/%d/%Y %I:%M:%S %p')
+logging.debug("Initialization settings Success~")
 
 
 def update_torrent_info_from_rpc_to_db(force_clean_check=False):
