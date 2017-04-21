@@ -257,7 +257,7 @@ def seed_judge():
                 else:  # 不符合，更新seed_id为-1
                     logging.warning("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,"
                                     "Stop watching it.".format(t[2], torrent_full_name))
-                db.commit_sql("UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0])
+                    db.commit_sql("UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0])
             else:
                 logging.warning("This torrent is still download.Wait until next check time.")
 

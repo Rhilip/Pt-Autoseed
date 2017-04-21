@@ -41,6 +41,9 @@ search_series_pattern = (
     "(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
     "(?:\.(?P<tv_filetype>\w+)$|$)"
 )
+search_anime_pattern = (
+    "\[(?P<group>.+?)\]\[?(?P<search_name>.+?)\]?\[(?P<anime_episode>\d+)\].+(\.(mp4|mkv))?"
+)
 
 # Logging
 logging_debug_level = False  # debug模式
@@ -69,7 +72,7 @@ descr_before = """
 
 def descr_screenshot(url: str) -> str:
     return """
-    <fieldset class="screenshot">
+    <fieldset class="screenshot autoseed">
         <legend><b>自动截图</b></legend>
         <ul>
             <li><span style="color:red">以下是<a href="//github.com/Rhilip/Byrbt-Autoseed" target="_blank">Autoseed</a>自动完成的截图，不喜勿看。</span></li>
