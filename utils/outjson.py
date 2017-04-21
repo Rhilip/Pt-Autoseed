@@ -11,22 +11,22 @@ def generate_web_json(setting, tr_client, data_list):
     data = []
     for t in data_list:
         try:
-            download_torrent = tr_client.get_torrent(t[2])
-            if t[3] == 0:
+            download_torrent = tr_client.get_torrent(t["download_id"])
+            if int(t["seed_id"]) == 0:
                 reseed_status = "Not found."
                 reseed_ratio = 0
             else:
-                reseed_torrent = tr_client.get_torrent(t[3])
+                reseed_torrent = tr_client.get_torrent(t["seed_id"])
                 reseed_status = reseed_torrent.status
                 reseed_ratio = reseed_torrent.uploadRatio
         except KeyError:
             logging.error("This torrent (Which name: {0}) has been deleted from transmission "
-                          "(Maybe By other Management software).".format(t[1]))
+                          "(Maybe By other Management software).".format(t["title"]))
             continue
         else:
             start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(download_torrent.addedDate))
             info_dict = {
-                "tid": t[0],
+                "tid": t["id"],
                 "title": download_torrent.name,
                 "size": "{:.2f} MiB".format(download_torrent.totalSize / (1024 * 1024)),
                 "download_start_time": start_time,

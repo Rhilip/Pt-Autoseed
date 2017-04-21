@@ -23,9 +23,11 @@ class Database(object):
             logging.critical("A commit to db ERROR,DDL: " + sql)
             self.db.rollback()
 
-    def get_sql(self, sql: str):
+    def get_sql(self, sql: str, r_dict=False):
         """从数据库中获取数据"""
         cursor = self.db.cursor()
+        if r_dict:  # 以字典形式返回
+            cursor = self.db.cursor(pymysql.cursors.DictCursor)
         row = cursor.execute(sql)
         result = cursor.fetchall()
         cursor.close()
@@ -46,11 +48,11 @@ class Database(object):
         sql = "SELECT id,title,download_id,seed_id FROM seed_list"
         if decision:
             sql = "{sql} {decision}".format(sql=sql, decision=decision)
-        return self.get_sql(sql)
+        return self.get_sql(sql, r_dict=True)
 
     def get_raw_info(self, torrent_search_name, table, column):
         """从数据库中获取剧集简介（根据种子文件的search_name搜索对应数据库）"""
         search_name = torrent_search_name.replace(" ", "%").replace(".", "%")  # 模糊匹配
         sql = "SELECT * FROM {table} WHERE {column} " \
               "LIKE '{search_name}%'".format(table=table, column=column, search_name=search_name)
-        return self.get_sql(sql)[0]
+        return self.get_sql(sql, r_dict=True)[0]

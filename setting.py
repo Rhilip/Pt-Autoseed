@@ -23,7 +23,7 @@ db_name = ""
 # Site
 # TODO """Byrbt"""
 byr_reseed = True
-byr_clone_mode = "database"  # "database" or "transfer"
+byr_clone_mode = "database"  # TODO "database" or "transfer"
 byr_cookies = ""
 byr_passkey = ""
 

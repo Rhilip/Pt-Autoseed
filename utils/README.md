@@ -1,14 +1,10 @@
-# model
-这里列出来一些附加模块
+# Utils
+Some utils that autoseed may use.
 
 ## mediainfo
-* 模块类型：主程序依赖模块
-* 作用：查询mkv、mp4文件的mediainfo信息，并返回html格式的字符串信息
-* 依赖：mediainfo pymediainfo
+* Function: Query mediainfo of mkv or mp4 file，and return string(HTML)
+* Dependent: mediainfo pymediainfo
 ```
 apt-get install mediainfo
 pip install pymediainfo
 ```
-
-## rss
-* 模块类型：独立模块
