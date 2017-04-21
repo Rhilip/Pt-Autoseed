@@ -112,8 +112,6 @@ def data_series_raw2tuple(download_torrent) -> tuple:
     small_descr = "{0} {1}".format(torrent_raw_info_dict["small_descr"], torrent_info_search.group("tv_season"))
     if str(torrent_info_search.group("group")).lower() == "fleet":
         small_descr += " |fleet慎下"
-    # 简介 descr
-    descr = setting.descr_before() + torrent_raw_info_dict["descr"]
 
     file = setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"]
 
@@ -123,21 +121,21 @@ def data_series_raw2tuple(download_torrent) -> tuple:
                                                                                         web_loc=setting.web_loc,
                                                                                         s_file=screenshot_file)
     screenshot = os.system(ffmpeg_sh)
+
     if screenshot == 0:
-        descr += setting.descr_screenshot(url="{web_url}/{s_f}".format(web_url=setting.web_url, s_f=screenshot_file))
+        screenshot_info = setting.descr_screenshot(url="{web_url}/{s_f}".format(web_url=setting.web_url,
+                                                                                s_f=screenshot_file))
     else:
+        screenshot_info = ""
         logging.warning("Can't get Screenshot for \"{0}\".".format(torrent_info_search.group(0)))
 
-    # MediaInfo
-    try:
-        media_info = utils.show_media_info(file=file)
-    except IndexError:
-        logging.warning("Can't get MediaInfo for \"{0}\"".format(torrent_info_search.group(0)))
-    else:
-        if media_info:
-            descr += setting.descr_mediainfo(info=media_info)
-
-    descr += setting.descr_clone_info(before_torrent_id=torrent_raw_info_dict["before_torrent_id"])
+    # 简介 descr
+    descr = """{before}{raw}{screenshot}{mediainfo}{clone_info}""" \
+        .format(before=setting.descr_before(),
+                raw=torrent_raw_info_dict["descr"],
+                screenshot=screenshot_info,
+                mediainfo=setting.descr_mediainfo(info=utils.show_media_info(file=file)),
+                clone_info=setting.descr_clone_info(before_torrent_id=torrent_raw_info_dict["before_torrent_id"]))
 
     return (  # Submit form
         ("type", ('', str(torrent_raw_info_dict["type"]))),

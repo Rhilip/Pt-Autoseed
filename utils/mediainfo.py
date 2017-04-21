@@ -1,4 +1,5 @@
 import os
+import logging
 from pymediainfo import MediaInfo
 
 
@@ -9,9 +10,8 @@ def sort_mkv_info(media_info_raw):
     audio = []
     for track in media_info_raw.tracks:
         if track.track_type == 'General':
-            # TODO Error at other_unique_id[0] when group is fleet
             general = ["File Name : {0}".format(track.file_name + "." + track.file_extension),
-                       "Unique ID : {0}".format(track.other_unique_id[0]),
+                       "Unique ID : {0}".format(track.other_unique_id[0]),  # TODO Error when group is fleet
                        "Format : {0}".format(track.format),
                        "Format version : {0}".format(track.format_version),
                        "File size : {0}".format(track.other_file_size[0]),
@@ -111,8 +111,8 @@ def show_media_info(file=''):
             sorted_info = sort_mkv_info(media_info_raw)
         elif suffix_lower == "mp4":
             sorted_info = sort_mp4_info(media_info_raw)
-        # 拼合原始信息
-        if sorted_info:
-            return from_info_list_to_html(sorted_info)
-    except TypeError:
-        return
+    except TypeError as err:
+        logging.warning("Can't get MediaInfo for \"{0}\",errmsg: \"{1}\"".format(file, err.args[0]))
+        return ""
+    else:
+        return from_info_list_to_html(sorted_info)
