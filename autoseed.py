@@ -254,12 +254,12 @@ def seed_judge():
                     else:  # 如果种子存在（已经有人发布）  -> 辅种
                         logging.warning("Find dupe torrent,which id: {0},will assist it~".format(tag))
                         download_reseed_torrent_and_update_tr_with_db(tag, thanks=False)
-                else:
-                    logging.warning("This torrent is still download.Wait until next check time.")
-            else:  # 不符合，更新seed_id为-1
-                logging.warning("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,"
-                                "Stop watching it.".format(t[2], torrent_full_name))
+                else:  # 不符合，更新seed_id为-1
+                    logging.warning("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,"
+                                    "Stop watching it.".format(t[2], torrent_full_name))
                 db.commit_sql("UPDATE seed_list SET seed_id = -1 WHERE id='%d'" % t[0])
+            else:
+                logging.warning("This torrent is still download.Wait until next check time.")
 
 
 def main():
