@@ -98,20 +98,7 @@ def check_to_del_torrent_with_data_and_db():
                 db.commit_sql(sql="DELETE FROM seed_list WHERE id = {0}".format(t["id"]))
                 tc.remove_torrent(t["download_id"], delete_data=True)
                 tc.remove_torrent(t["seed_id"], delete_data=True)
-                logging.info("Delete torrents: {0} {1} ,Which name: \"{2}\" OK.".format(t["seed_id"], t["download_id"], t["title"]))
-
-
-def data_series_raw_from_db(torrent_info_search):
-    # TODO move to site.byrbt
-    search_name = torrent_info_search.group("search_name")
-    try:  # Get series info from database
-        torrent_info_raw_dict_from_db = db.get_raw_info(search_name, table="info_series", column="tv_ename")
-        logging.debug("Get series info from db OK,Which search name: \"{name}\"".format(name=search_name))
-    except IndexError:  # 数据库没有该种子数据,使用备用剧集信息
-        torrent_info_raw_dict_from_db = db.get_raw_info("default", table="info_series", column="tv_ename")
-        torrent_name = torrent_info_search.group(0)
-        logging.warning("Not Find info from db of torrent: \"{0}\",Use normal template!!".format(torrent_name))
-    return torrent_info_raw_dict_from_db
+                logging.info("Delete torrents,Which name: \"{0}\" OK.".format(t["title"]))
 
 
 def data_series_raw2tuple(download_torrent) -> tuple:
@@ -119,7 +106,7 @@ def data_series_raw2tuple(download_torrent) -> tuple:
     torrent_info_search = re.search(search_series_pattern, download_torrent.name)
     torrent_file_name = re.search("torrents/(.+?\.torrent)", download_torrent.torrentFile).group(1)
 
-    torrent_raw_info_dict = data_series_raw_from_db(torrent_info_search)
+    torrent_raw_info_dict = db.data_raw_info(torrent_info_search, table="info_series", column="tv_ename")
 
     # 副标题 small_descr
     small_descr = "{0} {1}".format(torrent_raw_info_dict["small_descr"], torrent_info_search.group("tv_season"))
@@ -190,16 +177,22 @@ def seed_judge():
                 if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
                     tag = autoseed.exist_judge(torrent_info_search.group("full_name"), torrent_info_search.group(0))
                     if tag == 0:  # 种子不存在，则准备发布
-                        logging.info("Begin post The torrent {0},which name: {1}".format(t["download_id"], download_torrent.name))
-                        flag = autoseed.post_torrent(tr_client=tc, multipart_data=data_series_raw2tuple(download_torrent))
+                        logging.info("Begin post The torrent {0},which name: {1}".format(t["download_id"],
+                                                                                         download_torrent.name))
+                        flag = autoseed.post_torrent(tr_client=tc,
+                                                     multipart_data=data_series_raw2tuple(download_torrent))
                         if flag < 0:
-                            db.commit_sql("UPDATE seed_list SET seed_id = -1 WHERE download_id={:d}".format(t["download_id"]))
+                            db.commit_sql(
+                                "UPDATE seed_list SET seed_id = -1 WHERE download_id={:d}".format(t["download_id"]))
                         else:
-                            db.commit_sql("UPDATE seed_list SET seed_id = {flag} WHERE download_id={tid}".format(flag=flag, tid=t["download_id"]))
+                            db.commit_sql(
+                                "UPDATE seed_list SET seed_id = {flag} WHERE download_id={tid}".format(flag=flag, tid=t[
+                                    "download_id"]))
                             if setting.ServerChan_status:
                                 server_chan.send_torrent_post_ok(dl_torrent=download_torrent)
                     elif tag == -1:  # 如果种子存在，但种子不一致
-                        db.commit_sql("UPDATE seed_list SET seed_id = -1 WHERE download_id={:d}".format(t["download_id"]))
+                        db.commit_sql(
+                            "UPDATE seed_list SET seed_id = -1 WHERE download_id={:d}".format(t["download_id"]))
                         logging.warning(
                             "Find dupe torrent,and the exist torrent's title is not the same as pre-reseed torrent."
                             "Stop Posting~")

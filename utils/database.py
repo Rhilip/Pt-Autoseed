@@ -50,9 +50,20 @@ class Database(object):
             sql = "{sql} {decision}".format(sql=sql, decision=decision)
         return self.get_sql(sql, r_dict=True)
 
-    def get_raw_info(self, torrent_search_name, table, column):
+    def __get_raw_info(self, torrent_search_name, table, column):
         """从数据库中获取剧集简介（根据种子文件的search_name搜索对应数据库）"""
         search_name = torrent_search_name.replace(" ", "%").replace(".", "%")  # 模糊匹配
         sql = "SELECT * FROM {table} WHERE {column} " \
               "LIKE '{search_name}%'".format(table=table, column=column, search_name=search_name)
         return self.get_sql(sql, r_dict=True)[0]
+
+    def data_raw_info(self, torrent_info_search, table, column):
+        search_name = torrent_info_search.group("search_name")
+        try:  # Get series info from database
+            torrent_info_raw_dict_from_db = self.db.__get_raw_info(search_name, table=table, column=column)
+            logging.debug("Get series info from db OK,Which search name: \"{name}\"".format(name=search_name))
+        except IndexError:  # The database doesn't have the search data, using the default information
+            torrent_info_raw_dict_from_db = self.db.__get_raw_info("default", table=table, column=column)
+            torrent_name = torrent_info_search.group(0)
+            logging.warning("Not Find info from db of torrent: \"{0}\",Use normal template!!".format(torrent_name))
+        return torrent_info_raw_dict_from_db
