@@ -20,8 +20,12 @@ db_user = ""
 db_password = ""
 db_name = ""
 
-# Byrbt
+# Site
+# TODO """Byrbt"""
+byr_reseed = True
+byr_clone_mode = "database"  # "database" or "transfer"
 byr_cookies = ""
+byr_passkey = ""
 
 # Reseed_Torrent_Setting
 torrent_maxUploadRatio = 3
@@ -55,19 +59,21 @@ logging_datefmt = "%m/%d/%Y %I:%M:%S %p"
 ServerChan_status = False
 ServerChan_SCKEY = ""
 
+
 # Extended description
-descr_before = """
-<fieldset class="before">
-    <legend><b>Quote:</b></legend>
-    <ul>
-        <li>这是一个远程发种的文件，所有信息以主标题或者文件名为准，简介信息采用本站之前剧集信息，若发现有误请以"举报"的形式通知工作人员审查和编辑。</li>
-        <li>欢迎下载、辅种、分流。保种{min_reseed_time}-{max_reseed_time}天。断种恕不补种。</li>
-        <li>如果发布档较大，请耐心等待校验。</li>
-        <li>请勿上传机翻字幕，如有发现请"举报"。</li>
-        <li>欧美剧更新说明请查看论坛区： <a href="/forums.php?action=viewtopic&forumid=7&topicid=10140" target="_blank">剧集区--欧美剧播放列表及订阅列表</a> ，申请补发、搬运，请于该帖按格式留言。</li>
-    </ul>
-</fieldset><br />
-""".format(min_reseed_time=(int(torrent_minSeedTime / 86400)), max_reseed_time=(int(torrent_maxSeedTime / 86400)))
+def descr_before():
+    return """
+    <fieldset class="before autoseed">
+        <legend><b>Quote:</b></legend>
+        <ul>
+            <li>这是一个远程发种的文件，所有信息以主标题或者文件名为准，简介信息采用本站之前剧集信息，若发现有误请以"举报"的形式通知工作人员审查和编辑。</li>
+            <li>欢迎下载、辅种、分流。保种{min_reseed_time}-{max_reseed_time}天。断种恕不补种。</li>
+            <li>如果发布档较大，请耐心等待校验。</li>
+            <li>请勿上传机翻字幕，如有发现请"举报"。</li>
+            <li>欧美剧更新说明请查看论坛区： <a href="/forums.php?action=viewtopic&forumid=7&topicid=10140" target="_blank">剧集区--欧美剧播放列表及订阅列表</a> ，申请补发、搬运，请于该帖按格式留言。</li>
+        </ul>
+    </fieldset><br />
+    """.format(min_reseed_time=(int(torrent_minSeedTime / 86400)), max_reseed_time=(int(torrent_maxSeedTime / 86400)))
 
 
 def descr_screenshot(url: str) -> str:
@@ -84,7 +90,7 @@ def descr_screenshot(url: str) -> str:
 
 def descr_clone_info(before_torrent_id) -> str:
     return """
-    <div class="byrbt_info_clone" data-clone="{torrent_id}" data-version="SP" style="display:none">
+    <div class="byrbt_info_clone autoseed" data-clone="{torrent_id}" data-version="Rhilip_Autoseed" style="display:none">
         <a href="http://github.com/Rhilip/Byrbt-Autoseed" target="_blank">Powered by Rhilip's Autoseed</a>
     </div>
     """.format(torrent_id=before_torrent_id)
@@ -92,7 +98,7 @@ def descr_clone_info(before_torrent_id) -> str:
 
 def descr_mediainfo(info: str) -> str:
     return """
-    <fieldset class="mediainfo">
+    <fieldset class="mediainfo autoseed">
         <legend><b>MediaInfo:（自动生成，仅供参考）</b></legend>
         <div id="mediainfo">{info}</div>
     </fieldset>

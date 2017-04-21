@@ -37,6 +37,7 @@ for key, morsel in cookie.items():
 server_chan = utils.ServerChan(setting.ServerChan_SCKEY)
 
 search_series_pattern = re.compile(setting.search_series_pattern)
+search_anime_pattern = re.compile(setting.search_anime_pattern)
 
 logging.debug("Initialization settings Success~")
 
@@ -178,7 +179,7 @@ def data_series_raw2tuple(download_torrent) -> tuple:
     if str(torrent_info_search.group("group")).lower() == "fleet":
         small_descr += " |fleet慎下"
     # 简介 descr
-    descr = setting.descr_before + torrent_info_raw_from_db[14]
+    descr = setting.descr_before() + torrent_info_raw_from_db[14]
 
     file = setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"]
 

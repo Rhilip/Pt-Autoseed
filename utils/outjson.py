@@ -9,7 +9,6 @@ import logging
 # 生成展示信息
 def generate_web_json(setting, tr_client, data_list):
     data = []
-    time_now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     for t in data_list:
         try:
             download_torrent = tr_client.get_torrent(t[2])
@@ -38,11 +37,11 @@ def generate_web_json(setting, tr_client, data_list):
             }
         data.append(info_dict)
     out_list = {
-        "last_update_time": time_now,
+        "last_update_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
         "data": data
     }
 
     with open(setting.web_loc + "/tostatus.json", "wt") as f:
         json.dump(out_list, f)
 
-    logging.debug("Generate Autoseed's status at {time}.".format(time=time_now))
+    logging.debug("Generate Autoseed's status OK.")
