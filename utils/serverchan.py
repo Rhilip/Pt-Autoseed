@@ -17,8 +17,7 @@ class ServerChan(object):
         :return: 
         """
         r = requests.post(url=self.key_url, data={'text': text, 'desp': desp})
-        logging.info(r.text)
-        return r.text
+        logging.info("Send ServerChan message,The Server echo:\"{0}\"".format(r.text))
 
     def send_torrent_post_ok(self, dl_torrent):
         text = "已成功发布种子"

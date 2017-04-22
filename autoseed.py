@@ -26,7 +26,7 @@ tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_po
 
 db = utils.Database(setting)
 
-autoseed = extractors.Autoseed(setting=setting)
+autoseed = extractors.Byrbt(setting=setting)
 
 server_chan = utils.ServerChan(setting.ServerChan_SCKEY)
 
