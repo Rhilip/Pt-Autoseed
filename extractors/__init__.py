@@ -1,6 +1,4 @@
-import setting
+from .byrbt import Byrbt
 
-if setting.byr_reseed:
-    from .byrbt import Byrbt as Autoseed
 
 
