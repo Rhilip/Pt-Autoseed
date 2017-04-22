@@ -26,7 +26,7 @@ tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_po
 
 db = utils.Database(setting)
 
-autoseed = extractors.Byrbt(setting=setting)
+autoseed = extractors.Autoseed(setting=setting)
 
 server_chan = utils.ServerChan(setting.ServerChan_SCKEY)
 
@@ -48,10 +48,10 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
             if t.id > last_seed_id:
                 if t.name in title_list:
                     sort_id = result[title_list.index(t.name)][0]
-                    if t.trackers[0]["announce"].find("tracker.byr.cn") != -1:
+                    if t.trackers[0]["announce"].find(autoseed.tracker_pattern) != -1:
                         sql = "UPDATE seed_list SET seed_id = '%d' WHERE id = '%d'" % (t.id, sort_id)
                         db.commit_sql(sql)
-                elif t.trackers[0]["announce"].find("tracker.byr.cn") == -1:
+                elif t.trackers[0]["announce"].find(autoseed.tracker_pattern) == -1:
                     sql = "INSERT INTO seed_list (title,download_id,seed_id) VALUES ('%s','%d',0)" % (t.name, t.id)
                     db.commit_sql(sql)
         logging.debug("Update torrent info from rpc to db OK~")
@@ -100,50 +100,11 @@ def check_to_del_torrent_with_data_and_db():
                 logging.info("Delete torrents,Which name: \"{0}\" OK.".format(t["title"]))
 
 
-def data_series_raw2tuple(download_torrent) -> tuple:
-    # TODO move to site.byrbt,and Split this function
-    torrent_info_search = re.search(search_series_pattern, download_torrent.name)
-    torrent_file_name = re.search("torrents/(.+?\.torrent)", download_torrent.torrentFile).group(1)
-
-    torrent_raw_info_dict = db.data_raw_info(torrent_info_search, table="info_series", column="tv_ename")
-
-    # 副标题 small_descr
-    small_descr = "{0} {1}".format(torrent_raw_info_dict["small_descr"], torrent_info_search.group("tv_season"))
-    if str(torrent_info_search.group("group")).lower() == "fleet":
-        small_descr += " |fleet慎下"
-
-    file = setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"]
-    screenshot_file = "screenshot/{file}.png".format(file=str(download_torrent.files()[0]["name"]).split("/")[-1])
-
-    # 简介 descr
-    descr = """{before}{raw}{screenshot}{mediainfo}{clone_info}""" \
-        .format(before=setting.descr_before(),
-                raw=torrent_raw_info_dict["descr"],
-                screenshot=utils.screenshot(setting, screenshot_file, file),
-                mediainfo=utils.show_media_info(setting, file=file),
-                clone_info=setting.descr_clone_info(before_torrent_id=torrent_raw_info_dict["before_torrent_id"]))
-
-    return (  # Submit form
-        ("type", ('', str(torrent_raw_info_dict["type"]))),
-        ("second_type", ('', str(torrent_raw_info_dict["second_type"]))),
-        ("file", (torrent_file_name, open(download_torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-        ("tv_type", ('', str(torrent_raw_info_dict["tv_type"]))),
-        ("cname", ('', torrent_raw_info_dict["cname"])),
-        ("tv_ename", ('', torrent_info_search.group("full_name"))),
-        ("tv_season", ('', torrent_info_search.group("tv_season"))),
-        ("tv_filetype", ('', torrent_raw_info_dict["tv_filetype"])),
-        ("type", ('', str(torrent_raw_info_dict["type"]))),
-        ("small_descr", ('', small_descr)),
-        ("url", ('', torrent_raw_info_dict["url"])),
-        ("dburl", ('', torrent_raw_info_dict["dburl"])),
-        ("nfo", ('', torrent_raw_info_dict["nfo"])),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-        ("descr", ('', descr)),
-        ("uplver", ('', torrent_raw_info_dict["uplver"])),
-    )
-
-
 def seed_judge():
-    """发布判定"""
+    """
+    Judge to reseed depend on unreseed torrent's status,
+    With some database update after reseed.
+    """
     result = db.get_table_seed_list(decision="WHERE seed_id = 0")  # Get un-reseed info from Database
     for t in result:  # Traversal seed_list
         try:
@@ -156,37 +117,25 @@ def seed_judge():
             torrent_full_name = download_torrent.name
             logging.info("New get torrent: " + torrent_full_name)
             if download_torrent.status == "seeding":  # 种子下载完成
-                # TODO Anime
-                torrent_info_search = re.search(search_series_pattern, torrent_full_name)
-                if torrent_info_search:  # 如果种子名称结构符合search_pattern（即属于剧集）
-                    tag = autoseed.exist_judge(torrent_info_search.group("full_name"), torrent_info_search.group(0))
-                    if tag == 0:  # 种子不存在，则准备发布
-                        logging.info("Begin post The torrent {0},which name: {1}".format(t["download_id"],
-                                                                                         download_torrent.name))
-                        flag = autoseed.post_torrent(tr_client=tc,
-                                                     multipart_data=data_series_raw2tuple(download_torrent))
-                        if flag < 0:
-                            db.commit_sql(
-                                "UPDATE seed_list SET seed_id = -1 WHERE download_id={:d}".format(t["download_id"]))
-                        else:
-                            db.commit_sql(
-                                "UPDATE seed_list SET seed_id = {flag} WHERE download_id={tid}".format(flag=flag, tid=t[
-                                    "download_id"]))
-                            if setting.ServerChan_status:
-                                server_chan.send_torrent_post_ok(dl_torrent=download_torrent)
-                    elif tag == -1:  # 如果种子存在，但种子不一致
-                        db.commit_sql(
-                            "UPDATE seed_list SET seed_id = -1 WHERE download_id={:d}".format(t["download_id"]))
-                        logging.warning(
-                            "Find dupe torrent,and the exist torrent's title is not the same as pre-reseed torrent."
-                            "Stop Posting~")
-                    else:  # 如果种子存在（已经有人发布）  -> 辅种
-                        autoseed.download_torrent(tr_client=tc, tid=tag, thanks=False)
-                        logging.warning("Find dupe torrent,which id: {0},assist it~".format(tag))
+                if re.search(setting.search_series_pattern, torrent_full_name):
+                    series_search_group = re.search(setting.search_series_pattern, torrent_full_name)
+                    flag = autoseed.shunt_reseed(tr_client=tc, db_client=db, torrent=download_torrent,
+                                                 torrent_info_search=series_search_group, torrent_type="series")
+                elif re.search(setting.search_anime_pattern, torrent_full_name):
+                    anime_search_group = re.search(setting.search_anime_pattern, torrent_full_name)
+                    flag = autoseed.shunt_reseed(tr_client=tc, db_client=db, torrent=download_torrent,
+                                                 torrent_info_search=anime_search_group, torrent_type="anime")
                 else:  # 不符合，更新seed_id为-1
-                    db.commit_sql("UPDATE seed_list SET seed_id = -1 WHERE id='{:d}'".format(t["id"]))
+                    flag = -1
                     logging.warning("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,"
                                     "Stop watching it.".format(t["download_id"], torrent_full_name))
+
+                if flag > 0 and setting.ServerChan_status:
+                    server_chan.send_torrent_post_ok(tc.get_torrent(flag))
+
+                update_sql = "UPDATE seed_list SET seed_id = {fl} WHERE download_id={tid}".format(fl=flag, tid=t["id"])
+                db.commit_sql(update_sql)
+
             else:
                 logging.warning("This torrent is still download.Wait until next check time.")
 

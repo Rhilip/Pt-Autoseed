@@ -1,4 +1,1 @@
-from .byrbt import Byrbt
-
-
-
+from .byrbt import Byrbt as Autoseed

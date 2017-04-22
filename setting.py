@@ -22,10 +22,10 @@ db_name = ""
 
 # Site
 # TODO """Byrbt"""
-byr_reseed = True
+byr_reseed = True  # TODO 暂时没有用的开关
 byr_cookies = ""
 byr_passkey = ""
-byr_clone_mode = "database"  # TODO "database" or "clone"
+byr_clone_mode = "database"  # "database" or "clone"
 byr_anonymous_release = True  # 匿名发种
 
 # Reseed_Torrent_Setting
@@ -47,7 +47,8 @@ search_series_pattern = (
     "(?:\.(?P<tv_filetype>\w+)$|$)"
 )
 search_anime_pattern = (
-    "\[(?P<group>.+?)\]\[?(?P<search_name>.+?)\]?\[(?P<anime_episode>\d+)\].+(\.(mp4|mkv))?"
+    "(?P<full_name>\[(?P<group>.+?)\]\[?(?P<search_name>.+?)\]?\[(?P<anime_episode>\d+)\].+)"
+    "(?:\.(mp4|mkv))?"
 )
 
 # Logging
