@@ -23,9 +23,10 @@ db_name = ""
 # Site
 # TODO """Byrbt"""
 byr_reseed = True
-byr_clone_mode = "database"  # TODO "database" or "transfer"
 byr_cookies = ""
 byr_passkey = ""
+byr_clone_mode = "database"  # TODO "database" or "clone"
+byr_anonymous_release = True  # 匿名发种
 
 # Reseed_Torrent_Setting
 torrent_maxUploadRatio = 3
@@ -55,7 +56,7 @@ logging_format = "%(asctime)s - %(levelname)s - %(funcName)s - %(message)s"
 logging_datefmt = "%m/%d/%Y %I:%M:%S %p"
 
 # ServerChan
-'具体见：http://sc.ftqq.com/，用于向微信通知发种机发布状态'
+"具体见：http://sc.ftqq.com/，用于向微信通知发种机发布状态"
 ServerChan_status = False
 ServerChan_SCKEY = ""
 
@@ -108,7 +109,8 @@ def descr_mediainfo(info: str) -> str:
 # Other Function
 def pre_delete_judge(status: str, time_now: int, time_added: int, ratio: int, judge: bool = False) -> bool:
     """
-    根据传入的种子信息判定是否能够删除种子,预设判断流程: 发布种子无上传速度 -> 达到最小做种时间 -> 达到(最大做种时间 或者 最大分享率)
+    根据传入的种子信息判定是否能够删除种子,
+    预设判断流程: 发布种子无上传速度 -> 达到最小做种时间 -> 达到(最大做种时间 或者 最大分享率)
     
     :param ratio: 传入种子上传比率
     :param status: 传入种子的状态
