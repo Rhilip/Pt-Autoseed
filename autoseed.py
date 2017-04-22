@@ -3,7 +3,6 @@
 
 import re
 import time
-import os
 import logging
 
 import transmissionrpc
@@ -114,27 +113,14 @@ def data_series_raw2tuple(download_torrent) -> tuple:
         small_descr += " |fleet慎下"
 
     file = setting.trans_downloaddir + "/" + download_torrent.files()[0]["name"]
-
-    # TODO Screen shot,May define a ffmepg model to do this action
     screenshot_file = "screenshot/{file}.png".format(file=str(download_torrent.files()[0]["name"]).split("/")[-1])
-    ffmpeg_sh = "ffmpeg -ss 00:10:10 -y -i {file} -vframes 1 {web_loc}/{s_file}".format(file=file,
-                                                                                        web_loc=setting.web_loc,
-                                                                                        s_file=screenshot_file)
-    screenshot = os.system(ffmpeg_sh)
-
-    if screenshot == 0:
-        screenshot_info = setting.descr_screenshot(url="{web_url}/{s_f}".format(web_url=setting.web_url,
-                                                                                s_f=screenshot_file))
-    else:
-        screenshot_info = ""
-        logging.warning("Can't get Screenshot for \"{0}\".".format(torrent_info_search.group(0)))
 
     # 简介 descr
     descr = """{before}{raw}{screenshot}{mediainfo}{clone_info}""" \
         .format(before=setting.descr_before(),
                 raw=torrent_raw_info_dict["descr"],
-                screenshot=screenshot_info,
-                mediainfo=setting.descr_mediainfo(info=utils.show_media_info(file=file)),
+                screenshot=utils.screenshot(setting, screenshot_file, file),
+                mediainfo=utils.show_media_info(setting, file=file),
                 clone_info=setting.descr_clone_info(before_torrent_id=torrent_raw_info_dict["before_torrent_id"]))
 
     return (  # Submit form

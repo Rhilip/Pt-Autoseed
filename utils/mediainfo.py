@@ -1,6 +1,7 @@
 import os
 import logging
 from pymediainfo import MediaInfo
+# TODO Optimize,Use Class to manage some function
 
 
 # 原始信息整理(mkv)
@@ -102,7 +103,7 @@ def from_info_list_to_html(sorted_info):
 
 
 # 主程序调用函数
-def show_media_info(file=''):
+def show_media_info(setting, file=''):
     suffix_lower = str(os.path.splitext(file)[1][1:]).lower()
     media_info_raw = MediaInfo.parse(file)
     try:
@@ -115,4 +116,5 @@ def show_media_info(file=''):
         logging.warning("Can't get MediaInfo for \"{0}\",errmsg: \"{1}\"".format(file, err.args[0]))
         return ""
     else:
-        return from_info_list_to_html(sorted_info)
+        logging.info("Get MediaInfo for \"{0}\"".format(file))
+        return setting.descr_mediainfo(info=from_info_list_to_html(sorted_info))
