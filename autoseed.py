@@ -36,7 +36,7 @@ db = utils.Database(setting)
 
 autoseed = extractors.Autoseed(setting=setting)
 
-server_chan = utils.ServerChan(setting.ServerChan_SCKEY)
+server_chan = utils.ServerChan(setting)
 
 search_series_pattern = re.compile(setting.search_series_pattern)
 search_anime_pattern = re.compile(setting.search_anime_pattern)
@@ -139,9 +139,9 @@ def seed_judge():
                     logging.warning("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,"
                                     "Stop watching it.".format(t["download_id"], torrent_full_name))
 
-                if flag > 0 and setting.ServerChan_status:
+                if flag > 0:
                     server_chan.send_torrent_post_ok(tc.get_torrent(flag))
-
+                logging.info("Reseed judge finished.The return flag: {fl}".format(fl=flag))
                 update_sql = "UPDATE seed_list SET seed_id = {fl} WHERE download_id={tid}".format(fl=flag, tid=t["id"])
                 db.commit_sql(update_sql)
 
