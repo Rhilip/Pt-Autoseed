@@ -110,7 +110,7 @@ def check_to_del_torrent_with_data_and_db():
 
 def seed_judge():
     """
-    Judge to reseed depend on unreseed torrent's status,
+    Judge to reseed depend on un-reseed torrent's status,
     With Database update after reseed.
     """
     result = db.get_table_seed_list(decision="WHERE seed_id = 0")  # Get un-reseed info from Database
@@ -151,30 +151,27 @@ def seed_judge():
 
 def main():
     logging.info("Autoseed start~")
+    logging.warning("First time to run Byrbt-Autoseed,db check~")
+    update_torrent_info_from_rpc_to_db(force_clean_check=True)
     i = 0
     while True:
-        if i == 0:  # 第一次启动时清除数据表seed_list(因为每次启动tr，种子的id都不同)
-            logging.warning("First time to run Byrbt-Autoseed,db check~")
-            update_torrent_info_from_rpc_to_db(force_clean_check=True)
         update_torrent_info_from_rpc_to_db()  # 更新表
         seed_judge()  # reseed判断主函数
         if i % setting.delete_check_round == 0:
             check_to_del_torrent_with_data_and_db()  # 清理种子
 
         if setting.web_show_status:  # 发种机运行状态展示
-            data_list = db.get_table_seed_list(
-                decision="WHERE seed_id != -1 ORDER BY id DESC LIMIT {sum}".format(sum=setting.web_show_entries_number))
+            decision = "WHERE seed_id != -1 ORDER BY id DESC LIMIT {sum}".format(sum=setting.web_show_entries_number)
+            data_list = db.get_table_seed_list(decision=decision)
             utils.generate_web_json(setting=setting, tr_client=tc, data_list=data_list)
 
+        sleep_time = setting.sleep_free_time
         if setting.busy_start_hour <= int(time.strftime("%H", time.localtime())) < setting.busy_end_hour:
             sleep_time = setting.sleep_busy_time
-        else:  # 其他时间段
-            sleep_time = setting.sleep_free_time
 
         logging.debug("Check time {0} OK,Will Sleep for {1} seconds.".format(str(i), str(sleep_time)))
-
-        time.sleep(sleep_time)
         i += 1
+        time.sleep(sleep_time)
 
 
 if __name__ == '__main__':
