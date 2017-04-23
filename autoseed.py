@@ -16,12 +16,14 @@ try:
 except ImportError:
     import setting
 
+# -*- Logging Setting -*-
 logging_level = logging.INFO
 if setting.logging_debug_level:
     logging_level = logging.DEBUG
 
 logFormatter = logging.Formatter(fmt=setting.logging_format, datefmt=setting.logging_datefmt)
-rootLogger = logging.getLogger()
+rootLogger = logging.getLogger('')
+rootLogger.setLevel(logging.NOTSET)
 
 fileHandler = RotatingFileHandler(filename=setting.logging_filename, mode='a',
                                   maxBytes=setting.logging_file_maxBytes,
@@ -32,8 +34,8 @@ rootLogger.addHandler(fileHandler)
 
 consoleHandler = logging.StreamHandler()
 consoleHandler.setFormatter(logFormatter)
-consoleHandler.setLevel(logging.DEBUG)
 rootLogger.addHandler(consoleHandler)
+# -*- End of Logging Setting -*-
 
 tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port,
                             user=setting.trans_user, password=setting.trans_password)
