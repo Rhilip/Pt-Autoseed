@@ -95,12 +95,11 @@ class Byrbt:
             logging.error("Upload this torrent Error,The Server echo:\"{0}\",Stop Posting".format(outer_message))
         return flag
 
-    def exist_judge(self, search_title, torrent_file_name):
+    def exist_judge(self, search_title, torrent_file_name, tag=0) -> int:
         """如果种子在byr存在，返回种子id，不存在返回0，已存在且种子一致返回种子号，不一致返回-1"""
         search_url = "http://bt.byr.cn/torrents.php?search={key}&search_mode=2".format(key=search_title)
         exits_judge_raw = requests.get(url=search_url, cookies=self.cookies)
         bs = BeautifulSoup(exits_judge_raw.text, "lxml")
-        tag = 0
         if bs.find_all("a", href=re.compile("download.php")):  # 如果存在（还有人比Autoseed快。。。
             href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
             tag_temp = re.search("id=(\d+)", href).group(1)  # 找出种子id
@@ -116,13 +115,14 @@ class Byrbt:
                 tag = -1
         return tag
 
-    def clone_from(self, search_key):
+    def clone_from(self, search_key) -> dict:
         """Reconstruction from BYRBT Info Clone by Deparsoul version 20170400,thx
         This function will automatically search the clone torrent,no database need !!!
         But some may wrong,Due to inappropriate search_title
         and will return a dict include (title,small_title,imdb_url,db_url,descr,before_torrent_id) from it.
         the function (sort_title_info) will sort title to post_data due to clone_torrent's category
         """
+        return_dict = {}
         search_url = "http://bt.byr.cn/torrents.php?search={key}&search_mode=2".format(key=search_key)
         search_page = requests.get(url=search_url, cookies=self.cookies)
         search_bs = BeautifulSoup(search_page.text, "lxml")
@@ -136,37 +136,33 @@ class Byrbt:
 
             title_search = re.search("种子详情 \"(?P<title>.*)\" - Powered", str(details_bs.title))
             if title_search:
-                return_dict = {}
-                title_dict = sort_title_info(raw_title=title_search.group("title"),
-                                             raw_type=details_bs.find("span", id="type").text.strip(),
+                title = title_search.group("title")
+                logging.info("Get clone torrent's info,id: {id] ,title:{ti}".format(id=tag_temp, ti=title))
+                title_dict = sort_title_info(raw_title=title, raw_type=details_bs.find("span", id="type").text.strip(),
                                              raw_sec_type=details_bs.find("span", id="sec_type").text.strip())
                 return_dict.update(title_dict)
 
                 body = details_bs.body
-
-                imdb_url = ""
+                imdb_url = dburl = ""
                 if body.find(class_="imdbRatingPlugin"):
+                    logging.debug("Found imdb link for this torrent.")
                     imdb_url = 'http://www.imdb.com/title/' + body.find(class_="imdbRatingPlugin")["data-title"]
-
-                dburl = ""
-                dburl_search = body.find("a", href=re.compile("://movie.douban.com/subject"))
-                if dburl_search:
-                    dburl = dburl_search.text
+                if body.find("a", href=re.compile("://movie.douban.com/subject")):
+                    dburl = body.find("a", href=re.compile("://movie.douban.com/subject")).text
+                    logging.debug("Found douban link:{link} for this torrent.".format(link=dburl))
 
                 descr = body.find(id="kdescr")
-
+                # Restore the image link
                 for img_tag in descr.find_all("img"):
                     del img_tag["onload"]
                     del img_tag["data-pagespeed-url-hash"]
                     img_tag["src"] = re.sub(r"images/(?:(?:\d+x)+|x)(?P<raw>.*)\.pagespeed\.ic.*",
                                             "images/\g<raw>", img_tag["src"])
-
                 # Delete Clone Info
                 if descr.find(class_="byrbt_info_clone"):
                     descr.find(class_="byrbt_info_clone").extract()
                 for i in descr.find_all(class_="autoseed"):  # New class
                     i.extract()
-
                 # Old class
                 if descr.find("fieldset", class_="before"):
                     descr.find("fieldset", class_="before").extract()
@@ -182,23 +178,22 @@ class Byrbt:
                     "url": imdb_url,
                     "dburl": dburl,
                     "descr": descr_out,
-                    "uplver": self.uplver,
                     "before_torrent_id": tag_temp
                 })
 
-                return return_dict
             else:
                 logging.error("Error,this torrent may not exist or ConnectError")
-                return
 
-    def __extend_descr(self, torrent, raw, before_torrent_id):
+            return return_dict
+
+    def __extend_descr(self, torrent, raw, before_torrent_id) -> str:
         file = self.setting.trans_downloaddir + "/" + torrent.files()[0]["name"]
         screenshot_file = "screenshot/{file}.png".format(file=str(torrent.files()[0]["name"]).split("/")[-1])
         screenshot = extend_descr.screenshot(self.setting, screenshot_file, file)
-        mediainfo = extend_descr.show_media_info(self.setting, file=file)
+        media_info = extend_descr.show_media_info(self.setting, file=file)
         clone_info = self.setting.descr_clone_info(before_torrent_id=before_torrent_id)
         return """{before}{raw}{screenshot}{mediainfo}{clone_info}""" \
-            .format(before=self.setting.descr_before(), raw=raw, screenshot=screenshot, mediainfo=mediainfo,
+            .format(before=self.setting.descr_before(), raw=raw, screenshot=screenshot, mediainfo=media_info,
                     clone_info=clone_info)
 
     def data_series_raw2tuple(self, torrent, torrent_info_search, torrent_raw_info_dict) -> tuple:
@@ -226,7 +221,7 @@ class Byrbt:
             ("dburl", ('', torrent_raw_info_dict["dburl"])),
             ("nfo", ('', torrent_raw_info_dict["nfo"])),  # 实际上并不是这样的，但是nfo一般没有，故这么写
             ("descr", ('', descr)),
-            ("uplver", ('', torrent_raw_info_dict["uplver"])),
+            ("uplver", ('', self.uplver)),
         )
 
     def data_anime_raw2tuple(self, torrent, torrent_info_search, torrent_raw_info_dict) -> tuple:
@@ -255,7 +250,7 @@ class Byrbt:
             ("dburl", ('', torrent_raw_info_dict["dburl"])),
             ("nfo", ('', torrent_raw_info_dict["nfo"])),  # 实际上并不是这样的，但是nfo一般没有，故这么写
             ("descr", ('', descr)),
-            ("uplver", ('', torrent_raw_info_dict["uplver"])),
+            ("uplver", ('', self.uplver)),
         )
 
     def shunt_reseed(self, tr_client, db_client, torrent, torrent_info_search, torrent_type):
@@ -269,14 +264,14 @@ class Byrbt:
             table = "info_series"
             column = "tv_ename"
         elif torrent_type == "anime":
-            search_key = "{gp} {ename}".format(gp=torrent_info_search.group("group"),
-                                               ename=torrent_info_search.group("search_name"))
+            search_name = re.sub(r"_", " ", torrent_info_search.group("search_name"))
+            search_key = "{gp} {ename}".format(gp=torrent_info_search.group("group"), ename=search_name)
             pattern = "{search_key} {epo}".format(search_key=search_key, epo=torrent_info_search.group("anime_episode"))
             table = "info_anime"
             column = "comic_ename"
 
         search_tag = self.exist_judge(pattern, torrent_info_search.group(0))
-
+        flag = -1
         if search_tag == 0:  # 种子不存在，则准备发布
             torrent_raw_info_dict = {}
             if self.clone_mode == "database":
@@ -284,16 +279,18 @@ class Byrbt:
             elif self.clone_mode == "clone":
                 torrent_raw_info_dict = self.clone_from(search_key=search_key)
 
-            logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
-            multipart_data = ()
-            if torrent_type == "series":
-                multipart_data = self.data_series_raw2tuple(torrent, torrent_info_search, torrent_raw_info_dict)
-            elif torrent_type == "anime":
-                multipart_data = self.data_anime_raw2tuple(torrent, torrent_info_search, torrent_raw_info_dict)
+            if torrent_raw_info_dict:
+                logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
+                multipart_data = ()
+                if torrent_type == "series":
+                    multipart_data = self.data_series_raw2tuple(torrent, torrent_info_search, torrent_raw_info_dict)
+                elif torrent_type == "anime":
+                    multipart_data = self.data_anime_raw2tuple(torrent, torrent_info_search, torrent_raw_info_dict)
 
-            flag = self.post_torrent(tr_client=tr_client, multipart_data=multipart_data)
+                flag = self.post_torrent(tr_client=tr_client, multipart_data=multipart_data)
+            else:
+                logging.error("Something,may wrong,Please the torrent raw dict.")
         elif search_tag == -1:  # 如果种子存在，但种子不一致
-            flag = -1
             logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent.Stop Posting~")
         else:  # 如果种子存在（已经有人发布）  -> 辅种
             flag = self.download_torrent(tr_client=tr_client, tid=search_tag, thanks=False)

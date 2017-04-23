@@ -103,27 +103,28 @@ def check_to_del_torrent_with_data_and_db():
 def seed_judge():
     """
     Judge to reseed depend on unreseed torrent's status,
-    With some database update after reseed.
+    With Database update after reseed.
     """
     result = db.get_table_seed_list(decision="WHERE seed_id = 0")  # Get un-reseed info from Database
     for t in result:  # Traversal seed_list
         try:
-            download_torrent = tc.get_torrent(t["download_id"])  # 获取下载种子信息
+            dl_torrent = tc.get_torrent(t["download_id"])  # 获取下载种子信息
         except KeyError:  # 种子不存在了
             logging.error("The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
                           "It will be deleted from db in next delete-check time".format(t["title"]))
             continue
         else:
-            torrent_full_name = download_torrent.name
+            torrent_full_name = dl_torrent.name
             logging.info("New get torrent: " + torrent_full_name)
-            if download_torrent.status == "seeding":  # 种子下载完成
+            if dl_torrent.status == "seeding":  # 种子下载完成
+                logging.info("The torrent is seeding now,Judge reseed or not.")
                 if re.search(setting.search_series_pattern, torrent_full_name):
                     series_search_group = re.search(setting.search_series_pattern, torrent_full_name)
-                    flag = autoseed.shunt_reseed(tr_client=tc, db_client=db, torrent=download_torrent,
+                    flag = autoseed.shunt_reseed(tr_client=tc, db_client=db, torrent=dl_torrent,
                                                  torrent_info_search=series_search_group, torrent_type="series")
                 elif re.search(setting.search_anime_pattern, torrent_full_name):
                     anime_search_group = re.search(setting.search_anime_pattern, torrent_full_name)
-                    flag = autoseed.shunt_reseed(tr_client=tc, db_client=db, torrent=download_torrent,
+                    flag = autoseed.shunt_reseed(tr_client=tc, db_client=db, torrent=dl_torrent,
                                                  torrent_info_search=anime_search_group, torrent_type="anime")
                 else:  # 不符合，更新seed_id为-1
                     flag = -1

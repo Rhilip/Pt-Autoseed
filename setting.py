@@ -1,3 +1,4 @@
+# -*- Main Setting about Autoseed,Transmission,Database -*-
 # Autoseed
 sleep_free_time = 600  # 空闲期脚本每次运行间隔
 sleep_busy_time = 120  # 繁忙期脚本每次运行间隔
@@ -19,26 +20,18 @@ db_port = 3306
 db_user = ""
 db_password = ""
 db_name = ""
+# -*- End of Main Setting -*-
 
-# Site
-# TODO """Byrbt"""
+# -*- Reseed Site Setting -*-
+# """Byrbt"""
 byr_reseed = True  # TODO 暂时没有用的开关
 byr_cookies = ""
 byr_passkey = ""
 byr_clone_mode = "database"  # "database" or "clone"
 byr_anonymous_release = True  # 匿名发种
+# -*- End of Reseed Site Setting -*-
 
-# Reseed_Torrent_Setting
-torrent_maxUploadRatio = 3
-torrent_minSeedTime = 86400
-torrent_maxSeedTime = 691200
-
-# Show_Site
-web_url = "http://"  # demo网站的url
-web_loc = "/var/www"  # demo网站在服务器上的地址
-web_show_status = True  # 是否生成json信息
-web_show_entries_number = 10  # 展示页面显示的做种条目数量
-
+# -*- Feeding Torrent Setting -*-
 # Search_pattern
 search_series_pattern = (
     u"(?:^[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff:：]+[. ]?|^)"  # 移除平假名、片假名、中文
@@ -51,6 +44,19 @@ search_anime_pattern = (
     "(?:\.(mp4|mkv))?"
 )
 
+# Reseed_Torrent_Setting
+torrent_maxUploadRatio = 3
+torrent_minSeedTime = 86400
+torrent_maxSeedTime = 691200
+# -*- End of Feeding Torrent Setting -*-
+
+# -*- Show status Setting -*-
+# Show Site
+web_url = "http://"  # demo网站的url
+web_loc = "/var/www"  # demo网站在服务器上的地址
+web_show_status = True  # 是否生成json信息
+web_show_entries_number = 10  # 展示页面显示的做种条目数量
+
 # Logging
 logging_debug_level = False  # debug模式
 logging_format = "%(asctime)s - %(levelname)s - %(funcName)s - %(message)s"
@@ -60,12 +66,21 @@ logging_datefmt = "%m/%d/%Y %I:%M:%S %p"
 "具体见：http://sc.ftqq.com/，用于向微信通知发种机发布状态"
 ServerChan_status = False
 ServerChan_SCKEY = ""
+# -*- End of Show status Setting -*-
+
+# -*- Extended description Setting -*-
+# Function switch
+descr_before_status = True
+descr_media_info_status = True
+descr_screenshot_status = True
+descr_clone_info_status = True
 
 
-# Extended description
-def descr_before():
-    return """
-    <fieldset class="before autoseed">
+# Function realization
+def descr_before(str_before=""):
+    if descr_before_status:
+        str_before = """
+    <fieldset class="autoseed">
         <legend><b>Quote:</b></legend>
         <ul>
             <li>这是一个远程发种的文件，所有信息以主标题或者文件名为准，简介信息采用本站之前剧集信息，若发现有误请以"举报"的形式通知工作人员审查和编辑。</li>
@@ -76,11 +91,13 @@ def descr_before():
         </ul>
     </fieldset><br />
     """.format(min_reseed_time=(int(torrent_minSeedTime / 86400)), max_reseed_time=(int(torrent_maxSeedTime / 86400)))
+    return str_before
 
 
-def descr_screenshot(url: str) -> str:
-    return """
-    <fieldset class="screenshot autoseed">
+def descr_screenshot(url: str, str_screenshot="") -> str:
+    if descr_screenshot_status:
+        str_screenshot = """
+    <fieldset class="autoseed">
         <legend><b>自动截图</b></legend>
         <ul>
             <li><span style="color:red">以下是<a href="//github.com/Rhilip/Byrbt-Autoseed" target="_blank">Autoseed</a>自动完成的截图，不喜勿看。</span></li>
@@ -88,23 +105,31 @@ def descr_screenshot(url: str) -> str:
         <img src="{img_url}" style="max-width: 100%">
     </fieldset>
     """.format(img_url=url)
+    return str_screenshot
 
 
-def descr_clone_info(before_torrent_id) -> str:
-    return """
+def descr_clone_info(before_torrent_id, str_clone_info="") -> str:
+    if descr_clone_info_status:
+        str_clone_info = """
     <div class="byrbt_info_clone autoseed" data-clone="{torrent_id}" data-version="Rhilip_Autoseed" style="display:none">
         <a href="http://github.com/Rhilip/Byrbt-Autoseed" target="_blank">Powered by Rhilip's Autoseed</a>
     </div>
     """.format(torrent_id=before_torrent_id)
+    return str_clone_info
 
 
-def descr_mediainfo(info: str) -> str:
-    return """
-    <fieldset class="mediainfo autoseed">
+def descr_media_info(info: str, str_media_info="") -> str:
+    if descr_media_info_status:
+        str_media_info = """
+    <fieldset class="autoseed">
         <legend><b>MediaInfo:（自动生成，仅供参考）</b></legend>
         <div id="mediainfo">{info}</div>
     </fieldset>
     """.format(info=info)
+    return str_media_info
+
+
+# -*- End of Extended description Setting -*-
 
 
 # Other Function
