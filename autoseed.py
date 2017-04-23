@@ -20,17 +20,23 @@ logging_level = logging.INFO
 if setting.logging_debug_level:
     logging_level = logging.DEBUG
 
-log_formatter = logging.Formatter(fmt=setting.logging_format, datefmt=setting.logging_datefmt)
+logFormatter = logging.Formatter(fmt=setting.logging_format, datefmt=setting.logging_datefmt)
+rootLogger = logging.getLogger()
 
-file_handler = RotatingFileHandler(filename=setting.logging_filename, mode='a', maxBytes=setting.logging_file_maxBytes,
-                                   backupCount=2, encoding=None, delay=0)
-file_handler.setLevel(logging_level)
+fileHandler = RotatingFileHandler(filename=setting.logging_filename, mode='a',
+                                  maxBytes=setting.logging_file_maxBytes,
+                                  backupCount=2, encoding=None, delay=0)
+fileHandler.setFormatter(logFormatter)
+fileHandler.setLevel(logging_level)
+rootLogger.addHandler(fileHandler)
 
-autoseed_log = logging.getLogger('root')
-autoseed_log.addHandler(file_handler)
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(logFormatter)
+consoleHandler.setLevel(logging.DEBUG)
+rootLogger.addHandler(consoleHandler)
 
-tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port, user=setting.trans_user,
-                            password=setting.trans_password)
+tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port,
+                            user=setting.trans_user, password=setting.trans_password)
 
 db = utils.Database(setting)
 
