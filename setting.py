@@ -59,6 +59,8 @@ web_show_entries_number = 10  # 展示页面显示的做种条目数量
 
 # Logging
 logging_debug_level = False  # debug模式
+logging_filename = "autoseed.log"
+logging_file_maxBytes = 5 * 1024 * 1024
 logging_format = "%(asctime)s - %(levelname)s - %(funcName)s - %(message)s"
 logging_datefmt = "%m/%d/%Y %I:%M:%S %p"
 

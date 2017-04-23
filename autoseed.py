@@ -4,6 +4,7 @@
 import re
 import time
 import logging
+from logging.handlers import RotatingFileHandler
 
 import transmissionrpc
 
@@ -19,7 +20,14 @@ logging_level = logging.INFO
 if setting.logging_debug_level:
     logging_level = logging.DEBUG
 
-logging.basicConfig(level=logging_level, format=setting.logging_format, datefmt=setting.logging_datefmt)
+log_formatter = logging.Formatter(fmt=setting.logging_format, datefmt=setting.logging_datefmt)
+
+file_handler = RotatingFileHandler(filename=setting.logging_filename, mode='a', maxBytes=setting.logging_file_maxBytes,
+                                   backupCount=2, encoding=None, delay=0)
+file_handler.setLevel(logging_level)
+
+autoseed_log = logging.getLogger('root')
+autoseed_log.addHandler(file_handler)
 
 tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port, user=setting.trans_user,
                             password=setting.trans_password)
