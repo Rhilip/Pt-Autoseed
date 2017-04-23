@@ -186,7 +186,7 @@ class Byrbt:
 
             return return_dict
 
-    def __extend_descr(self, torrent, raw, before_torrent_id) -> str:
+    def _extend_descr(self, torrent, raw, before_torrent_id) -> str:
         file = self.setting.trans_downloaddir + "/" + torrent.files()[0]["name"]
         screenshot_file = "screenshot/{file}.png".format(file=str(torrent.files()[0]["name"]).split("/")[-1])
         screenshot = extend_descr.screenshot(self.setting, screenshot_file, file)
@@ -203,8 +203,8 @@ class Byrbt:
         if str(torrent_info_search.group("group")).lower() == "fleet":
             small_descr += " |fleet慎下"
 
-        descr = self.__extend_descr(torrent=torrent, raw=torrent_raw_info_dict["descr"],  # 简介 descr
-                                    before_torrent_id=torrent_raw_info_dict["before_torrent_id"])
+        descr = self._extend_descr(torrent=torrent, raw=torrent_raw_info_dict["descr"],  # 简介 descr
+                                   before_torrent_id=torrent_raw_info_dict["before_torrent_id"])
 
         return (  # Submit form
             ("type", ('', str(torrent_raw_info_dict["type"]))),
@@ -227,8 +227,8 @@ class Byrbt:
     def data_anime_raw2tuple(self, torrent, torrent_info_search, torrent_raw_info_dict) -> tuple:
         torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
 
-        descr = self.__extend_descr(torrent=torrent, raw=torrent_raw_info_dict["descr"],  # 简介 descr
-                                    before_torrent_id=torrent_raw_info_dict["before_torrent_id"])
+        descr = self._extend_descr(torrent=torrent, raw=torrent_raw_info_dict["descr"],  # 简介 descr
+                                   before_torrent_id=torrent_raw_info_dict["before_torrent_id"])
 
         return (  # Submit form
             ("type", ('', str(torrent_raw_info_dict["type"]))),
