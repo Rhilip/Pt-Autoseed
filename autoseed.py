@@ -55,7 +55,7 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
     result = db.get_table_seed_list()
     title_list = []
     for i in result:
-        title_list.append(i[1])
+        title_list.append(i["title"])
     if not force_clean_check:  # 正常更新
         last_seed_id = db.get_max_in_column("seed_list", "seed_id")
         for t in tc.get_torrents():
