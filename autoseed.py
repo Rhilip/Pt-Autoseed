@@ -49,7 +49,7 @@ server_chan = utils.ServerChan(setting)
 search_series_pattern = re.compile(setting.search_series_pattern)
 search_anime_pattern = re.compile(setting.search_anime_pattern)
 
-logging.debug("Initialization settings Success~")
+logging.info("Initialization settings Success~")
 
 
 def update_torrent_info_from_rpc_to_db(force_clean_check=False):

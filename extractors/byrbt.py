@@ -95,23 +95,25 @@ class Byrbt:
             logging.error("Upload this torrent Error,The Server echo:\"{0}\",Stop Posting".format(outer_message))
         return flag
 
-    def exist_judge(self, search_title, torrent_file_name, tag=0) -> int:
-        """如果种子在byr存在，返回种子id，不存在返回0，已存在且种子一致返回种子号，不一致返回-1"""
-        search_url = "http://bt.byr.cn/torrents.php?search={key}&search_mode=2".format(key=search_title)
-        exits_judge_raw = requests.get(url=search_url, cookies=self.cookies)
-        bs = BeautifulSoup(exits_judge_raw.text, "lxml")
-        if bs.find_all("a", href=re.compile("download.php")):  # 如果存在（还有人比Autoseed快。。。
+    def get_last_torrent_id(self, search_key, search_mode: int, tid=0) -> int:
+        search_url = "http://bt.byr.cn/torrents.php?search={k}&search_mode={md}".format(k=search_key, md=search_mode)
+        search_page = requests.get(url=search_url, cookies=self.cookies)
+        bs = BeautifulSoup(search_page.text, "lxml")
+        if bs.find_all("a", href=re.compile("download.php")):  # If exist
             href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
-            tag_temp = re.search("id=(\d+)", href).group(1)  # 找出种子id
-            # 使用待发布种子全名匹配已有种子的名称
-            details_page = requests.get("http://bt.byr.cn/details.php?id={0}&hit=1".format(tag_temp),
-                                        cookies=self.cookies)
+            tid = re.search("id=(\d+)", href).group(1)  # 找出种子id
+        return tid
+
+    def exist_judge(self, search_title, torrent_file_name) -> int:
+        """如果种子在byr存在，返回种子id，不存在返回0，已存在且种子一致返回种子号，不一致返回-1"""
+        tag = self.get_last_torrent_id(search_key=search_title, search_mode=2)
+        # 使用待发布种子全名匹配已有种子的名称
+        if tag is not 0:
+            details_page = requests.get("http://bt.byr.cn/details.php?id={0}&hit=1".format(tag), cookies=self.cookies)
             details_bs = BeautifulSoup(details_page.text, "lxml")
             torrent_title_in_site = details_bs.find("a", class_="index", href=re.compile(r"^download.php")).string
             torrent_title = re.search(r"\[BYRBT\]\.(.+?)\.torrent", torrent_title_in_site).group(1)
-            if torrent_file_name == torrent_title:  # 如果匹配，返回种子号
-                tag = tag_temp
-            else:  # 如果不匹配，返回-1
+            if torrent_file_name != torrent_title:  # 如果匹配，返回种子号
                 tag = -1
         return tag
 
@@ -123,68 +125,59 @@ class Byrbt:
         the function (sort_title_info) will sort title to post_data due to clone_torrent's category
         """
         return_dict = {}
-        search_url = "http://bt.byr.cn/torrents.php?search={key}&search_mode=2".format(key=search_key)
-        search_page = requests.get(url=search_url, cookies=self.cookies)
-        search_bs = BeautifulSoup(search_page.text, "lxml")
+        tag_temp = self.get_last_torrent_id(search_key=search_key, search_mode=0)
+        details_url = "http://bt.byr.cn/details.php?id={0}&hit=1".format(tag_temp)
+        details_page = requests.get(cookies=self.cookies, url=details_url)
+        details_bs = BeautifulSoup(details_page.text, "lxml")
 
-        if search_bs.find_all("a", href=re.compile("download.php")):
-            href = search_bs.find_all("a", href=re.compile("download.php"))[0]["href"]
-            tag_temp = re.search("id=(\d+)", href).group(1)  # 找出种子id
-            details_page = requests.get(cookies=self.cookies,
-                                        url="http://bt.byr.cn/details.php?id={0}&hit=1".format(tag_temp))
-            details_bs = BeautifulSoup(details_page.text, "lxml")
+        title_search = re.search("种子详情 \"(?P<title>.*)\" - Powered", str(details_bs.title))
+        if title_search:
+            title = title_search.group("title")
+            logging.info("Get clone torrent's info,id: {id] ,title:{ti}".format(id=tag_temp, ti=title))
+            title_dict = sort_title_info(raw_title=title, raw_type=details_bs.find("span", id="type").text.strip(),
+                                         raw_sec_type=details_bs.find("span", id="sec_type").text.strip())
+            return_dict.update(title_dict)
+            body = details_bs.body
+            imdb_url = dburl = ""
+            if body.find(class_="imdbRatingPlugin"):
+                logging.debug("Found imdb link for this torrent.")
+                imdb_url = 'http://www.imdb.com/title/' + body.find(class_="imdbRatingPlugin")["data-title"]
+            if body.find("a", href=re.compile("://movie.douban.com/subject")):
+                dburl = body.find("a", href=re.compile("://movie.douban.com/subject")).text
+                logging.debug("Found douban link:{link} for this torrent.".format(link=dburl))
+            # Update description
+            descr = body.find(id="kdescr")
+            # Restore the image link
+            for img_tag in descr.find_all("img"):
+                del img_tag["onload"]
+                del img_tag["data-pagespeed-url-hash"]
+                img_tag["src"] = re.sub(r"images/(?:(?:\d+x)+|x)(?P<raw>.*)\.pagespeed\.ic.*",
+                                        "images/\g<raw>", img_tag["src"])
+            # Delete Clone Info
+            if descr.find(class_="byrbt_info_clone"):
+                descr.find(class_="byrbt_info_clone").extract()
+            for i in descr.find_all(class_="autoseed"):  # New class
+                i.extract()
+            # Old class
+            if descr.find("fieldset", class_="before"):
+                descr.find("fieldset", class_="before").extract()
+            if descr.find("fieldset", class_="screenshot"):
+                descr.find("fieldset", class_="screenshot").extract()
+            if descr.find("fieldset", class_="mediainfo"):
+                descr.find("fieldset", class_="mediainfo").extract()
+            descr_out = re.search(r"<div id=\"kdescr\">(?P<in>.+)</div>$", str(descr), re.S).group("in")
 
-            title_search = re.search("种子详情 \"(?P<title>.*)\" - Powered", str(details_bs.title))
-            if title_search:
-                title = title_search.group("title")
-                logging.info("Get clone torrent's info,id: {id] ,title:{ti}".format(id=tag_temp, ti=title))
-                title_dict = sort_title_info(raw_title=title, raw_type=details_bs.find("span", id="type").text.strip(),
-                                             raw_sec_type=details_bs.find("span", id="sec_type").text.strip())
-                return_dict.update(title_dict)
+            return_dict.update({
+                "small_descr": body.find(id="subtitle").find("li").text,
+                "url": imdb_url,
+                "dburl": dburl,
+                "descr": descr_out,
+                "before_torrent_id": tag_temp
+            })
+        else:
+            logging.error("Error,this torrent may not exist or ConnectError")
 
-                body = details_bs.body
-                imdb_url = dburl = ""
-                if body.find(class_="imdbRatingPlugin"):
-                    logging.debug("Found imdb link for this torrent.")
-                    imdb_url = 'http://www.imdb.com/title/' + body.find(class_="imdbRatingPlugin")["data-title"]
-                if body.find("a", href=re.compile("://movie.douban.com/subject")):
-                    dburl = body.find("a", href=re.compile("://movie.douban.com/subject")).text
-                    logging.debug("Found douban link:{link} for this torrent.".format(link=dburl))
-
-                descr = body.find(id="kdescr")
-                # Restore the image link
-                for img_tag in descr.find_all("img"):
-                    del img_tag["onload"]
-                    del img_tag["data-pagespeed-url-hash"]
-                    img_tag["src"] = re.sub(r"images/(?:(?:\d+x)+|x)(?P<raw>.*)\.pagespeed\.ic.*",
-                                            "images/\g<raw>", img_tag["src"])
-                # Delete Clone Info
-                if descr.find(class_="byrbt_info_clone"):
-                    descr.find(class_="byrbt_info_clone").extract()
-                for i in descr.find_all(class_="autoseed"):  # New class
-                    i.extract()
-                # Old class
-                if descr.find("fieldset", class_="before"):
-                    descr.find("fieldset", class_="before").extract()
-                if descr.find("fieldset", class_="screenshot"):
-                    descr.find("fieldset", class_="screenshot").extract()
-                if descr.find("fieldset", class_="mediainfo"):
-                    descr.find("fieldset", class_="mediainfo").extract()
-
-                descr_out = re.search(r"<div id=\"kdescr\">(?P<in>.+)</div>$", str(descr), re.S).group("in")
-
-                return_dict.update({
-                    "small_descr": body.find(id="subtitle").find("li").text,
-                    "url": imdb_url,
-                    "dburl": dburl,
-                    "descr": descr_out,
-                    "before_torrent_id": tag_temp
-                })
-
-            else:
-                logging.error("Error,this torrent may not exist or ConnectError")
-
-            return return_dict
+        return return_dict
 
     def _extend_descr(self, torrent, raw, before_torrent_id) -> str:
         file = self.setting.trans_downloaddir + "/" + torrent.files()[0]["name"]
