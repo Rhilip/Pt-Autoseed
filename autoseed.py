@@ -51,84 +51,96 @@ search_anime_pattern = re.compile(setting.search_anime_pattern)
 logging.info("Initialization settings Success~")
 
 
-def update_torrent_info_from_rpc_to_db(force_clean_check=False):
-    # TODO Optimization logic
-    result = db.get_table_seed_list()
-    title_list = []
-    for i in result:
-        title_list.append(i["title"])
-    if not force_clean_check:  # 正常更新
-        last_seed_id = db.get_max_in_column("seed_list", "seed_id")
-        for t in tc.get_torrents():
-            if t.id > last_seed_id:
-                to_tracker_host = re.search(r"http[s]?://(.+?)/", t.trackers[0]["announce"]).group(1)
-                if t.name in title_list:
-                    sort_id = result[title_list.index(t.name)][0]
-                    if to_tracker_host in setting.reseed_tracker_host:
-                        sql = "UPDATE seed_list SET {} = '{:d}' WHERE id = '{:d}'".format(to_tracker_host, t.id, sort_id)
+def tracker_condition(condition, raw_trakcer_list=setting.reseed_tracker_host) -> list:
+    tracker_list_judge = []
+    for i in raw_trakcer_list:
+        tracker_list_judge.append("`{j}` {con}".format(j=i, con=condition))
+    return tracker_list_judge
+
+
+def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False):
+    # check torrent id both in transmission and database
+    last_id_tran = last_id_check
+    torrent_now_in_tran = tc.get_torrents()
+    for t in torrent_now_in_tran:
+        if t.id > last_id_tran:
+            last_id_tran = t.id
+    last_id_db = db.get_max_in_column(table="seed_list", column_list=["download_id"] + setting.reseed_tracker_host)
+    logging.debug("torrent count: transmission: {tr},db-record: {db}.".format(tr=last_id_tran, db=last_id_db))
+
+    if last_id_tran != last_id_db:
+        if not force_clean_check:  # Normal Update
+            logging.info("Some new torrents were add to transmission,Sync to db~")
+            result = db.get_table_seed_list()
+            title_list = []
+            for cow in result:
+                title_list.append(cow["title"])
+            for i in range(last_id_db, last_id_tran + 1):
+                try:
+                    t = tc.get_torrent(i)
+                except KeyError:  # Not exist torrent
+                    logging.error("The pre-syncing Torrent(id: {i}) isn't found in result,Please check.".format(i=i))
+                else:
+                    to_tracker_host = re.search(r"http[s]?://(.+?)/", t.trackers[0]["announce"]).group(1)
+                    if t.name in title_list:
+                        sid = result[title_list.index(t.name)][0]
+                        if to_tracker_host in setting.reseed_tracker_host:
+                            sql = "UPDATE seed_list SET {} = {:d} WHERE id = {:d}".format(to_tracker_host, t.id, sid)
+                            db.commit_sql(sql)
+                    elif to_tracker_host not in setting.reseed_tracker_host:
+                        sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}',{:d})".format(t.name, t.id)
                         db.commit_sql(sql)
-                elif to_tracker_host not in setting.reseed_tracker_host:
-                    sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}','{:d}')".format(t.name, t.id)
-                    db.commit_sql(sql)
-        logging.debug("Update torrent info from rpc to db OK~")
-    else:  # 第一次启动检查(force_clean_check)
-        torrent_list_now_in_trans = tc.get_torrents()
-        last_id_tran = 0
-        for t in torrent_list_now_in_trans:
-            if t.id > last_id_tran:
-                last_id_tran = t.id
-        last_id_db = max(db.get_max_in_column("seed_list", "download_id"), db.get_max_in_column("seed_list", "seed_id"))
-        logging.debug("torrent count: transmission: {tr},db-record: {db}.".format(tr=last_id_tran, db=last_id_db))
-        if not last_id_db == last_id_tran:  # 如果对不上，说明系统重新启动过或者tr崩溃过
-            logging.error(
-                "It seems that torrent's id in transmission didn't match with db-records,"
-                "Clean the whole table \"seed_list\"")
-            db.commit_sql(sql="DELETE FROM seed_list")  # 直接清表
-            # 清表后首次更新，这样可以在正常更新阶段（main中）保证(?)所有种子均插入表中。防止重复下载种子
+        else:  # 第一次启动检查(force_clean_check)
+            logging.error("It seems the torrent list didn't match with db-records,Clean the \"seed_list\" for safety.")
+            db.commit_sql(sql="DELETE FROM seed_list")  # Delete all line from seed_list
             update_torrent_info_from_rpc_to_db()
-        else:
-            logging.info("The torrent's info in transmission match with db-records,DB check OK~")
+    else:
+        logging.debug("The torrent's info in transmission match with db-records,DB check OK~")
+
+    return last_id_tran
 
 
 def check_to_del_torrent_with_data_and_db():
     """Delete torrent(both download and reseed) with data from transmission and database"""
     logging.debug("Begin torrent's status check.If reach condition you set,You will get a warning.")
-    result = db.get_table_seed_list(decision="WHERE seed_id > 0")
-    for t in result:
+    result = db.get_table_seed_list(decision='WHERE {0}'.format(' AND '.join(tracker_condition(condition=">0"))))
+    for cow in result:
+        sid = cow.pop("id")
+        s_title = cow.pop("title")
         try:  # Ensure torrent exist
-            tc.get_torrent(t["download_id"])
-            seed_torrent = tc.get_torrent(t["seed_id"])
+            reseed_list = []
+            for tracker, tid in cow.items():
+                reseed_list.append(tc.get_torrent(torrent_id=tid))
         except KeyError:  # 不存在的处理方法 - 删表，清种子
-            db.commit_sql(sql="DELETE FROM seed_list WHERE id = {0}".format(t["id"]))
-            tc.remove_torrent(t["download_id"], delete_data=True)  # remove_torrent()不会因为种子不存在而出错
-            tc.remove_torrent(t["seed_id"], delete_data=True)  # (错了也直接打log，不会崩)
-            logging.error("Torrent is not found,Witch name:\"{0}\",Delete it's record from db".format(t["title"]))
+            logging.error("One of Torrents may not found,Witch name:\"{0}\",Delete all record from db".format(s_title))
+            for tracker, tid in cow.items():
+                tc.remove_torrent(tid, delete_data=True)
+            db.commit_sql(sql="DELETE FROM seed_list WHERE id = {0}".format(sid))
         else:
-            seed_status = seed_torrent.status
-            if setting.pre_delete_judge(seed_status, time.time(), seed_torrent.addedDate, seed_torrent.uploadRatio):
-                tc.stop_torrent(t["download_id"])
-                tc.stop_torrent(t["seed_id"])
-                logging.warning("Reach Target you set,Torrents({0}) will be delete.".format(seed_torrent.name))
-            if seed_status == "stopped":  # 前一轮暂停的种子 -> 删除种子及其文件，清理db条目
-                db.commit_sql(sql="DELETE FROM seed_list WHERE id = {0}".format(t["id"]))
-                tc.remove_torrent(t["download_id"], delete_data=True)
-                tc.remove_torrent(t["seed_id"], delete_data=True)
-                logging.info("Delete torrents,Which name: \"{0}\" OK.".format(t["title"]))
+            reseed_stop_list = []
+            for seed_torrent in reseed_list:
+                seed_status = seed_torrent.status
+                if setting.pre_delete_judge(seed_status, time.time(), seed_torrent.addedDate, seed_torrent.uploadRatio):
+                    tc.stop_torrent(seed_torrent.id)
+                    logging.warning("Reach Target you set,Torrents({0}) will be delete.".format(seed_torrent.name))
+                if seed_status == "stopped":  # 前一轮暂停的种子 -> 标记
+                    reseed_stop_list.append(seed_torrent)
+            if len(reseed_list) == len(reseed_stop_list):  # 全部reseed种子达到分享目标 -> 删除种子及其文件，清理db条目
+                logging.info("All torrents reach target,Which name: \"{0}\" ,DELETE them with data.".format(s_title))
+                db.commit_sql(sql="DELETE FROM seed_list WHERE id = {0}".format(sid))
+                for reseed_torrent in reseed_list:
+                    tc.remove_torrent(reseed_torrent.id)
 
 
 def seed_judge():
-    """
-    Judge to reseed depend on un-reseed torrent's status,
-    With Database update after reseed.
-    """
-    result = db.get_table_seed_list(decision="WHERE seed_id = 0")  # Get un-reseed info from Database
-    for t in result:  # Traversal seed_list
+    """Judge to reseed depend on un-reseed torrent's status,With Database update after reseed."""
+    result = db.get_table_seed_list(decision='WHERE {0}'.format(' OR '.join(tracker_condition(condition="=0"))))
+    for t in result:  # Traversal all unseed_list
         try:
             dl_torrent = tc.get_torrent(t["download_id"])  # 获取下载种子信息
         except KeyError:  # 种子不存在了
             logging.error("The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
                           "It will be deleted from db in next delete-check time".format(t["title"]))
-            continue
         else:
             torrent_full_name = dl_torrent.name
             logging.info("New get torrent: " + torrent_full_name)
@@ -155,18 +167,18 @@ def seed_judge():
 
 
 def main():
-    logging.info("Autoseed start~")
-    logging.warning("First time to run Byrbt-Autoseed,db check~")
-    update_torrent_info_from_rpc_to_db(force_clean_check=True)
+    logging.info("Autoseed start~,will check database record at the First time.")
+    last_id_check = update_torrent_info_from_rpc_to_db(force_clean_check=True)
     i = 0
     while True:
-        update_torrent_info_from_rpc_to_db()  # 更新表
+        last_id_check = update_torrent_info_from_rpc_to_db(last_id_check=last_id_check)  # 更新表
         seed_judge()  # reseed判断主函数
         if i % setting.delete_check_round == 0:
             check_to_del_torrent_with_data_and_db()  # 清理种子
 
         if setting.web_show_status:  # 发种机运行状态展示
-            decision = "WHERE seed_id != -1 ORDER BY id DESC LIMIT {sum}".format(sum=setting.web_show_entries_number)
+            co = ' AND '.join(tracker_condition(condition="!=-1"))
+            decision = "WHERE {co} ORDER BY id DESC LIMIT {sum}".format(co=co, sum=setting.web_show_entries_number)
             data_list = db.get_table_seed_list(decision=decision)
             utils.generate_web_json(setting=setting, tr_client=tc, data_list=data_list)
 

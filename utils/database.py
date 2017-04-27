@@ -12,7 +12,7 @@ class Database(object):
                                   db=setting.db_name, charset='utf8')
 
     def commit_sql(self, sql: str):
-        """提交SQL语句"""
+        """Submit SQL statement"""
         cursor = self.db.cursor()
         try:
             cursor.execute(sql)
@@ -24,7 +24,7 @@ class Database(object):
             self.db.rollback()
 
     def get_sql(self, sql: str, r_dict=False):
-        """从数据库中获取数据"""
+        """Get data from the database"""
         cursor = self.db.cursor()
         if r_dict:  # 以字典形式返回
             cursor = self.db.cursor(pymysql.cursors.DictCursor)
@@ -34,8 +34,8 @@ class Database(object):
         logging.debug("Some information from db,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
         return result
 
-    def get_max_in_column(self, table, column):
-        """从数据库中找到该表该列最大值"""
+    def get_max_in_one_column(self, table, column):
+        """Find the maximum value of the table in that column from the database"""
         sql = "SELECT MAX(" + column + ") FROM `" + table + "`"
         result = self.get_sql(sql)
         t = result[0][0]
@@ -43,9 +43,20 @@ class Database(object):
             t = 0
         return t
 
+    def get_max_in_column(self, table, column_list: list or str, max_num=0):
+        """Find the maximum value of the table in a list of column from the database"""
+        if isinstance(column_list, list):
+            for column in column_list:
+                t = self.get_max_in_one_column(table=table, column=column)
+                max_num = max(max_num, t)
+        else:
+            max_num = self.get_max_in_one_column(table=table, column=column_list)
+        logging.debug("Max number in database :{mn},column:{co}".format(mn=max_num, co=column_list))
+        return max_num
+
     def get_table_seed_list(self, decision: str = None):
         """从db获取seed_list"""
-        sql = "SELECT id,title,download_id,seed_id FROM seed_list"
+        sql = "SELECT * FROM seed_list"
         if decision:
             sql = "{sql} {decision}".format(sql=sql, decision=decision)
         return self.get_sql(sql, r_dict=True)
