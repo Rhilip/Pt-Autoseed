@@ -23,12 +23,16 @@ db_name = ""
 # -*- End of Main Setting -*-
 
 # -*- Reseed Site Setting -*-
+reseed_tracker_host = ["tracker.byr.cn"]
 # """Byrbt"""
-byr_reseed = True  # TODO 暂时没有用的开关
-byr_cookies = ""
-byr_passkey = ""
-byr_clone_mode = "database"  # "database" or "clone"
-byr_anonymous_release = True  # 匿名发种
+site_byrbt = {
+    "status": True,  # TODO 暂时没有用的开关
+    "cookies": "",
+    "passkey": "",
+    "clone_mode": "database",  # "database" or "clone"
+    "anonymous_release": True,  # 匿名发种
+    "auto_thank": True  # 发种自动感谢自己
+}
 # -*- End of Reseed Site Setting -*-
 
 # -*- Feeding Torrent Setting -*-
@@ -113,7 +117,7 @@ def descr_screenshot(url: str, str_screenshot="") -> str:
 def descr_clone_info(before_torrent_id, str_clone_info="") -> str:
     if descr_clone_info_status:
         str_clone_info = """
-    <div class="byrbt_info_clone autoseed" data-clone="{torrent_id}" data-version="Rhilip_Autoseed" style="display:none">
+    <div class="byrbt_info_clone autoseed" data-clone="{torrent_id}" data-version="Autoseed" style="display:none">
         <a href="http://github.com/Rhilip/Byrbt-Autoseed" target="_blank">Powered by Rhilip's Autoseed</a>
     </div>
     """.format(torrent_id=before_torrent_id)

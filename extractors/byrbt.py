@@ -3,11 +3,10 @@
 
 import re
 import logging
-import requests
-import utils.extend_descr as extend_descr
 
 from bs4 import BeautifulSoup
-from utils.cookie import cookies_raw2jar
+from .default import NexusPHP
+from utils.extend_descr import extend_descr
 
 type_dict = {
     "电影": {"cat": 408,
@@ -52,53 +51,21 @@ def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
     return return_dict
 
 
-class Byrbt:
-    tracker_pattern = "tracker.byr.cn"
+class Byrbt(NexusPHP):
+    url_torrent_download = "http://bt.byr.cn/download.php?id={tid]&passkey={pk}"
+    url_torrent_upload = "http://bt.byr.cn/takeupload.php"
+    url_torrent_detail = "http://bt.byr.cn/details.php?id={tid}&hit=1"
+    url_thank = "http://bt.byr.cn/thanks.php"
+    url_search = "http://bt.byr.cn/torrents.php?search={k}&search_mode={md}"
+
+    reseed_column = "tracker.byr.cn"
 
     def __init__(self, setting):
-        self.setting = setting
-        self.passkey = setting.byr_passkey
-        self.cookies = cookies_raw2jar(setting.byr_cookies)
-
-        self.clone_mode = setting.byr_clone_mode
-
-        self.uplver = "no"
-        if setting.byr_anonymous_release:
-            self.uplver = "yes"
-
-    def download_torrent(self, tr_client, tid, thanks=True):
-        """
-        直接使用transmissionrpc.Client.add_torrent方法向tr添加url直链种子
-        https://pythonhosted.org/transmissionrpc/reference/transmissionrpc.html#transmissionrpc.Client.add_torrent
-        """
-        download_torrent_link = "http://bt.byr.cn/download.php?id={tid}&passkey={pk}".format(tid=tid, pk=self.passkey)
-        added_torrent = tr_client.add_torrent(torrent=download_torrent_link)
-        logging.info("Download Torrent OK,which id: {id}.".format(id=tid))
-        if thanks:
-            requests.post(url="http://bt.byr.cn/thanks.php", cookies=self.cookies, data={"id": str(tid)})  # 自动感谢
-        return added_torrent.id
-
-    def post_torrent(self, tr_client, multipart_data: tuple):
-        """使用已经构造好的表单发布种子"""
-        post = requests.post(url="http://bt.byr.cn/takeupload.php", cookies=self.cookies, files=multipart_data)
-        if post.url != "http://bt.byr.cn/takeupload.php":  # 发布成功检查
-            seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
-            flag = self.download_torrent(tr_client=tr_client, tid=seed_torrent_download_id)
-            logging.info("Reseed post OK,The torrent's in transmission: {fl}".format(fl=flag))
-        else:  # 未发布成功打log
-            outer_bs = BeautifulSoup(post.text, "lxml").find("td", id="outer")
-            if outer_bs.find_all("table"):  # Remove unnecessary table info(include SMS,Report)
-                for table in outer_bs.find_all("table"):
-                    table.extract()
-            outer_message = outer_bs.get_text().replace("\n", "")
-            flag = -1
-            logging.error("Upload this torrent Error,The Server echo:\"{0}\",Stop Posting".format(outer_message))
-        return flag
+        site_setting = setting.site_byrbt
+        super().__init__(setting=setting, site_setting=site_setting)
 
     def get_last_torrent_id(self, search_key, search_mode: int, tid=0) -> int:
-        search_url = "http://bt.byr.cn/torrents.php?search={k}&search_mode={md}".format(k=search_key, md=search_mode)
-        search_page = requests.get(url=search_url, cookies=self.cookies)
-        bs = BeautifulSoup(search_page.text, "lxml")
+        bs = BeautifulSoup(self.page_search_text(search_key=search_key, search_mode=search_mode), "lxml")
         if bs.find_all("a", href=re.compile("download.php")):  # If exist
             href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
             tid = re.search("id=(\d+)", href).group(1)  # 找出种子id
@@ -108,8 +75,7 @@ class Byrbt:
         """如果种子在byr存在，返回种子id，不存在返回0，已存在且种子一致返回种子号，不一致返回-1"""
         tag = self.get_last_torrent_id(search_key=search_title, search_mode=2)
         if tag is not 0:
-            details_page = requests.get("http://bt.byr.cn/details.php?id={0}&hit=1".format(tag), cookies=self.cookies)
-            details_bs = BeautifulSoup(details_page.text, "lxml")
+            details_bs = BeautifulSoup(self.page_torrent_detail_text(tid=tag), "lxml")
             torrent_title_in_site = details_bs.find("a", class_="index", href=re.compile(r"^download.php")).string
             torrent_title = re.search(r"\[BYRBT\]\.(.+?)\.torrent", torrent_title_in_site).group(1)
             if torrent_file_name != torrent_title:  # Use pre-reseed torrent's name match the exist torrent's name
@@ -117,7 +83,8 @@ class Byrbt:
         return tag
 
     def clone_from(self, search_key) -> dict:
-        """Reconstruction from BYRBT Info Clone by Deparsoul version 20170400,thx
+        """
+        Reconstruction from BYRBT Info Clone by Deparsoul version 20170400,thx
         This function will automatically search the clone torrent,no database need !!!
         But some may wrong,Due to inappropriate search_title
         and will return a dict include (title,small_title,imdb_url,db_url,descr,before_torrent_id) from it.
@@ -126,9 +93,7 @@ class Byrbt:
         return_dict = {}
         tag = self.get_last_torrent_id(search_key=search_key, search_mode=0)
         if tag is not 0:
-            details_url = "http://bt.byr.cn/details.php?id={0}&hit=1".format(tag)
-            details_page = requests.get(cookies=self.cookies, url=details_url)
-            details_bs = BeautifulSoup(details_page.text, "lxml")
+            details_bs = BeautifulSoup(self.page_torrent_detail_text(tid=tag), "lxml")
             title_search = re.search("种子详情 \"(?P<title>.*)\" - Powered", str(details_bs.title))
             if title_search:
                 title = title_search.group("title")
@@ -177,16 +142,6 @@ class Byrbt:
 
         return return_dict
 
-    def _extend_descr(self, torrent, raw, before_torrent_id) -> str:
-        file = self.setting.trans_downloaddir + "/" + torrent.files()[0]["name"]
-        screenshot_file = "screenshot/{file}.png".format(file=str(torrent.files()[0]["name"]).split("/")[-1])
-        screenshot = extend_descr.screenshot(self.setting, screenshot_file, file)
-        media_info = extend_descr.show_media_info(self.setting, file=file)
-        clone_info = self.setting.descr_clone_info(before_torrent_id=before_torrent_id)
-        return """{before}{raw}{screenshot}{mediainfo}{clone_info}""" \
-            .format(before=self.setting.descr_before(), raw=raw, screenshot=screenshot, mediainfo=media_info,
-                    clone_info=clone_info)
-
     def data_series_raw2tuple(self, torrent, torrent_info_search, torrent_raw_info_dict) -> tuple:
         torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
         # 副标题 small_descr
@@ -194,8 +149,8 @@ class Byrbt:
         if str(torrent_info_search.group("group")).lower() == "fleet":
             small_descr += " |fleet慎下"
 
-        descr = self._extend_descr(torrent=torrent, raw=torrent_raw_info_dict["descr"],  # 简介 descr
-                                   before_torrent_id=torrent_raw_info_dict["before_torrent_id"])
+        descr = extend_descr(setting=self.setting, torrent=torrent, raw=torrent_raw_info_dict["descr"],  # 简介 descr
+                             before_torrent_id=torrent_raw_info_dict["before_torrent_id"])
 
         return (  # Submit form
             ("type", ('', str(torrent_raw_info_dict["type"]))),
@@ -218,8 +173,8 @@ class Byrbt:
     def data_anime_raw2tuple(self, torrent, torrent_info_search, torrent_raw_info_dict) -> tuple:
         torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
 
-        descr = self._extend_descr(torrent=torrent, raw=torrent_raw_info_dict["descr"],  # 简介 descr
-                                   before_torrent_id=torrent_raw_info_dict["before_torrent_id"])
+        descr = extend_descr(setting=self.setting, torrent=torrent, raw=torrent_raw_info_dict["descr"],  # 简介 descr
+                             before_torrent_id=torrent_raw_info_dict["before_torrent_id"])
 
         return (  # Submit form
             ("type", ('', str(torrent_raw_info_dict["type"]))),
@@ -275,13 +230,13 @@ class Byrbt:
                 elif torrent_type == "anime":
                     multipart_data = self.data_anime_raw2tuple(torrent, torrent_info_search, torrent_raw_info_dict)
 
-                flag = self.post_torrent(tr_client=tr_client, multipart_data=multipart_data)
+                flag = self.torrent_upload(tr_client=tr_client, multipart_data=multipart_data)
             else:
                 logging.error("Something,may wrong,Please the torrent raw dict.")
         elif search_tag == -1:  # 如果种子存在，但种子不一致
             logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent.Stop Posting~")
         else:  # 如果种子存在（已经有人发布）  -> 辅种
-            flag = self.download_torrent(tr_client=tr_client, tid=search_tag, thanks=False)
+            flag = self.torrent_download(tr_client=tr_client, tid=search_tag, thanks=False)
             logging.warning("Find dupe torrent,which id: {0},Automatically assist it~".format(search_tag))
 
-        return flag
+        self.db_reseed_update(download_id=torrent.id, reseed_id=flag, db_client=db_client)

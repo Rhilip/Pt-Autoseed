@@ -25,9 +25,8 @@ logFormatter = logging.Formatter(fmt=setting.logging_format, datefmt=setting.log
 rootLogger = logging.getLogger('')
 rootLogger.setLevel(logging.NOTSET)
 
-fileHandler = RotatingFileHandler(filename=setting.logging_filename, mode='a',
-                                  maxBytes=setting.logging_file_maxBytes,
-                                  backupCount=2, encoding=None, delay=0)
+fileHandler = RotatingFileHandler(filename=setting.logging_filename, mode='a', backupCount=2,
+                                  maxBytes=setting.logging_file_maxBytes, encoding=None, delay=0)
 fileHandler.setFormatter(logFormatter)
 fileHandler.setLevel(logging_level)
 rootLogger.addHandler(fileHandler)
@@ -62,13 +61,14 @@ def update_torrent_info_from_rpc_to_db(force_clean_check=False):
         last_seed_id = db.get_max_in_column("seed_list", "seed_id")
         for t in tc.get_torrents():
             if t.id > last_seed_id:
+                to_tracker_host = re.search(r"http[s]?://(.+?)/", t.trackers[0]["announce"]).group(1)
                 if t.name in title_list:
                     sort_id = result[title_list.index(t.name)][0]
-                    if t.trackers[0]["announce"].find(autoseed.tracker_pattern) != -1:
-                        sql = "UPDATE seed_list SET seed_id = '%d' WHERE id = '%d'" % (t.id, sort_id)
+                    if to_tracker_host in setting.reseed_tracker_host:
+                        sql = "UPDATE seed_list SET {} = '{:d}' WHERE id = '{:d}'".format(to_tracker_host, t.id, sort_id)
                         db.commit_sql(sql)
-                elif t.trackers[0]["announce"].find(autoseed.tracker_pattern) == -1:
-                    sql = "INSERT INTO seed_list (title,download_id,seed_id) VALUES ('%s','%d',0)" % (t.name, t.id)
+                elif to_tracker_host not in setting.reseed_tracker_host:
+                    sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}','{:d}')".format(t.name, t.id)
                     db.commit_sql(sql)
         logging.debug("Update torrent info from rpc to db OK~")
     else:  # 第一次启动检查(force_clean_check)
@@ -150,9 +150,6 @@ def seed_judge():
                 if flag > 0:
                     server_chan.send_torrent_post_ok(tc.get_torrent(flag))
                 logging.info("Reseed judge finished.The return flag: {fl}".format(fl=flag))
-                update_sql = "UPDATE seed_list SET seed_id = {fl} WHERE download_id={tid}".format(fl=flag, tid=t["id"])
-                db.commit_sql(update_sql)
-
             else:
                 logging.warning("This torrent is still download.Wait until next check time.")
 
