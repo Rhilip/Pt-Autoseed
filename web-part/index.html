@@ -338,6 +338,13 @@
             var output_main = "<thead><tr><th>#</th><th class=\"text-center\">Title</th><th>Size</th><th>Started At</th><th>Download Status</th><th>Seed Status</th></tr></thead><tbody>";
             for (var i = 0, l = data.data.length; i < l; i++) {
                 var data_column = data.data[i];
+                var cow_str = "";
+                for (var j = 0,k=data_column["reseed_info"].length;j<k;i++){
+                    var cow = data_column["reseed_info"][0];
+                    var cow_class = data_column["reseed_tracker"].replace(/\./,'_');
+                    cow_str = cow_str + "<td class='"+cow_class+"'>" + cow["reseed_status"] + " R:" + cow["reseed_ratio"] + "</td>"
+                }
+
                 var output = "<tr>" +
                     "<td>" + data_column["tid"] + "</td>" +
                     "<td>" + data_column["title"] + "</td>" +
@@ -345,6 +352,7 @@
                     "<td>" + data_column["download_start_time"] + "</td>" +
                     "<td>" + data_column["download_status"] + " R:" + data_column["download_upload_ratio"] + "</td>" +
                     "<td>" + data_column["reseed_status"] + " R:" + data_column["reseed_ratio"] + "</td>" +
+                    cow_str +
                     "</tr>";
                 output_main = output_main.concat(output);
             }
