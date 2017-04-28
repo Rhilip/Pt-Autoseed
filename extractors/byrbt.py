@@ -6,7 +6,6 @@ import logging
 
 from bs4 import BeautifulSoup
 from .default import NexusPHP
-from utils.extend_descr import extend_descr
 
 type_dict = {
     "电影": {"cat": 408,
@@ -61,15 +60,8 @@ class Byrbt(NexusPHP):
     reseed_column = "tracker.byr.cn"
 
     def __init__(self, setting):
-        site_setting = setting.site_byrbt
-        super().__init__(setting=setting, site_setting=site_setting)
-
-    def get_last_torrent_id(self, search_key, search_mode: int, tid=0) -> int:
-        bs = BeautifulSoup(self.page_search_text(search_key=search_key, search_mode=search_mode), "lxml")
-        if bs.find_all("a", href=re.compile("download.php")):  # If exist
-            href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
-            tid = re.search("id=(\d+)", href).group(1)  # 找出种子id
-        return tid
+        _site_setting = setting.site_byrbt
+        super().__init__(setting=setting, site_setting=_site_setting)
 
     def exist_judge(self, search_title, torrent_file_name) -> int:
         """如果种子在byr存在，返回种子id，不存在返回0，已存在且种子一致返回种子号，不一致返回-1"""
@@ -97,7 +89,7 @@ class Byrbt(NexusPHP):
             title_search = re.search("种子详情 \"(?P<title>.*)\" - Powered", str(details_bs.title))
             if title_search:
                 title = title_search.group("title")
-                logging.info("Get clone torrent's info,id: {id] ,title:{ti}".format(id=tag, ti=title))
+                logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tag, ti=title))
                 title_dict = sort_title_info(raw_title=title, raw_type=details_bs.find("span", id="type").text.strip(),
                                              raw_sec_type=details_bs.find("span", id="sec_type").text.strip())
                 return_dict.update(title_dict)
@@ -149,9 +141,6 @@ class Byrbt(NexusPHP):
         if str(torrent_info_search.group("group")).lower() == "fleet":
             small_descr += " |fleet慎下"
 
-        descr = extend_descr(setting=self.setting, torrent=torrent, raw=torrent_raw_info_dict["descr"],  # 简介 descr
-                             before_torrent_id=torrent_raw_info_dict["before_torrent_id"])
-
         return (  # Submit form
             ("type", ('', str(torrent_raw_info_dict["type"]))),
             ("second_type", ('', str(torrent_raw_info_dict["second_type"]))),
@@ -166,15 +155,12 @@ class Byrbt(NexusPHP):
             ("url", ('', torrent_raw_info_dict["url"])),
             ("dburl", ('', torrent_raw_info_dict["dburl"])),
             ("nfo", ('', torrent_raw_info_dict["nfo"])),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-            ("descr", ('', descr)),
+            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=torrent_raw_info_dict, encode="html"))),
             ("uplver", ('', self.uplver)),
         )
 
     def data_anime_raw2tuple(self, torrent, torrent_info_search, torrent_raw_info_dict) -> tuple:
         torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
-
-        descr = extend_descr(setting=self.setting, torrent=torrent, raw=torrent_raw_info_dict["descr"],  # 简介 descr
-                             before_torrent_id=torrent_raw_info_dict["before_torrent_id"])
 
         return (  # Submit form
             ("type", ('', str(torrent_raw_info_dict["type"]))),
@@ -194,8 +180,8 @@ class Byrbt(NexusPHP):
             ("small_descr", ('', torrent_raw_info_dict["small_descr"])),
             ("url", ('', torrent_raw_info_dict["url"])),
             ("dburl", ('', torrent_raw_info_dict["dburl"])),
-            ("nfo", ('', torrent_raw_info_dict["nfo"])),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-            ("descr", ('', descr)),
+            ("nfo", ('', torrent_raw_info_dict["nfo"])),
+            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=torrent_raw_info_dict, encode="html"))),
             ("uplver", ('', self.uplver)),
         )
 

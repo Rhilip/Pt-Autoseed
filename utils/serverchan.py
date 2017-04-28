@@ -20,8 +20,8 @@ class ServerChan(object):
             r = requests.post(url=self.key_url, data={'text': text, 'desp': desp})
             logging.info("Send ServerChan message,The Server echo:\"{0}\"".format(r.text))
 
-    def send_torrent_post_ok(self, dl_torrent):
+    def send_torrent_post_ok(self, url, dl_torrent):
         # TODO more desp
         text = "已成功发布种子"
-        desp = """种子名称：{torrent_name}""".format(torrent_name=dl_torrent.name)
+        desp = """种子名称：{name}<br>种子发布链接：{url}""".format(name=dl_torrent.name, url=url)
         self.send(text=text, desp=desp)

@@ -5,6 +5,8 @@ import re
 import logging
 import requests
 from utils.cookie import cookies_raw2jar
+from utils.extend_descr import ExtendDescr
+from utils.serverchan import ServerChan
 from bs4 import BeautifulSoup
 
 
@@ -21,7 +23,7 @@ class NexusPHP(object):
     reseed_column = "pt_domain.com"  # The column in table seed_list
 
     def __init__(self, setting: set, site_setting: dict):
-        self.setting = setting
+        self._setting = setting
         self.cookies = cookies_raw2jar(site_setting["cookies"])
         self.passkey = site_setting["passkey"]
         self.clone_mode = site_setting["clone_mode"]
@@ -29,15 +31,17 @@ class NexusPHP(object):
             self.uplver = "yes"
         if site_setting["auto_thank"]:
             self.auto_thank = True
+        self.descr = ExtendDescr(setting=self._setting)
+        self.server_chan = ServerChan(setting=setting)
 
     def torrent_download(self, tr_client, tid, thanks=auto_thank):
         """
         直接使用transmissionrpc.Client.add_torrent方法向tr添加url直链种子
         https://pythonhosted.org/transmissionrpc/reference/transmissionrpc.html#transmissionrpc.Client.add_torrent
-        :param tr_client: 
-        :param tid: 
-        :param thanks: 
-        :return: 
+        :param tr_client: class transmissionrpc.Client
+        :param tid: 种子发布号
+        :param thanks: 自动感谢
+        :return: 种子号
         """
         added_torrent = tr_client.add_torrent(torrent=self.url_torrent_download.format(tid=tid, pk=self.passkey))
         logging.info("Download Torrent OK,which id: {id}.".format(id=tid))
@@ -56,6 +60,7 @@ class NexusPHP(object):
         if post.url != self.url_torrent_upload:  # 发布成功检查
             seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
             flag = self.torrent_download(tr_client=tr_client, tid=seed_torrent_download_id)
+            self.server_chan.send_torrent_post_ok(url=post.url, dl_torrent=tr_client.get_torrent(flag))
             logging.info("Reseed post OK,The torrent's in transmission: {fl}".format(fl=flag))
         else:  # 未发布成功打log
             outer_bs = BeautifulSoup(post.text, "lxml").find("td", id="outer")
@@ -100,3 +105,14 @@ class NexusPHP(object):
         update_sql = "UPDATE seed_list SET {col} = {rid}" \
                      " WHERE download_id={did}".format(col=self.reseed_column, rid=reseed_id, did=download_id)
         db_client.commit_sql(update_sql)
+
+    def get_last_torrent_id(self, search_key, search_mode: int, tid=0) -> int:
+        bs = BeautifulSoup(self.page_search_text(search_key=search_key, search_mode=search_mode), "lxml")
+        if bs.find_all("a", href=re.compile("download.php")):  # If exist
+            href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
+            tid = re.search("id=(\d+)", href).group(1)  # 找出种子id
+        return tid
+
+    def extend_descr(self, torrent, info_dict, encode) -> str:
+        return self.descr.out(raw=info_dict["descr"], torrent=torrent, encode=encode,
+                              before_torrent_id=info_dict["before_torrent_id"])

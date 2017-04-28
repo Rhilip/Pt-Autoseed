@@ -6,10 +6,9 @@ import time
 import logging
 from logging.handlers import RotatingFileHandler
 
-import transmissionrpc
-
 import utils
-import extractors
+import transmissionrpc
+from extractors import Autoseed
 
 try:
     import usersetting as setting
@@ -36,17 +35,12 @@ consoleHandler.setFormatter(logFormatter)
 rootLogger.addHandler(consoleHandler)
 # -*- End of Logging Setting -*-
 
+# -*- Loading Model -*-
 tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port,
                             user=setting.trans_user, password=setting.trans_password)
-
 db = utils.Database(setting)
-
-autoseed = extractors.Autoseed(setting=setting)
-
-server_chan = utils.ServerChan(setting)
-
-search_series_pattern = re.compile(setting.search_series_pattern)
-search_anime_pattern = re.compile(setting.search_anime_pattern)
+autoseed = Autoseed(setting=setting, tr_client=tc, db_client=db)
+# -*- End of Loading Model -*-
 
 logging.info("Initialization settings Success~")
 
@@ -146,21 +140,7 @@ def seed_judge():
             logging.info("New get torrent: " + torrent_full_name)
             if dl_torrent.status == "seeding":  # 种子下载完成
                 logging.info("The torrent is seeding now,Judge reseed or not.")
-                if re.search(setting.search_series_pattern, torrent_full_name):
-                    series_search_group = re.search(setting.search_series_pattern, torrent_full_name)
-                    flag = autoseed.shunt_reseed(tr_client=tc, db_client=db, torrent=dl_torrent,
-                                                 torrent_info_search=series_search_group, torrent_type="series")
-                elif re.search(setting.search_anime_pattern, torrent_full_name):
-                    anime_search_group = re.search(setting.search_anime_pattern, torrent_full_name)
-                    flag = autoseed.shunt_reseed(tr_client=tc, db_client=db, torrent=dl_torrent,
-                                                 torrent_info_search=anime_search_group, torrent_type="anime")
-                else:  # 不符合，更新seed_id为-1
-                    flag = -1
-                    logging.warning("Mark Torrent {0} (Name: \"{1}\") As Un-reseed torrent,"
-                                    "Stop watching it.".format(t["download_id"], torrent_full_name))
-
-                if flag > 0:
-                    server_chan.send_torrent_post_ok(tc.get_torrent(flag))
+                flag = autoseed.new_torrent_receive(dl_torrent)
                 logging.info("Reseed judge finished.The return flag: {fl}".format(fl=flag))
             else:
                 logging.warning("This torrent is still download.Wait until next check time.")

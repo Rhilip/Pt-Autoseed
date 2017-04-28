@@ -91,21 +91,26 @@ def sort_mp4_info(media_info_raw):
 
 
 # 将整理过的info信息变成html字符串
-def from_info_list_to_html(sorted_info):
-    general_output = "<strong>General</strong><br>" + "<br>".join(sorted_info[0]) + "<br>"
-    video_output = "<strong>Video</strong><br>"
-    audio_output = "<strong>Audio</strong><br>"
+def from_info_list_to_html(sorted_info, encode):
+    line_sep = "<br>"
+    text_strong = "<strong>{text}</strong>"
+    if encode.lower() is "bbcode":
+        line_sep = "\n"
+        text_strong = "[b]{text}[/b]"
+    general_output = text_strong.format(text="General") + line_sep.join(sorted_info[0]) + line_sep
+    video_output = text_strong.format(text="Video") + line_sep
+    audio_output = text_strong.format(text="Audio") + line_sep
     for i in sorted_info[1]:
-        video_output_temp = "<br>".join(i) + "<br><br>"
+        video_output_temp = line_sep.join(i) + line_sep * 2
         video_output += video_output_temp
     for i in sorted_info[2]:
-        audio_output_temp = "<br>".join(i) + "<br><br>"
+        audio_output_temp = line_sep.join(i) + line_sep * 2
         audio_output += audio_output_temp
-    return "{0}<br>{1}<br>{2}".format(general_output, video_output, audio_output)
+    return line_sep.join([general_output, video_output, audio_output])
 
 
 # 主程序调用函数
-def show_media_info(setting, file="", return_str=""):
+def show_media_info(file="", encode="html", return_str=None):
     suffix_lower = str(os.path.splitext(file)[1][1:]).lower()
     media_info_raw = MediaInfo.parse(file)
     try:
@@ -117,7 +122,7 @@ def show_media_info(setting, file="", return_str=""):
     except TypeError as err:
         logging.warning("Can't get MediaInfo for \"{0}\",errmsg: \"{1}\"".format(file, err.args[0]))
     else:
-        return_str = setting.descr_media_info(info=from_info_list_to_html(sorted_info))
+        return_str = from_info_list_to_html(sorted_info, encode=encode)
         logging.info("Get MediaInfo for \"{0}\"".format(file))
 
     return return_str

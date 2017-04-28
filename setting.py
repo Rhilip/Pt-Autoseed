@@ -36,18 +36,6 @@ site_byrbt = {
 # -*- End of Reseed Site Setting -*-
 
 # -*- Feeding Torrent Setting -*-
-# Search_pattern
-search_series_pattern = (
-    u"(?:^[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff:：]+[. ]?|^)"  # 移除平假名、片假名、中文
-    "(?P<full_name>(?P<search_name>[\w\-. ]+?)[. ]"
-    "(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
-    "(?:\.(?P<tv_filetype>\w+)$|$)"
-)
-search_anime_pattern = (
-    "(?P<full_name>\[(?P<group>.+?)\]\[?(?P<search_name>.+?)\]?\[(?P<anime_episode>\d+)\].+)"
-    "(?:\.(mp4|mkv))?"
-)
-
 # Reseed_Torrent_Setting
 torrent_maxUploadRatio = 3
 torrent_minSeedTime = 86400
@@ -75,66 +63,10 @@ ServerChan_SCKEY = ""
 # -*- End of Show status Setting -*-
 
 # -*- Extended description Setting -*-
-# Function switch
 descr_before_status = True
 descr_media_info_status = True
 descr_screenshot_status = True
 descr_clone_info_status = True
-
-
-# Function realization
-def descr_before(str_before=""):
-    if descr_before_status:
-        str_before = """
-    <fieldset class="autoseed">
-        <legend><b>Quote:</b></legend>
-        <ul>
-            <li>这是一个远程发种的文件，所有信息以主标题或者文件名为准，简介信息采用本站之前剧集信息，若发现有误请以"举报"的形式通知工作人员审查和编辑。</li>
-            <li>欢迎下载、辅种、分流。保种{min_reseed_time}-{max_reseed_time}天。断种恕不补种。</li>
-            <li>如果发布档较大，请耐心等待校验。</li>
-            <li>请勿上传机翻字幕，如有发现请"举报"。</li>
-            <li>欧美剧更新说明请查看论坛区： <a href="/forums.php?action=viewtopic&forumid=7&topicid=10140" target="_blank">剧集区--欧美剧播放列表及订阅列表</a> ，申请补发、搬运，请于该帖按格式留言。</li>
-        </ul>
-    </fieldset><br />
-    """.format(min_reseed_time=(int(torrent_minSeedTime / 86400)), max_reseed_time=(int(torrent_maxSeedTime / 86400)))
-    return str_before
-
-
-def descr_screenshot(url: str, str_screenshot="") -> str:
-    if descr_screenshot_status:
-        str_screenshot = """
-    <fieldset class="autoseed">
-        <legend><b>自动截图</b></legend>
-        <ul>
-            <li><span style="color:red">以下是<a href="//github.com/Rhilip/Byrbt-Autoseed" target="_blank">Autoseed</a>自动完成的截图，不喜勿看。</span></li>
-        </ul>
-        <img src="{img_url}" style="max-width: 100%">
-    </fieldset>
-    """.format(img_url=url)
-    return str_screenshot
-
-
-def descr_clone_info(before_torrent_id, str_clone_info="") -> str:
-    if descr_clone_info_status:
-        str_clone_info = """
-    <div class="byrbt_info_clone autoseed" data-clone="{torrent_id}" data-version="Autoseed" style="display:none">
-        <a href="http://github.com/Rhilip/Byrbt-Autoseed" target="_blank">Powered by Rhilip's Autoseed</a>
-    </div>
-    """.format(torrent_id=before_torrent_id)
-    return str_clone_info
-
-
-def descr_media_info(info: str, str_media_info="") -> str:
-    if descr_media_info_status:
-        str_media_info = """
-    <fieldset class="autoseed">
-        <legend><b>MediaInfo:（自动生成，仅供参考）</b></legend>
-        <div id="mediainfo">{info}</div>
-    </fieldset>
-    """.format(info=info)
-    return str_media_info
-
-
 # -*- End of Extended description Setting -*-
 
 
