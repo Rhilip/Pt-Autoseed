@@ -36,7 +36,7 @@ class Database(object):
 
     def get_max_in_one_column(self, table, column):
         """Find the maximum value of the table in that column from the database"""
-        sql = "SELECT MAX(" + column + ") FROM `" + table + "`"
+        sql = "SELECT MAX(`" + column + "`) FROM `" + table + "`"
         result = self.get_sql(sql)
         t = result[0][0]
         if not t:
@@ -51,7 +51,7 @@ class Database(object):
                 max_num = max(max_num, t)
         else:
             max_num = self.get_max_in_one_column(table=table, column=column_list)
-        logging.debug("Max number in database :{mn},column:{co}".format(mn=max_num, co=column_list))
+        logging.debug("Max number in column:{co} is {mn}".format(mn=max_num, co=column_list))
         return max_num
 
     def get_table_seed_list(self, decision: str = None):

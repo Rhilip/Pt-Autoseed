@@ -60,7 +60,7 @@ def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False)
         if t.id > last_id_tran:
             last_id_tran = t.id
     last_id_db = db.get_max_in_column(table="seed_list", column_list=["download_id"] + setting.reseed_tracker_host)
-    logging.debug("torrent count: transmission: {tr},db-record: {db}.".format(tr=last_id_tran, db=last_id_db))
+    logging.debug("Torrent max-id count: transmission: {tr},db-record: {db}.".format(tr=last_id_tran, db=last_id_db))
 
     if last_id_tran != last_id_db:
         if not force_clean_check:  # Normal Update
@@ -69,7 +69,7 @@ def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False)
             title_list = []
             for cow in result:
                 title_list.append(cow["title"])
-            for i in range(last_id_db, last_id_tran + 1):
+            for i in range(last_id_db + 1, last_id_tran + 1):
                 try:
                     t = tc.get_torrent(i)
                 except KeyError:  # Not exist torrent
@@ -77,9 +77,9 @@ def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False)
                 else:
                     to_tracker_host = re.search(r"http[s]?://(.+?)/", t.trackers[0]["announce"]).group(1)
                     if t.name in title_list:
-                        sid = result[title_list.index(t.name)][0]
+                        sid = result[title_list.index(t.name)]["id"]
                         if to_tracker_host in setting.reseed_tracker_host:
-                            sql = "UPDATE seed_list SET {} = {:d} WHERE id = {:d}".format(to_tracker_host, t.id, sid)
+                            sql = "UPDATE seed_list SET `{}` = {:d} WHERE id = {:d}".format(to_tracker_host, t.id, sid)
                             db.commit_sql(sql)
                     elif to_tracker_host not in setting.reseed_tracker_host:
                         sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}',{:d})".format(t.name, t.id)

@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 
 
 class NexusPHP(object):
-    url_torrent_download = "http://www.pt_domain.com/download.php?id={tid]&passkey={pk}"
+    url_torrent_download = "http://www.pt_domain.com/download.php?id={tid}&passkey={pk}"
     url_torrent_upload = "http://www.pt_domain.com/takeupload.php"
     url_torrent_detail = "http://www.pt_domain.com/details.php?id={tid}&hit=1"
     url_thank = "http://www.pt_domain.com/thanks.php"
@@ -60,7 +60,7 @@ class NexusPHP(object):
         if post.url != self.url_torrent_upload:  # 发布成功检查
             seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
             flag = self.torrent_download(tr_client=tr_client, tid=seed_torrent_download_id)
-            self.server_chan.send_torrent_post_ok(url=post.url, dl_torrent=tr_client.get_torrent(flag))
+            self.server_chan.send_torrent_post_ok(url=post.url,dl_torrent=tr_client.get_torrent(flag))
             logging.info("Reseed post OK,The torrent's in transmission: {fl}".format(fl=flag))
         else:  # 未发布成功打log
             outer_bs = BeautifulSoup(post.text, "lxml").find("td", id="outer")
@@ -102,7 +102,7 @@ class NexusPHP(object):
         return search_page.text
 
     def db_reseed_update(self, download_id, reseed_id, db_client):
-        update_sql = "UPDATE seed_list SET {col} = {rid}" \
+        update_sql = "UPDATE seed_list SET `{col}` = {rid}" \
                      " WHERE download_id={did}".format(col=self.reseed_column, rid=reseed_id, did=download_id)
         db_client.commit_sql(update_sql)
 

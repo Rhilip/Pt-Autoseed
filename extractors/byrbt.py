@@ -51,7 +51,7 @@ def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
 
 
 class Byrbt(NexusPHP):
-    url_torrent_download = "http://bt.byr.cn/download.php?id={tid]&passkey={pk}"
+    url_torrent_download = "http://bt.byr.cn/download.php?id={tid}&passkey={pk}"
     url_torrent_upload = "http://bt.byr.cn/takeupload.php"
     url_torrent_detail = "http://bt.byr.cn/details.php?id={tid}&hit=1"
     url_thank = "http://bt.byr.cn/thanks.php"
@@ -154,7 +154,7 @@ class Byrbt(NexusPHP):
             ("small_descr", ('', small_descr)),
             ("url", ('', torrent_raw_info_dict["url"])),
             ("dburl", ('', torrent_raw_info_dict["dburl"])),
-            ("nfo", ('', torrent_raw_info_dict["nfo"])),  # 实际上并不是这样的，但是nfo一般没有，故这么写
+            ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
             ("descr", ('', self.extend_descr(torrent=torrent, info_dict=torrent_raw_info_dict, encode="html"))),
             ("uplver", ('', self.uplver)),
         )
@@ -180,7 +180,7 @@ class Byrbt(NexusPHP):
             ("small_descr", ('', torrent_raw_info_dict["small_descr"])),
             ("url", ('', torrent_raw_info_dict["url"])),
             ("dburl", ('', torrent_raw_info_dict["dburl"])),
-            ("nfo", ('', torrent_raw_info_dict["nfo"])),
+            ("nfo", ('', '')),
             ("descr", ('', self.extend_descr(torrent=torrent, info_dict=torrent_raw_info_dict, encode="html"))),
             ("uplver", ('', self.uplver)),
         )
