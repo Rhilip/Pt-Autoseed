@@ -10,20 +10,42 @@ from .default import NexusPHP
 type_dict = {
     "电影": {"cat": 408,
            "sec_type": {"华语": 11, "欧洲": 12, "北美": 13, "亚洲": 14, "其他": 1},
-           "split": ["movie_cname", "ename0day", "movie_type", "movie_country"]
+           "split": ["movie_cname", "ename0day", "movie_type", "movie_country"],
+           "limit": {
+               "movie_type": ["喜剧", "动作", "爱情", "文艺", "剧情", "科幻", "魔幻", "悬疑", "惊悚",
+                              "恐怖", "罪案", "战争", "纪录", "动画", "音乐", "歌舞", "冒险", "历史"],
+               "movie_country": ["华语", "亚洲", "欧洲", "北美", "其他"]
+           }
            },
     "剧集": {"cat": 401,
            "sec_type": {"大陆": 15, "日韩": 16, "欧美": 17, "港台": 18, "其他": 2},
-           "split": ["tv_type", "cname", "tv_ename", "tv_season", "tv_filetype"]
+           "split": ["tv_type", "cname", "tv_ename", "tv_season", "tv_filetype"],
+           "limit": {
+               "tv_type": ["欧美", "大陆", "港台", "日韩", "其他"],
+               "tv_filetype": ["MKV", "TS", "M2TS", "MP4", "AVI", "VOB", "RMVB", "其他"]
+           }
            },
     "动漫": {"cat": 404,
            "sec_type": {"动画": 19, "漫画": 20, "音乐": 21, "周边": 22, "其他": 3},
            "split": ["comic_type", "subteam", "comic_cname", "comic_ename", "comic_episode",
-                     "comic_quality", "comic_source", "comic_filetype", "comic_year", "comic_country"]
+                     "comic_quality", "comic_source", "comic_filetype", "comic_year", "comic_country"],
+           "limit": {
+               "comic_type": ["连载", "长篇", "TV", "剧场", "OVA", "OAD", "MAD", "漫画", "画集", "周边", "音乐", "演唱会"],
+               "comic_quality": ["720p", "1080p", "480p", "576p"],
+               "comic_source": ["TVRip", "BDRip", "DVDRip", "WEB", "BDMV", "DVDISO"],
+               "comic_filetype": ["MP4", "MKV", "RMVB", "AVI", "WMV", "ZIP", "RAR",
+                                  "7Z", "MP3", "APE", "FLAC", "WAV", "TTA", "TAK"],
+               "comic_country": ["日漫", "美漫", "国产", "其他"]
+           }
            },
     "综艺": {"cat": 405,
            "sec_type": {"大陆": 27, "日韩": 28, "港台": 29, "欧美": 30, "其他": 5},
-           "split": ["show_year", "show_country", "show_cname", "show_ename", "show_language", "hassub", "addition"]
+           "split": ["show_year", "show_country", "show_cname", "show_ename", "show_language", "hassub", "addition"],
+           "limit": {
+               "show_country": ["大陆", "港台", "欧美", "日韩", "其他"],
+               "show_language": ["国语", "粤语", "英语", "日语", "韩语"],
+               "hassub": ["暂无字幕", "中文字幕", "英文字幕", "中英字幕", "无需字幕"]
+           }
            },
 }
 
@@ -37,16 +59,23 @@ def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
         "sec_type": type_dict[raw_type]["sec_type"][raw_sec_type],
     }
 
-    if len(type_dict[raw_type]["split"]) == len(raw_title_group):
-        logging.debug("the title split success.")
-    else:
-        # TODO 被clone种子标题信息不完整（缺tag）时准确导入
-        logging.warning("the title split ERROR,the origin torrent may have wrong title")
+    len_split = len(type_dict[raw_type]["split"])
+    if len_split != len(raw_title_group):
+        logging.warning("The raw title \"{raw}\" may lack of tag (now: {no},ask: {co}),"
+                        "The split may wrong.".format(raw=raw_title, no=len(raw_title_group), co=len_split))
+        while len_split > len(raw_title_group):
+            raw_title_group.append("")
+    raw_title_group.reverse()
 
-    for (i, j) in zip(split, raw_title_group):
+    for i in split:
+        j = raw_title_group.pop()
         title_split = re.sub("\[(?P<in>.+)\]", "\g<in>", j)
+        if i in type_dict[raw_type]["limit"]:
+            if title_split not in type_dict[raw_type]["limit"][i]:
+                title_split = ""  # type_dict[raw_type]["limit"][i][0]
+                raw_title_group.append(j)
         return_dict.update({i: title_split})
-
+    logging.debug("the title split success.The title dict:{dic}".format(dic=return_dict))
     return return_dict
 
 

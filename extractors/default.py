@@ -60,7 +60,7 @@ class NexusPHP(object):
         if post.url != self.url_torrent_upload:  # 发布成功检查
             seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
             flag = self.torrent_download(tr_client=tr_client, tid=seed_torrent_download_id)
-            self.server_chan.send_torrent_post_ok(url=post.url,dl_torrent=tr_client.get_torrent(flag))
+            self.server_chan.send_torrent_post_ok(url=post.url, dl_torrent=tr_client.get_torrent(flag))
             logging.info("Reseed post OK,The torrent's in transmission: {fl}".format(fl=flag))
         else:  # 未发布成功打log
             outer_bs = BeautifulSoup(post.text, "lxml").find("td", id="outer")
