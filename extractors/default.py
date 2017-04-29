@@ -80,6 +80,9 @@ class NexusPHP(object):
         """
         requests.post(url=self.url_thank, cookies=self.cookies, data={"id": str(tid)})  # 自动感谢
 
+    def torrent_clone(self, tid):
+        pass
+
     def page_torrent_detail_text(self, tid):
         """
         
