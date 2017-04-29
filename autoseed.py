@@ -45,7 +45,7 @@ autoseed = Autoseed(setting=setting, tr_client=tc, db_client=db)
 logging.info("Initialization settings Success~")
 
 
-def tracker_condition(condition, raw_trakcer_list=setting.reseed_tracker_host) -> list:
+def tracker_condition(condition, raw_trakcer_list=autoseed.reseed_tracker_list) -> list:
     tracker_list_judge = []
     for i in raw_trakcer_list:
         tracker_list_judge.append("`{j}` {con}".format(j=i, con=condition))
@@ -59,7 +59,7 @@ def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False)
     for t in torrent_now_in_tran:
         if t.id > last_id_tran:
             last_id_tran = t.id
-    last_id_db = db.get_max_in_column(table="seed_list", column_list=["download_id"] + setting.reseed_tracker_host)
+    last_id_db = db.get_max_in_column(table="seed_list", column_list=["download_id"] + autoseed.reseed_tracker_list)
     logging.debug("Torrent max-id count: transmission: {tr},db-record: {db}.".format(tr=last_id_tran, db=last_id_db))
 
     if last_id_tran != last_id_db:
@@ -78,10 +78,10 @@ def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False)
                     to_tracker_host = re.search(r"http[s]?://(.+?)/", t.trackers[0]["announce"]).group(1)
                     if t.name in title_list:
                         sid = result[title_list.index(t.name)]["id"]
-                        if to_tracker_host in setting.reseed_tracker_host:
+                        if to_tracker_host in autoseed.reseed_tracker_list:
                             sql = "UPDATE seed_list SET `{}` = {:d} WHERE id = {:d}".format(to_tracker_host, t.id, sid)
                             db.commit_sql(sql)
-                    elif to_tracker_host not in setting.reseed_tracker_host:
+                    elif to_tracker_host not in autoseed.reseed_tracker_list:
                         sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}',{:d})".format(t.name, t.id)
                         db.commit_sql(sql)
         else:  # 第一次启动检查(force_clean_check)
@@ -139,9 +139,8 @@ def seed_judge():
             torrent_full_name = dl_torrent.name
             logging.info("New get torrent: " + torrent_full_name)
             if dl_torrent.status == "seeding":  # 种子下载完成
-                logging.info("The torrent is seeding now,Judge reseed or not.")
-                flag = autoseed.new_torrent_receive(dl_torrent)
-                logging.info("Reseed judge finished.The return flag: {fl}".format(fl=flag))
+                logging.info("This torrent is seeding now,Judge reseed or not.")
+                autoseed.feed_torrent(dl_torrent)
             else:
                 logging.warning("This torrent is still download.Wait until next check time.")
 

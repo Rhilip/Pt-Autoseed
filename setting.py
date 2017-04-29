@@ -23,7 +23,6 @@ db_name = ""
 # -*- End of Main Setting -*-
 
 # -*- Reseed Site Setting -*-
-reseed_tracker_host = ["tracker.byr.cn"]
 # """Byrbt"""
 site_byrbt = {
     "status": True,  # TODO 暂时没有用的开关

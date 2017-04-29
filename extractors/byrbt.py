@@ -88,9 +88,9 @@ class Byrbt(NexusPHP):
 
     reseed_column = "tracker.byr.cn"
 
-    def __init__(self, setting):
+    def __init__(self, setting, tr_client, db_client):
         _site_setting = setting.site_byrbt
-        super().__init__(setting=setting, site_setting=_site_setting)
+        super().__init__(setting=setting, site_setting=_site_setting, tr_client=tr_client, db_client=db_client)
 
     def exist_judge(self, search_title, torrent_file_name) -> int:
         """如果种子在byr存在，返回种子id，不存在返回0，已存在且种子一致返回种子号，不一致返回-1"""
@@ -160,66 +160,61 @@ class Byrbt(NexusPHP):
             logging.error("Error,this torrent may not exist or ConnectError")
         return return_dict
 
-    def data_series_raw2tuple(self, torrent, torrent_info_search, torrent_raw_info_dict) -> tuple:
+    def data_series_raw2tuple(self, torrent, title_search_group, raw_info) -> tuple:
         torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
-        # 副标题 small_descr
-        small_descr = "{0} {1}".format(torrent_raw_info_dict["small_descr"], torrent_info_search.group("tv_season"))
-        if str(torrent_info_search.group("group")).lower() == "fleet":
-            small_descr += " |fleet慎下"
-
         return (  # Submit form
-            ("type", ('', str(torrent_raw_info_dict["type"]))),
-            ("second_type", ('', str(torrent_raw_info_dict["second_type"]))),
+            ("type", ('', str(raw_info["type"]))),
+            ("second_type", ('', str(raw_info["second_type"]))),
             ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-            ("tv_type", ('', str(torrent_raw_info_dict["tv_type"]))),
-            ("cname", ('', torrent_raw_info_dict["cname"])),
-            ("tv_ename", ('', torrent_info_search.group("full_name"))),
-            ("tv_season", ('', torrent_info_search.group("tv_season"))),
-            ("tv_filetype", ('', torrent_raw_info_dict["tv_filetype"])),
-            ("type", ('', str(torrent_raw_info_dict["type"]))),
-            ("small_descr", ('', small_descr)),
-            ("url", ('', torrent_raw_info_dict["url"])),
-            ("dburl", ('', torrent_raw_info_dict["dburl"])),
+            ("tv_type", ('', str(raw_info["tv_type"]))),
+            ("cname", ('', raw_info["cname"])),
+            ("tv_ename", ('', title_search_group.group("full_name"))),
+            ("tv_season", ('', title_search_group.group("tv_season"))),
+            ("tv_filetype", ('', raw_info["tv_filetype"])),
+            ("type", ('', str(raw_info["type"]))),
+            ("small_descr", ('', raw_info["small_descr"])),
+            ("url", ('', raw_info["url"])),
+            ("dburl", ('', raw_info["dburl"])),
             ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=torrent_raw_info_dict, encode="html"))),
+            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info, encode="html"))),
             ("uplver", ('', self.uplver)),
         )
 
-    def data_anime_raw2tuple(self, torrent, torrent_info_search, torrent_raw_info_dict) -> tuple:
+    def data_anime_raw2tuple(self, torrent, title_search_group, raw_info) -> tuple:
         torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
-
         return (  # Submit form
-            ("type", ('', str(torrent_raw_info_dict["type"]))),
-            ("second_type", ('', str(torrent_raw_info_dict["second_type"]))),
+            ("type", ('', str(raw_info["type"]))),
+            ("second_type", ('', str(raw_info["second_type"]))),
             ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-            ("comic_type", ('', str(torrent_raw_info_dict["comic_type"]))),
-            ("subteam", ('', torrent_raw_info_dict["subteam"])),
-            ("comic_cname", ('', torrent_info_search.group("comic_cname"))),
-            ("comic_ename", ('', torrent_info_search.group("comic_ename"))),
-            ("comic_episode", ('', torrent_raw_info_dict["comic_episode"])),
-            ("comic_quality", ('', torrent_raw_info_dict["comic_quality"])),
-            ("comic_source", ('', torrent_raw_info_dict["comic_source"])),
-            ("comic_filetype", ('', torrent_raw_info_dict["comic_filetype"])),
-            ("comic_year", ('', torrent_raw_info_dict["comic_year"])),
-            ("comic_country", ('', torrent_raw_info_dict["comic_country"])),
-            ("type", ('', str(torrent_raw_info_dict["type"]))),
-            ("small_descr", ('', torrent_raw_info_dict["small_descr"])),
-            ("url", ('', torrent_raw_info_dict["url"])),
-            ("dburl", ('', torrent_raw_info_dict["dburl"])),
+            ("comic_type", ('', str(raw_info["comic_type"]))),
+            ("subteam", ('', raw_info["subteam"])),
+            ("comic_cname", ('', title_search_group.group("comic_cname"))),
+            ("comic_ename", ('', title_search_group.group("comic_ename"))),
+            ("comic_episode", ('', raw_info["comic_episode"])),
+            ("comic_quality", ('', raw_info["comic_quality"])),
+            ("comic_source", ('', raw_info["comic_source"])),
+            ("comic_filetype", ('', raw_info["comic_filetype"])),
+            ("comic_year", ('', raw_info["comic_year"])),
+            ("comic_country", ('', raw_info["comic_country"])),
+            ("type", ('', str(raw_info["type"]))),
+            ("small_descr", ('', raw_info["small_descr"])),
+            ("url", ('', raw_info["url"])),
+            ("dburl", ('', raw_info["dburl"])),
             ("nfo", ('', '')),
-            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=torrent_raw_info_dict, encode="html"))),
+            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info, encode="html"))),
             ("uplver", ('', self.uplver)),
         )
 
-    def shunt_reseed(self, tr_client, db_client, torrent, torrent_info_search, torrent_type, flag=-1):
-        search_key = pattern = ""
+    def shunt_reseed(self, torrent, torrent_info_search, torrent_type, flag=-1):
         if torrent_type == "series":
             search_key = torrent_info_search.group("search_name")
             pattern = torrent_info_search.group("full_name")
         elif torrent_type == "anime":
-            search_name = re.sub(r"_", " ", torrent_info_search.group("search_name"))
+            search_name = re.sub(r"[_\-]", " ", torrent_info_search.group("search_name"))
             search_key = "{gp} {ename}".format(gp=torrent_info_search.group("group"), ename=search_name)
             pattern = "{search_key} {epo}".format(search_key=search_key, epo=torrent_info_search.group("anime_episode"))
+        else:
+            return flag
 
         search_tag = self.exist_judge(pattern, torrent_info_search.group(0))
         if search_tag == 0:  # 种子不存在，则准备发布
@@ -232,13 +227,13 @@ class Byrbt(NexusPHP):
                 elif torrent_type == "anime":
                     multipart_data = self.data_anime_raw2tuple(torrent, torrent_info_search, torrent_raw_info_dict)
 
-                flag = self.torrent_upload(tr_client=tr_client, multipart_data=multipart_data)
+                flag = self.torrent_upload(multipart_data=multipart_data)
             else:
                 logging.error("Something,may wrong,Please check torrent raw dict.")
         elif search_tag == -1:  # 如果种子存在，但种子不一致
             logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent.Stop Posting~")
         else:  # 如果种子存在（已经有人发布）  -> 辅种
-            flag = self.torrent_download(tr_client=tr_client, tid=search_tag, thanks=False)
+            flag = self.torrent_download(tid=search_tag, thanks=False)
             logging.warning("Find dupe torrent,which id: {0},Automatically assist it~".format(search_tag))
 
-        self.db_reseed_update(download_id=torrent.id, reseed_id=flag, db_client=db_client)
+        self.db_reseed_update(download_id=torrent.id, reseed_id=flag)

@@ -1,6 +1,5 @@
 import logging
 import re
-from utils.serverchan import ServerChan
 from .byrbt import Byrbt
 
 # Search_pattern
@@ -17,26 +16,30 @@ search_anime_pattern = re.compile(
 
 
 class Autoseed(object):
+    reseed_tracker_list = ["tracker.byr.cn"]
+
     def __init__(self, setting, tr_client, db_client):
         self.setting = setting
         self.tr = tr_client
         self.db = db_client
 
-        self.Byrbt_autoseed = Byrbt(setting=setting)
+        self.Byrbt_autoseed = Byrbt(setting=setting, tr_client=self.tr, db_client=self.db)
 
-        self.server_chan = ServerChan(setting)
-
-    def new_torrent_receive(self, dl_torrent):
+    def feed_torrent(self, dl_torrent):
         torrent_full_name = dl_torrent.name
-        flag = -1
+        to_type = search_group = None
         if re.search(search_series_pattern, torrent_full_name):
-            series_search_group = re.search(search_series_pattern, torrent_full_name)
-            flag = self.Byrbt_autoseed.shunt_reseed(tr_client=self.tr, db_client=self.db, torrent=dl_torrent,
-                                                    torrent_info_search=series_search_group, torrent_type="series")
+            to_type = "series"
+            search_group = re.search(search_series_pattern, torrent_full_name)
         elif re.search(search_anime_pattern, torrent_full_name):
-            anime_search_group = re.search(search_anime_pattern, torrent_full_name)
-            flag = self.Byrbt_autoseed.shunt_reseed(tr_client=self.tr, db_client=self.db, torrent=dl_torrent,
-                                                    torrent_info_search=anime_search_group, torrent_type="anime")
+            to_type = "anime"
+            search_group = re.search(search_anime_pattern, torrent_full_name)
         else:  # 不符合，更新seed_id为-1
             logging.warning("Mark Torrent \"{}\" As Un-reseed torrent,Stop watching it.".format(torrent_full_name))
-        return flag
+            for tracker in self.reseed_tracker_list:
+                sql = "UPDATE seed_list SET `{}` = {:d} WHERE download_id = {:d}".format(tracker, -1, dl_torrent.id)
+                self.db.commit_sql(sql)
+
+        # Site feed
+        if to_type and search_group:
+            self.Byrbt_autoseed.shunt_reseed(torrent=dl_torrent, torrent_info_search=search_group, torrent_type=to_type)
