@@ -165,7 +165,8 @@ def main():
         if setting.busy_start_hour <= int(time.strftime("%H", time.localtime())) < setting.busy_end_hour:
             sleep_time = setting.sleep_busy_time
 
-        logging.debug("Check time {0} OK,Will Sleep for {1} seconds.".format(str(i), str(sleep_time)))
+        logging.debug("Check time {ti} OK, Reach check id {cid},"
+                      " Will Sleep for {slt} seconds.".format(ti=i, cid=last_id_check, slt=sleep_time))
         i += 1
         time.sleep(sleep_time)
 
