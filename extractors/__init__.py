@@ -42,4 +42,4 @@ class Autoseed(object):
 
         # Site feed
         if to_type and search_group:
-            self.Byrbt_autoseed.shunt_reseed(torrent=dl_torrent, torrent_info_search=search_group, torrent_type=to_type)
+            self.Byrbt_autoseed.feed(torrent=dl_torrent, torrent_info_search=search_group, torrent_type=to_type)

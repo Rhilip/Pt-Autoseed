@@ -44,8 +44,8 @@ class NexusPHP(object):
             self.torrent_thank(tid)
         return added_torrent.id
 
-    def torrent_upload(self, multipart_data: tuple):
-        post = requests.post(url=self.url_torrent_upload, cookies=self.cookies, files=multipart_data)
+    def torrent_upload(self, data: tuple):
+        post = requests.post(url=self.url_torrent_upload, cookies=self.cookies, files=data)
         if post.url != self.url_torrent_upload:  # 发布成功检查
             seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
             flag = self.torrent_download(tid=seed_torrent_download_id)
@@ -92,3 +92,6 @@ class NexusPHP(object):
     def extend_descr(self, torrent, info_dict, encode) -> str:
         return self.descr.out(raw=info_dict["descr"], torrent=torrent, encode=encode,
                               before_torrent_id=info_dict["before_torrent_id"])
+
+    def feed(self, torrent, torrent_info_search, torrent_type, flag=-1):
+        pass

@@ -205,7 +205,7 @@ class Byrbt(NexusPHP):
             ("uplver", ('', self.uplver)),
         )
 
-    def shunt_reseed(self, torrent, torrent_info_search, torrent_type, flag=-1):
+    def feed(self, torrent, torrent_info_search, torrent_type, flag=-1):
         if torrent_type == "series":
             search_key = torrent_info_search.group("search_name")
             pattern = torrent_info_search.group("full_name")
@@ -227,7 +227,7 @@ class Byrbt(NexusPHP):
                 elif torrent_type == "anime":
                     multipart_data = self.data_anime_raw2tuple(torrent, torrent_info_search, torrent_raw_info_dict)
 
-                flag = self.torrent_upload(multipart_data=multipart_data)
+                flag = self.torrent_upload(data=multipart_data)
             else:
                 logging.error("Something,may wrong,Please check torrent raw dict.")
         elif search_tag == -1:  # 如果种子存在，但种子不一致
