@@ -56,7 +56,7 @@ def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
 
     return_dict = {
         "type": type_dict[raw_type]["cat"],
-        "sec_type": type_dict[raw_type]["sec_type"][raw_sec_type],
+        "second_type": type_dict[raw_type]["sec_type"][raw_sec_type],
     }
 
     len_split = len(type_dict[raw_type]["split"])
