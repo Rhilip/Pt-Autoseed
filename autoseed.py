@@ -114,7 +114,7 @@ def check_to_del_torrent_with_data_and_db():
             reseed_stop_list = []
             for seed_torrent in reseed_list:
                 seed_status = seed_torrent.status
-                if setting.pre_delete_judge(seed_status, time.time(), seed_torrent.addedDate, seed_torrent.uploadRatio):
+                if setting.pre_delete_judge(seed_status, time.time()):
                     tc.stop_torrent(seed_torrent.id)
                     logging.warning("Reach Target you set,Torrents({0}) will be delete.".format(seed_torrent.name))
                 if seed_status == "stopped":  # 前一轮暂停的种子 -> 标记
