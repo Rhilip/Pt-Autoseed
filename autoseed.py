@@ -8,7 +8,7 @@ from logging.handlers import RotatingFileHandler
 
 import utils
 import transmissionrpc
-from extractors import Autoseed
+import extractors
 
 try:
     import usersetting as setting
@@ -36,20 +36,38 @@ rootLogger.addHandler(consoleHandler)
 # -*- End of Logging Setting -*-
 
 # -*- Loading Model -*-
+# Transmission
 tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port,
                             user=setting.trans_user, password=setting.trans_password)
+# Database with its function
 db = utils.Database(setting)
-autoseed = Autoseed(setting=setting, tr_client=tc, db_client=db)
+
+# Search_pattern
+search_series_pattern = re.compile(
+    u"(?:^[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff:：]+[. ]?|^)"  # 移除平假名、片假名、中文
+    "(?P<full_name>(?P<search_name>[\w\-. ]+?)[. ]"
+    "(?P<tv_season>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
+    "(?:\.(?P<tv_filetype>\w+)$|$)"
+)
+search_anime_pattern = re.compile(
+    "(?P<full_name>\[(?P<group>.+?)\]\[?(?P<search_name>.+?)\]?\[(?P<anime_episode>\d+)\].+)"
+    "(?:\.(mp4|mkv))?"
+)
+
+# Autoseed Stie
+autoseed_list = []
+reseed_tracker_host = []
+
+# Byrbt
+Byrbt_autoseed = extractors.Byrbt(setting=setting, tr_client=tc, db_client=db)
+if Byrbt_autoseed.status:
+    autoseed_list.append(Byrbt_autoseed)
+    reseed_tracker_host.append(Byrbt_autoseed.reseed_column)
+
+logging.info("Initialization settings Success~ The assign autoseed model:{lis}".format(lis=autoseed_list))
+
+
 # -*- End of Loading Model -*-
-
-logging.info("Initialization settings Success~")
-
-
-def tracker_condition(condition, raw_trakcer_list=setting.reseed_tracker_host) -> list:
-    tracker_list_judge = []
-    for i in raw_trakcer_list:
-        tracker_list_judge.append("`{j}` {con}".format(j=i, con=condition))
-    return tracker_list_judge
 
 
 def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False):
@@ -59,7 +77,7 @@ def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False)
     for t in torrent_now_in_tran:
         if t.id > last_id_tran:
             last_id_tran = t.id
-    last_id_db = db.get_max_in_column(table="seed_list", column_list=["download_id"] + setting.reseed_tracker_host)
+    last_id_db = db.get_max_in_column(table="seed_list", column_list=["download_id"] + reseed_tracker_host)
     logging.debug("Torrent max-id count: transmission: {tr},db-record: {db}.".format(tr=last_id_tran, db=last_id_db))
 
     if last_id_tran != last_id_db:
@@ -78,10 +96,10 @@ def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False)
                     to_tracker_host = re.search(r"http[s]?://(.+?)/", t.trackers[0]["announce"]).group(1)
                     if t.name in title_list:
                         sid = result[title_list.index(t.name)]["id"]
-                        if to_tracker_host in setting.reseed_tracker_host:
+                        if to_tracker_host in reseed_tracker_host:
                             sql = "UPDATE seed_list SET `{}` = {:d} WHERE id = {:d}".format(to_tracker_host, t.id, sid)
                             db.commit_sql(sql)
-                    elif to_tracker_host not in setting.reseed_tracker_host:
+                    elif to_tracker_host not in reseed_tracker_host:
                         sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}',{:d})".format(t.name, t.id)
                         db.commit_sql(sql)
         else:  # 第一次启动检查(force_clean_check)
@@ -97,7 +115,7 @@ def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False)
 def check_to_del_torrent_with_data_and_db():
     """Delete torrent(both download and reseed) with data from transmission and database"""
     logging.debug("Begin torrent's status check.If reach condition you set,You will get a warning.")
-    result = db.get_table_seed_list(decision='WHERE {0}'.format(' AND '.join(tracker_condition(condition=">0"))))
+    result = db.get_table_seed_list_limit(tracker_list=reseed_tracker_host, operator="AND", condition=">0")
     for cow in result:
         sid = cow.pop("id")
         s_title = cow.pop("title")
@@ -114,7 +132,7 @@ def check_to_del_torrent_with_data_and_db():
             reseed_stop_list = []
             for seed_torrent in reseed_list:
                 seed_status = seed_torrent.status
-                if setting.pre_delete_judge(seed_status, time.time(), seed_torrent.addedDate, seed_torrent.uploadRatio):
+                if setting.pre_delete_judge(torrent=seed_torrent, time_now=time.time()):
                     tc.stop_torrent(seed_torrent.id)
                     logging.warning("Reach Target you set,Torrents({0}) will be delete.".format(seed_torrent.name))
                 if seed_status == "stopped":  # 前一轮暂停的种子 -> 标记
@@ -126,9 +144,30 @@ def check_to_del_torrent_with_data_and_db():
                     tc.remove_torrent(reseed_torrent.id)
 
 
+def feed_torrent(dl_torrent):
+    torrent_full_name = dl_torrent.name
+    to_type = search_group = None
+    if re.search(search_series_pattern, torrent_full_name):
+        to_type = "series"
+        search_group = re.search(search_series_pattern, torrent_full_name)
+    elif re.search(search_anime_pattern, torrent_full_name):
+        to_type = "anime"
+        search_group = re.search(search_anime_pattern, torrent_full_name)
+    else:  # 不符合，更新seed_id为-1
+        logging.warning("Mark Torrent \"{}\" As Un-reseed torrent,Stop watching it.".format(torrent_full_name))
+        for tracker in reseed_tracker_host:
+            sql = "UPDATE seed_list SET `{}` = {:d} WHERE download_id = {:d}".format(tracker, -1, dl_torrent.id)
+            db.commit_sql(sql)
+
+    # Site feed
+    if to_type and search_group:
+        for autoseed in autoseed_list:
+            autoseed.feed(torrent=dl_torrent, torrent_info_search=search_group, torrent_type=to_type)
+
+
 def seed_judge():
     """Judge to reseed depend on un-reseed torrent's status,With Database update after reseed."""
-    result = db.get_table_seed_list(decision='WHERE {0}'.format(' OR '.join(tracker_condition(condition="=0"))))
+    result = db.get_table_seed_list_limit(tracker_list=reseed_tracker_host, operator="OR", condition="=0")
     for t in result:  # Traversal all unseed_list
         try:
             dl_torrent = tc.get_torrent(t["download_id"])  # 获取下载种子信息
@@ -139,9 +178,8 @@ def seed_judge():
             torrent_full_name = dl_torrent.name
             logging.info("New get torrent: " + torrent_full_name)
             if dl_torrent.status == "seeding":  # 种子下载完成
-                logging.info("The torrent is seeding now,Judge reseed or not.")
-                flag = autoseed.new_torrent_receive(dl_torrent)
-                logging.info("Reseed judge finished.The return flag: {fl}".format(fl=flag))
+                logging.info("This torrent is seeding now,Judge reseed or not.")
+                feed_torrent(dl_torrent)
             else:
                 logging.warning("This torrent is still download.Wait until next check time.")
 
@@ -157,16 +195,17 @@ def main():
             check_to_del_torrent_with_data_and_db()  # 清理种子
 
         if setting.web_show_status:  # 发种机运行状态展示
-            co = ' AND '.join(tracker_condition(condition="!=-1"))
-            decision = "WHERE {co} ORDER BY id DESC LIMIT {sum}".format(co=co, sum=setting.web_show_entries_number)
-            data_list = db.get_table_seed_list(decision=decision)
+            data_list = db.get_table_seed_list_limit(tracker_list=reseed_tracker_host, operator="AND", condition="!=-1",
+                                                     other_decision="ORDER BY id DESC LIMIT {sum}".format(
+                                                         sum=setting.web_show_entries_number))
             utils.generate_web_json(setting=setting, tr_client=tc, data_list=data_list)
 
         sleep_time = setting.sleep_free_time
         if setting.busy_start_hour <= int(time.strftime("%H", time.localtime())) < setting.busy_end_hour:
             sleep_time = setting.sleep_busy_time
 
-        logging.debug("Check time {0} OK,Will Sleep for {1} seconds.".format(str(i), str(sleep_time)))
+        logging.debug("Check time {ti} OK, Reach check id {cid},"
+                      " Will Sleep for {slt} seconds.".format(ti=i, cid=last_id_check, slt=sleep_time))
         i += 1
         time.sleep(sleep_time)
 

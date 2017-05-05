@@ -23,15 +23,14 @@ db_name = ""
 # -*- End of Main Setting -*-
 
 # -*- Reseed Site Setting -*-
-reseed_tracker_host = ["tracker.byr.cn"]
 # """Byrbt"""
 site_byrbt = {
-    "status": True,  # TODO 暂时没有用的开关
+    "status": True,  # default: False
     "cookies": "",
     "passkey": "",
     "clone_mode": "database",  # "database" or "clone"
-    "anonymous_release": True,  # 匿名发种
-    "auto_thank": True  # 发种自动感谢自己
+    "anonymous_release": True,  # default: True
+    "auto_thank": True  # default: True
 }
 # -*- End of Reseed Site Setting -*-
 
@@ -71,23 +70,21 @@ descr_clone_info_status = True
 
 
 # Other Function
-def pre_delete_judge(status: str, time_now: int, time_added: int, ratio: int, judge: bool = False) -> bool:
+def pre_delete_judge(torrent, time_now: int) -> bool:
     """
     根据传入的种子信息判定是否能够删除种子,
     预设判断流程: 发布种子无上传速度 -> 达到最小做种时间 -> 达到(最大做种时间 或者 最大分享率)
     
-    :param ratio: 传入种子上传比率
-    :param status: 传入种子的状态
-    :param time_now: 当前时间(传入) int(time.time())
-    :param time_added: 传入种子添加时间
-    :param judge: 判定flag
+    :param torrent: class transmissionrpc.Torrent
+    :param time_now: 当前时间 time.time()
     :return: 符合判定条件 -> True
     """
+    judge = False
     # 判定条件
-    if status == "seeding":
-        torrent_live_time = int(time_now - time_added)
+    if torrent.status == "seeding":
+        torrent_live_time = int(time_now - torrent.addedDate)
         if torrent_live_time >= torrent_minSeedTime and \
-                (ratio >= torrent_maxUploadRatio or torrent_live_time >= torrent_maxSeedTime):
+                (torrent.uploadRatio >= torrent_maxUploadRatio or torrent_live_time >= torrent_maxSeedTime):
             judge = True  # 符合判定，设置返回值为真
 
     return judge
