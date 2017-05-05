@@ -65,14 +65,9 @@ if Byrbt_autoseed.status:
     reseed_tracker_host.append(Byrbt_autoseed.reseed_column)
 
 logging.info("Initialization settings Success~ The assign autoseed model:{lis}".format(lis=autoseed_list))
+
+
 # -*- End of Loading Model -*-
-
-
-def tracker_condition(condition, raw_trakcer_list=reseed_tracker_host) -> list:
-    tracker_list_judge = []
-    for i in raw_trakcer_list:
-        tracker_list_judge.append("`{j}` {con}".format(j=i, con=condition))
-    return tracker_list_judge
 
 
 def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False):
@@ -120,7 +115,7 @@ def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False)
 def check_to_del_torrent_with_data_and_db():
     """Delete torrent(both download and reseed) with data from transmission and database"""
     logging.debug("Begin torrent's status check.If reach condition you set,You will get a warning.")
-    result = db.get_table_seed_list(decision='WHERE {0}'.format(' AND '.join(tracker_condition(condition=">0"))))
+    result = db.get_table_seed_list_limit(tracker_list=reseed_tracker_host, operator="AND", condition=">0")
     for cow in result:
         sid = cow.pop("id")
         s_title = cow.pop("title")
@@ -172,7 +167,7 @@ def feed_torrent(dl_torrent):
 
 def seed_judge():
     """Judge to reseed depend on un-reseed torrent's status,With Database update after reseed."""
-    result = db.get_table_seed_list(decision='WHERE {0}'.format(' OR '.join(tracker_condition(condition="=0"))))
+    result = db.get_table_seed_list_limit(tracker_list=reseed_tracker_host, operator="OR", condition="=0")
     for t in result:  # Traversal all unseed_list
         try:
             dl_torrent = tc.get_torrent(t["download_id"])  # 获取下载种子信息
@@ -200,9 +195,9 @@ def main():
             check_to_del_torrent_with_data_and_db()  # 清理种子
 
         if setting.web_show_status:  # 发种机运行状态展示
-            co = ' AND '.join(tracker_condition(condition="!=-1"))
-            decision = "WHERE {co} ORDER BY id DESC LIMIT {sum}".format(co=co, sum=setting.web_show_entries_number)
-            data_list = db.get_table_seed_list(decision=decision)
+            data_list = db.get_table_seed_list_limit(tracker_list=reseed_tracker_host, operator="AND", condition="!=-1",
+                                                     other_decision="ORDER BY id DESC LIMIT {sum}".format(
+                                                         sum=setting.web_show_entries_number))
             utils.generate_web_json(setting=setting, tr_client=tc, data_list=data_list)
 
         sleep_time = setting.sleep_free_time

@@ -61,6 +61,14 @@ class Database(object):
             sql = "{sql} {decision}".format(sql=sql, decision=decision)
         return self.get_sql(sql, r_dict=True)
 
+    def get_table_seed_list_limit(self, tracker_list, operator, condition, other_decision=""):
+        tracker_list_judge = []
+        for i in tracker_list:
+            tracker_list_judge.append("`{j}` {con}".format(j=i, con=condition))
+        raw_judge = ' {oper} '.format(oper=operator).join(tracker_list_judge)
+        judge = "WHERE {raw} {left}".format(raw=raw_judge, left=other_decision)
+        self.get_table_seed_list(decision=judge)
+
     def _get_raw_info(self, torrent_search_name, table, column):
         """从数据库中获取剧集简介（根据种子文件的search_name搜索对应数据库）"""
         search_name = torrent_search_name.replace(" ", "%").replace(".", "%")  # 模糊匹配
