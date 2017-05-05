@@ -94,5 +94,8 @@ class NexusPHP(object):
         return self.descr.out(raw=info_dict["descr"], torrent=torrent, encode=encode,
                               before_torrent_id=info_dict["before_torrent_id"])
 
+    def data_raw2tuple(self, torrent, torrent_type, title_search_group, raw_info):
+        pass
+
     def feed(self, torrent, torrent_info_search, torrent_type, flag=-1):
         pass

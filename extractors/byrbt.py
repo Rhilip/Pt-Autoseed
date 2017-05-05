@@ -160,50 +160,52 @@ class Byrbt(NexusPHP):
             logging.error("Error,this torrent may not exist or ConnectError")
         return return_dict
 
-    def data_series_raw2tuple(self, torrent, title_search_group, raw_info) -> tuple:
+    def data_raw2tuple(self, torrent, torrent_type, title_search_group, raw_info):
         torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
-        return (  # Submit form
-            ("type", ('', str(raw_info["type"]))),
-            ("second_type", ('', str(raw_info["second_type"]))),
-            ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-            ("tv_type", ('', str(raw_info["tv_type"]))),
-            ("cname", ('', raw_info["cname"])),
-            ("tv_ename", ('', title_search_group.group("full_name"))),
-            ("tv_season", ('', title_search_group.group("tv_season"))),
-            ("tv_filetype", ('', raw_info["tv_filetype"])),
-            ("type", ('', str(raw_info["type"]))),
-            ("small_descr", ('', raw_info["small_descr"])),
-            ("url", ('', raw_info["url"])),
-            ("dburl", ('', raw_info["dburl"])),
-            ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info, encode="html"))),
-            ("uplver", ('', self.uplver)),
-        )
+        post_tuple = ()
+        if torrent_type == "series":
+            post_tuple = (  # Submit form
+                ("type", ('', str(raw_info["type"]))),
+                ("second_type", ('', str(raw_info["second_type"]))),
+                ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
+                ("tv_type", ('', str(raw_info["tv_type"]))),
+                ("cname", ('', raw_info["cname"])),
+                ("tv_ename", ('', title_search_group.group("full_name"))),
+                ("tv_season", ('', title_search_group.group("tv_season"))),
+                ("tv_filetype", ('', raw_info["tv_filetype"])),
+                ("type", ('', str(raw_info["type"]))),
+                ("small_descr", ('', raw_info["small_descr"])),
+                ("url", ('', raw_info["url"])),
+                ("dburl", ('', raw_info["dburl"])),
+                ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
+                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info, encode="html"))),
+                ("uplver", ('', self.uplver)),
+            )
+        elif torrent_type == "anime":
+            post_tuple = (
+                ("type", ('', str(raw_info["type"]))),
+                ("second_type", ('', str(raw_info["second_type"]))),
+                ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
+                ("comic_type", ('', str(raw_info["comic_type"]))),
+                ("subteam", ('', raw_info["subteam"])),
+                ("comic_cname", ('', title_search_group.group("comic_cname"))),
+                ("comic_ename", ('', title_search_group.group("comic_ename"))),
+                ("comic_episode", ('', raw_info["comic_episode"])),
+                ("comic_quality", ('', raw_info["comic_quality"])),
+                ("comic_source", ('', raw_info["comic_source"])),
+                ("comic_filetype", ('', raw_info["comic_filetype"])),
+                ("comic_year", ('', raw_info["comic_year"])),
+                ("comic_country", ('', raw_info["comic_country"])),
+                ("type", ('', str(raw_info["type"]))),
+                ("small_descr", ('', raw_info["small_descr"])),
+                ("url", ('', raw_info["url"])),
+                ("dburl", ('', raw_info["dburl"])),
+                ("nfo", ('', '')),
+                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info, encode="html"))),
+                ("uplver", ('', self.uplver)),
+            )
 
-    def data_anime_raw2tuple(self, torrent, title_search_group, raw_info) -> tuple:
-        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
-        return (  # Submit form
-            ("type", ('', str(raw_info["type"]))),
-            ("second_type", ('', str(raw_info["second_type"]))),
-            ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-            ("comic_type", ('', str(raw_info["comic_type"]))),
-            ("subteam", ('', raw_info["subteam"])),
-            ("comic_cname", ('', title_search_group.group("comic_cname"))),
-            ("comic_ename", ('', title_search_group.group("comic_ename"))),
-            ("comic_episode", ('', raw_info["comic_episode"])),
-            ("comic_quality", ('', raw_info["comic_quality"])),
-            ("comic_source", ('', raw_info["comic_source"])),
-            ("comic_filetype", ('', raw_info["comic_filetype"])),
-            ("comic_year", ('', raw_info["comic_year"])),
-            ("comic_country", ('', raw_info["comic_country"])),
-            ("type", ('', str(raw_info["type"]))),
-            ("small_descr", ('', raw_info["small_descr"])),
-            ("url", ('', raw_info["url"])),
-            ("dburl", ('', raw_info["dburl"])),
-            ("nfo", ('', '')),
-            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info, encode="html"))),
-            ("uplver", ('', self.uplver)),
-        )
+        return post_tuple
 
     def feed(self, torrent, torrent_info_search, torrent_type, flag=-1):
         if torrent_type == "series":
@@ -221,12 +223,7 @@ class Byrbt(NexusPHP):
             torrent_raw_info_dict = self.torrent_clone(self.get_last_torrent_id(search_key=search_key, search_mode=0))
             if torrent_raw_info_dict:
                 logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
-                multipart_data = ()
-                if torrent_type == "series":
-                    multipart_data = self.data_series_raw2tuple(torrent, torrent_info_search, torrent_raw_info_dict)
-                elif torrent_type == "anime":
-                    multipart_data = self.data_anime_raw2tuple(torrent, torrent_info_search, torrent_raw_info_dict)
-
+                multipart_data = self.data_raw2tuple(torrent, torrent_type, torrent_info_search, torrent_raw_info_dict)
                 flag = self.torrent_upload(data=multipart_data)
             else:
                 logging.error("Something,may wrong,Please check torrent raw dict.")
