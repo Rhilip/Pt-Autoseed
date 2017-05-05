@@ -4,7 +4,6 @@
 import re
 import logging
 
-from bs4 import BeautifulSoup
 from .default import NexusPHP
 
 type_dict = {
@@ -97,7 +96,7 @@ class Byrbt(NexusPHP):
         """如果种子在byr存在，返回种子id，不存在返回0，已存在且种子一致返回种子号，不一致返回-1"""
         tag = self.get_last_torrent_id(search_key=search_title, search_mode=2)
         if tag is not 0:
-            details_bs = BeautifulSoup(self.page_torrent_detail_text(tid=tag), "lxml")
+            details_bs = self.torrent_detail(tid=tag, bs=True)
             torrent_title_in_site = details_bs.find("a", class_="index", href=re.compile(r"^download.php")).string
             torrent_title = re.search(r"\[BYRBT\]\.(.+?)\.torrent", torrent_title_in_site).group(1)
             if torrent_file_name != torrent_title:  # Use pre-reseed torrent's name match the exist torrent's name
@@ -113,7 +112,7 @@ class Byrbt(NexusPHP):
         the function (sort_title_info) will sort title to post_data due to clone_torrent's category
         """
         return_dict = {}
-        details_bs = BeautifulSoup(self.page_torrent_detail_text(tid=tid), "lxml")
+        details_bs = self.torrent_detail(tid=tid, bs=True)
         title_search = re.search("种子详情 \"(?P<title>.*)\" - Powered", str(details_bs.title))
         if title_search:
             title = title_search.group("title")

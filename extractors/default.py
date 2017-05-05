@@ -84,13 +84,16 @@ class NexusPHP(object):
     def torrent_thank(self, tid):
         requests.post(url=self.url_thank, cookies=self.cookies, data={"id": str(tid)})  # 自动感谢
 
-    def torrent_clone(self, tid):
-        pass
-
-    def page_torrent_detail_text(self, tid):
+    def torrent_detail(self, tid, bs=False):
         details_url = self.url_torrent_detail.format(tid=tid)
         details_page = requests.get(cookies=self.cookies, url=details_url)
-        return details_page.text
+        return_info = details_page.text
+        if bs:
+            return_info = BeautifulSoup(return_info, "lxml")
+        return return_info
+
+    def torrent_clone(self, tid):
+        pass
 
     def page_search_text(self, search_key: str, search_mode: int):
         search_url = self.url_search.format(k=search_key, md=search_mode)
