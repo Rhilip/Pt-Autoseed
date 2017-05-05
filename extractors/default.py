@@ -15,10 +15,11 @@ class NexusPHP(object):
     url_torrent_detail = "http://www.pt_domain.com/details.php?id={tid}&hit=1"
     url_thank = "http://www.pt_domain.com/thanks.php"
     url_search = "http://www.pt_domain.com/torrents.php?search={k}&search_mode={md}"
+    url_torrent_list = "http://www.pt_domain.com/torrents.php"
 
-    uplver = "no"
-    status = True
-    auto_thank = False
+    uplver = "yes"
+    status = False
+    auto_thank = True
 
     reseed_column = "pt_domain.com"  # The column in table seed_list
 
@@ -30,14 +31,32 @@ class NexusPHP(object):
         try:
             self.status = site_setting["status"]
             self.auto_thank = site_setting["auto_thank"]
-            if site_setting["anonymous_release"]:
-                self.uplver = "yes"
+            if not site_setting["anonymous_release"]:
+                self.uplver = "no"
         except KeyError:
             pass
 
         self.tc = tr_client
         self.db = db_client
         self.descr = ExtendDescr(setting=self._setting)
+
+        if self.status:
+            self.session_check()
+
+    def session_check(self):
+        module_name = type(self).__name__
+        torrent_list_page = requests.get(url=self.url_torrent_list, cookies=self.cookies)
+        list_bs = BeautifulSoup(torrent_list_page.text, "lxml")
+        up_name_tag = list_bs.find("a", href=re.compile("userdetails.php"))
+        if up_name_tag:
+            logging.debug("Model \"{mo}\" is activation now.You are assign as \"{up}\" in this site."
+                          "Clone mode: {cl}, Anonymous release:{ar},"
+                          "auto_thank: {at}".format(mo=module_name, up=up_name_tag.string, cl=self.clone_mode,
+                                                    ar=self.uplver, at=self.auto_thank))
+        else:
+            self.status = False
+            logging.error("You may enter a wrong cookies-pair in setting,"
+                          "If you want to use \"{mo}\",please exit and Check".format(mo=module_name))
 
     def torrent_download(self, tid, thanks=auto_thank):
         added_torrent = self.tc.add_torrent(torrent=self.url_torrent_download.format(tid=tid, pk=self.passkey))

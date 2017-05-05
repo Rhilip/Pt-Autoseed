@@ -64,7 +64,7 @@ if Byrbt_autoseed.status:
     autoseed_list.append(Byrbt_autoseed)
     reseed_tracker_host.append(Byrbt_autoseed.reseed_column)
 
-logging.info("Initialization settings Success~")
+logging.info("Initialization settings Success~ The assign autoseed model:{lis}".format(lis=autoseed_list))
 # -*- End of Loading Model -*-
 
 
@@ -137,7 +137,7 @@ def check_to_del_torrent_with_data_and_db():
             reseed_stop_list = []
             for seed_torrent in reseed_list:
                 seed_status = seed_torrent.status
-                if setting.pre_delete_judge(seed_status, time.time()):
+                if setting.pre_delete_judge(torrent=seed_torrent, time_now=time.time()):
                     tc.stop_torrent(seed_torrent.id)
                     logging.warning("Reach Target you set,Torrents({0}) will be delete.".format(seed_torrent.name))
                 if seed_status == "stopped":  # 前一轮暂停的种子 -> 标记

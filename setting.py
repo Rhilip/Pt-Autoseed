@@ -25,12 +25,12 @@ db_name = ""
 # -*- Reseed Site Setting -*-
 # """Byrbt"""
 site_byrbt = {
-    "status": True,  # TODO 暂时没有用的开关
+    "status": True,  # default: False
     "cookies": "",
     "passkey": "",
     "clone_mode": "database",  # "database" or "clone"
-    "anonymous_release": True,  # 匿名发种
-    "auto_thank": True  # 发种自动感谢自己
+    "anonymous_release": True,  # default: True
+    "auto_thank": True  # default: True
 }
 # -*- End of Reseed Site Setting -*-
 

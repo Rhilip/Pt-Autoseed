@@ -85,6 +85,7 @@ class Byrbt(NexusPHP):
     url_torrent_detail = "http://bt.byr.cn/details.php?id={tid}&hit=1"
     url_thank = "http://bt.byr.cn/thanks.php"
     url_search = "http://bt.byr.cn/torrents.php?search={k}&search_mode={md}"
+    url_torrent_list = "http://bt.byr.cn/torrents.php"
 
     reseed_column = "tracker.byr.cn"
 
