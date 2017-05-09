@@ -142,15 +142,11 @@ class Byrbt(NexusPHP):
             for i in descr.find_all(class_="autoseed"):  # New class
                 i.extract()
             # Old class
-            if descr.find("fieldset", class_="before"):
-                descr.find("fieldset", class_="before").extract()
-            if descr.find("fieldset", class_="screenshot"):
-                descr.find("fieldset", class_="screenshot").extract()
-            if descr.find("fieldset", class_="mediainfo"):
-                descr.find("fieldset", class_="mediainfo").extract()
+            for fieldset in descr.find_all("fieldset"):
+                fieldset.extract()
             descr_out = re.search(r"<div id=\"kdescr\">(?P<in>.+)</div>$", str(descr), re.S).group("in")
             return_dict.update({
-                "small_descr": body.find(id="subtitle").find("li").text,
+                "small_descr": "",  # body.find(id="subtitle").find("li").text
                 "url": imdb_url,
                 "dburl": dburl,
                 "descr": descr_out,
