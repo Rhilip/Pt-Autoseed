@@ -8,6 +8,9 @@ from utils.cookie import cookies_raw2jar
 from utils.extend_descr import ExtendDescr
 from bs4 import BeautifulSoup
 
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("requests").setLevel(logging.WARNING)
+
 
 class NexusPHP(object):
     url_torrent_download = "http://www.pt_domain.com/download.php?id={tid}&passkey={pk}"
@@ -92,7 +95,7 @@ class NexusPHP(object):
             return_info = BeautifulSoup(return_info, "lxml")
         return return_info
 
-    def torrent_clone(self, tid):
+    def torrent_clone(self, tid) -> dict:
         pass
 
     def page_search_text(self, search_key: str, search_mode: int):
