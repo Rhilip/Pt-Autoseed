@@ -107,16 +107,15 @@ def check_to_del_torrent_with_data_and_db():
     for cow in result:
         sid = cow.pop("id")
         s_title = cow.pop("title")
-        reseed_list = []
         err = 0
-        for tracker, tid in cow.items():
+        reseed_list = []
+        torrent_id_list = [tid for tracker, tid in cow.items() if tid > 0]
+        for tid in torrent_id_list:
             try:  # Ensure torrent exist
-                if tid is not 0:
-                    reseed_list.append(tc.get_torrent(torrent_id=tid))
+                reseed_list.append(tc.get_torrent(torrent_id=tid))
             except KeyError:  # Mark err when the torrent is not exist.
                 err += 1
 
-        torrent_id_list = [tid for tracker, tid in cow.items()]
         delete = False
         if err is 0:  # It means all torrents in this cow are exist,then check these torrent's status.
             reseed_stop_list = []
@@ -136,8 +135,8 @@ def check_to_del_torrent_with_data_and_db():
                           "Delete all records from db".format(name=s_title, er=err, co=len(torrent_id_list)))
 
         if delete:  # Delete torrents with it's data and db-records
-            for t_id in torrent_id_list:
-                tc.remove_torrent(t_id, delete_data=True)
+            for tid in torrent_id_list:
+                tc.remove_torrent(tid, delete_data=True)
             db.commit_sql(sql="DELETE FROM seed_list WHERE id = {0}".format(sid))
 
 
