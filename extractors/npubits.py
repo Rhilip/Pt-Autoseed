@@ -17,13 +17,8 @@ def string2base64(raw):
 
 
 class NPUBits(NexusPHP):
-    url_torrent_download = "https://npupt.com/download.php?id={tid}&passkey={pk}"
-    url_torrent_upload = "https://npupt.com/takeupload.php"
-    url_torrent_detail = "https://npupt.com/details.php?id={tid}&hit=1"
-    url_torrent_file = "https://npupt.com/torrent_info.php?id={tid}"
-    url_thank = "https://npupt.com/thanks.php"
-    url_search = "https://npupt.com/torrents.php?search={k}&incldead=1&nodupe=1"  # TODO NPU use incldead,nodupe instead
-    url_torrent_list = "https://npupt.com/torrents.php"
+    url_host = "https://npupt.com"
+    url_search = url_host + "/torrents.php?search={k}&incldead=1&nodupe=1"  # TODO NPU use incldead,nodupe instead
 
     db_column = "npupt.com"
 

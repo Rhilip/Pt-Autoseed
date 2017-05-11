@@ -13,13 +13,14 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 class NexusPHP(object):
-    url_torrent_download = "http://www.pt_domain.com/download.php?id={tid}&passkey={pk}"
-    url_torrent_upload = "http://www.pt_domain.com/takeupload.php"
-    url_torrent_detail = "http://www.pt_domain.com/details.php?id={tid}&hit=1"
-    url_torrent_file = "https://www.pt_domain.com/torrent_info.php?id={tid}"
-    url_thank = "http://www.pt_domain.com/thanks.php"
-    url_search = "http://www.pt_domain.com/torrents.php?search={k}&search_mode={md}"
-    url_torrent_list = "http://www.pt_domain.com/torrents.php"
+    url_host = "http://www.pt_domain.com"
+    url_torrent_download = url_host + "/download.php?id={tid}&passkey={pk}"
+    url_torrent_upload = url_host + "/takeupload.php"
+    url_torrent_detail = url_host + "/details.php?id={tid}&hit=1"
+    url_torrent_file = url_host + "/torrent_info.php?id={tid}"
+    url_thank = url_host + "/thanks.php"
+    url_search = url_host + "/torrents.php?search={k}&search_mode={md}"
+    url_torrent_list = url_host + "/torrents.php"
 
     uplver = "yes"
     status = False

@@ -83,13 +83,7 @@ def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
 
 
 class Byrbt(NexusPHP):
-    url_torrent_download = "http://bt.byr.cn/download.php?id={tid}&passkey={pk}"
-    url_torrent_upload = "http://bt.byr.cn/takeupload.php"
-    url_torrent_detail = "http://bt.byr.cn/details.php?id={tid}&hit=1"
-    url_torrent_file = "http://bt.byr.cn/torrent_info.php?id={tid}"
-    url_thank = "http://bt.byr.cn/thanks.php"
-    url_search = "http://bt.byr.cn/torrents.php?search={k}&search_mode={md}"
-    url_torrent_list = "http://bt.byr.cn/torrents.php"
+    url_host = "http://bt.byr.cn"
 
     db_column = "tracker.byr.cn"
 
