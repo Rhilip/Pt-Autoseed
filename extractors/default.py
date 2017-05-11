@@ -24,13 +24,12 @@ class NexusPHP(object):
     status = False
     auto_thank = True
 
-    reseed_column = "pt_domain.com"  # The column in table seed_list
+    db_column = "pt_domain.com"  # The column in table
 
     def __init__(self, setting: set, site_setting: dict, tr_client, db_client):
         self._setting = setting
         self.cookies = cookies_raw2jar(site_setting["cookies"])
         self.passkey = site_setting["passkey"]
-        self.clone_mode = site_setting["clone_mode"]
         try:
             self.status = site_setting["status"]
             self.auto_thank = site_setting["auto_thank"]
@@ -53,9 +52,8 @@ class NexusPHP(object):
         up_name_tag = list_bs.find("a", href=re.compile("userdetails.php"))
         if up_name_tag:
             logging.debug("Model \"{mo}\" is activation now.You are assign as \"{up}\" in this site."
-                          "Clone mode: {cl}, Anonymous release:{ar},"
-                          "auto_thank: {at}".format(mo=module_name, up=up_name_tag.string, cl=self.clone_mode,
-                                                    ar=self.uplver, at=self.auto_thank))
+                          "Anonymous release:{ar},auto_thank: {at}".format(mo=module_name, up=up_name_tag.string,
+                                                                           ar=self.uplver, at=self.auto_thank))
         else:
             self.status = False
             logging.error("You may enter a wrong cookies-pair in setting,"
@@ -103,12 +101,7 @@ class NexusPHP(object):
         search_page = requests.get(cookies=self.cookies, url=search_url)
         return search_page.text
 
-    def db_reseed_update(self, download_id, reseed_id):
-        update_sql = "UPDATE seed_list SET `{col}` = {rid}" \
-                     " WHERE download_id={did}".format(col=self.reseed_column, rid=reseed_id, did=download_id)
-        self.db.commit_sql(update_sql)
-
-    def get_last_torrent_id(self, search_key, search_mode: int, tid=0) -> int:
+    def get_last_torrent_id(self, search_key, search_mode: int = 0, tid=0) -> int:
         bs = BeautifulSoup(self.page_search_text(search_key=search_key, search_mode=search_mode), "lxml")
         if bs.find_all("a", href=re.compile("download.php")):  # If exist
             href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
@@ -119,8 +112,8 @@ class NexusPHP(object):
         return self.descr.out(raw=info_dict["descr"], torrent=torrent, encode=encode,
                               before_torrent_id=info_dict["before_torrent_id"])
 
-    def data_raw2tuple(self, torrent, torrent_type, title_search_group, raw_info):
+    def data_raw2tuple(self, torrent, torrent_name_search, raw_info: dict):
         pass
 
-    def feed(self, torrent, torrent_info_search, torrent_type, flag=-1):
+    def feed(self, torrent, torrent_info_search, flag=-1):
         pass

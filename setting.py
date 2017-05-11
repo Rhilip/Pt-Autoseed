@@ -28,7 +28,6 @@ site_byrbt = {
     "status": True,  # default: False
     "cookies": "",
     "passkey": "",
-    "clone_mode": "database",  # "database" or "clone"
     "anonymous_release": True,  # default: True
     "auto_thank": True  # default: True
 }
