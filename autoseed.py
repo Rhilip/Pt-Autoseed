@@ -79,7 +79,7 @@ def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False)
                     sql = "UPDATE seed_list SET `{cow}` = {id:d} WHERE title='{name}'".format(cow=to_tracker_host,
                                                                                               name=t.name, id=t.id)
                 db.commit_sql(sql)
-        else:  # 第一次启动检查(force_clean_check)
+        elif last_id_check != last_id_db:  # 第一次启动检查(force_clean_check)
             logging.error("It seems the torrent list didn't match with db-records,Clean the \"seed_list\" for safety.")
             db.commit_sql(sql="DELETE FROM seed_list")  # Delete all line from seed_list
             update_torrent_info_from_rpc_to_db()
