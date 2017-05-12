@@ -39,7 +39,7 @@ db = utils.Database(setting)  # Database with its function
 tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port,  # Transmission
                             user=setting.trans_user, password=setting.trans_password)
 autoseed = Autoseed(setting=setting, tr_client=tc, db_client=db)  # Autoseed
-connect = utils.Connect(tc_client=tc, db_client=db, tracker_list=autoseed.tracker_list, setting=setting)  # Connect
+connect = utils.Connect(tc_client=tc, db_client=db, tracker_list=autoseed.active_tracker, setting=setting)  # Connect
 # -*- End of Loading Model -*-
 
 
