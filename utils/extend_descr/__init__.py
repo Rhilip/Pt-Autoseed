@@ -29,7 +29,7 @@ class ExtendDescr(object):
         if self._status_before:
             min_time = int(self._setting.torrent_minSeedTime / 86400)
             max_time = int(self._setting.torrent_maxSeedTime / 86400)
-            if encode.lower() is "bbcode":
+            if encode.lower() == "bbcode":
                 str_before = """
                 [quote]
                     [*]这是一个自动发种的文件，所有信息以主标题或者文件名为准，简介信息采用本站之前剧集信息，若发现有误请以"举报"的形式通知工作人员审查和编辑。
@@ -64,7 +64,7 @@ class ExtendDescr(object):
             if shot == 0:
                 file_url = "{web_url}/{s_f}".format(web_url=self._setting.web_url, s_f=screenshot_file)
                 logging.info("The screenshot of \"{0}\" save on: \"{1}\"".format(file, file_loc))
-                if encode.lower() is "bbcode":
+                if encode.lower() == "bbcode":
                     str_screenshot = """
                     [color=Red]以下是Autoseed自动完成的截图，不喜勿看 [/color]
                     [img]{img_url}[/img]
@@ -85,7 +85,7 @@ class ExtendDescr(object):
 
     def build_clone_info(self, before_torrent_id, encode, str_clone_info="") -> str:
         if self._status_clone_info:
-            if encode.lower() is "bbcode":
+            if encode.lower() == "bbcode":
                 str_clone_info = """
                 该种子信息克隆自本站种子：{torrent_id}
                 """.format(torrent_id=before_torrent_id)
@@ -100,7 +100,7 @@ class ExtendDescr(object):
     def build_mediainfo(self, file, encode, str_media_info="") -> str:
         info = show_media_info(file=file, encode=encode)
         if self._status_mediainfo and info:
-            if encode.lower() is "bbcode":
+            if encode.lower() == "bbcode":
                 str_media_info = """[quote=MediaInfo (Autoseed自动生成，仅供参考)]{info}[/quote]"""
             else:
                 str_media_info = """
