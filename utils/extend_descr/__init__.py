@@ -10,21 +10,21 @@ extend_descr_raw = {
     "before": {   # Key : min_reseed_time, max_reseed_time
         "bbcode": """
         [quote]
-        [*]这是一个自动发种的文件，所有信息以主标题或者文件名为准，简介信息采用本站之前剧集信息，若发现有误请以"举报"的形式通知工作人员审查和编辑。
+        [*]这是一个自动发种的文件，所有信息以主标题或者文件名为准，简介信息采用本站之前相关种子信息，若发现有误请以"举报"或"留言"的形式通知工作人员审查和编辑。
         [*]欢迎下载、辅种、分流。保种{min_reseed_time}-{max_reseed_time}天。断种恕不补种。
         [*]如果发布档较大，请耐心等待校验。
-        [*]有关更新说明请查看对应 Github :[url=https://github.com/Rhilip/Byrbt-Autoseed]Rhilip/Byrbt-Autoseed[/url]，申请搬运，请发Issues留言。
+        [*]有关更新说明请查看对应 Github :[url=https://github.com/Rhilip/Pt-Autoseed]Rhilip/Pt-Autoseed[/url]，申请搬运，请发Issues留言。
         [/quote]
         """,
         "html": """
         <fieldset class="autoseed">
             <legend><b>Quote:</b></legend>
             <ul>
-                <li>这是一个远程发种的文件，所有信息以主标题或者文件名为准，简介信息采用本站之前剧集信息，若发现有误请以"举报"的形式通知工作人员审查和编辑。</li>
+                <li>这是一个远程发种的文件，所有信息以主标题或者文件名为准，简介信息采用本站之前剧集信息，若发现有误请以"举报"或"留言"的形式通知工作人员审查和编辑。</li>
                 <li>欢迎下载、辅种、分流。保种{min_reseed_time}-{max_reseed_time}天。断种恕不补种。</li>
                 <li>如果发布档较大，请耐心等待校验。</li>
                 <li>请勿上传机翻字幕，如有发现请"举报"。</li>
-                <li>欧美剧更新说明请查看论坛区： <a href="/forums.php?action=viewtopic&forumid=7&topicid=10140" target="_blank">剧集区--欧美剧播放列表及订阅列表</a> ，申请补发、搬运，请于该帖按格式留言。</li>
+                <li>有关更新说明请查看对应 Github : <a href="https://github.com/Rhilip/Pt-Autoseed" target="_blank">Rhilip/Pt-Autoseed</a> ，申请搬运，请发Issues留言。</li>
             </ul>
         </fieldset>
         """
@@ -54,10 +54,10 @@ extend_descr_raw = {
         """
     },
     "clone_info": {  # Key : torrent_id
-        "bbcode": "该种子信息克隆自本站种子：{torrent_id}",
+        "bbcode": "该种子信息克隆自本站种子： [url=/details.php?id={torrent_id}&hit=1]{torrent_id}[/url]",
         "html": """
         <div class="byrbt_info_clone autoseed" data-clone="{torrent_id}" data-version="Autoseed" style="display:none">
-            <a href="http://github.com/Rhilip/Byrbt-Autoseed" target="_blank">Powered by Rhilip's Autoseed</a>
+            <a href="https://github.com/Rhilip/Pt-Autoseed" target="_blank">Powered by Rhilip's Autoseed</a>
         </div>
         """
     }

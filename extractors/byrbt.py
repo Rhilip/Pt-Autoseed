@@ -125,9 +125,6 @@ class Byrbt(NexusPHP):
             # Delete Clone Info
             if descr.find(class_="byrbt_info_clone"):
                 descr.find(class_="byrbt_info_clone").extract()
-            for i in descr.find_all(class_="autoseed"):  # New class
-                i.extract()
-            # Old class
             for fieldset in descr.find_all("fieldset"):
                 fieldset.extract()
             descr_out = re.search(r"<div id=\"kdescr\">(?P<in>.+)</div>$", str(descr), re.S).group("in")
