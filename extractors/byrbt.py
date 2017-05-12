@@ -83,29 +83,14 @@ def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
 
 
 class Byrbt(NexusPHP):
-    url_torrent_download = "http://bt.byr.cn/download.php?id={tid}&passkey={pk}"
-    url_torrent_upload = "http://bt.byr.cn/takeupload.php"
-    url_torrent_detail = "http://bt.byr.cn/details.php?id={tid}&hit=1"
-    url_thank = "http://bt.byr.cn/thanks.php"
-    url_search = "http://bt.byr.cn/torrents.php?search={k}&search_mode={md}"
-    url_torrent_list = "http://bt.byr.cn/torrents.php"
-
+    url_host = "http://bt.byr.cn"
     db_column = "tracker.byr.cn"
+
+    encode = "html"
 
     def __init__(self, setting, tr_client, db_client):
         _site_setting = setting.site_byrbt
         super().__init__(setting=setting, site_setting=_site_setting, tr_client=tr_client, db_client=db_client)
-
-    def exist_judge(self, search_title, torrent_file_name) -> int:
-        """如果种子在byr存在，返回种子id，不存在返回0，已存在且种子一致返回种子号，不一致返回-1"""
-        tag = self.get_last_torrent_id(search_key=search_title)
-        if tag is not 0:
-            details_bs = self.torrent_detail(tid=tag, bs=True)
-            torrent_title_in_site = details_bs.find("a", class_="index", href=re.compile(r"^download.php")).string
-            torrent_title = re.search(r"\[BYRBT\]\.(.+?)\.torrent", torrent_title_in_site).group(1)
-            if torrent_file_name != torrent_title:  # Use pre-reseed torrent's name match the exist torrent's name
-                tag = -1
-        return tag
 
     def torrent_clone(self, tid) -> dict:
         """
@@ -124,8 +109,8 @@ class Byrbt(NexusPHP):
             body = details_bs.body
             imdb_url = dburl = ""
             if body.find(class_="imdbRatingPlugin"):
-                logging.debug("Found imdb link for this torrent.")
                 imdb_url = 'http://www.imdb.com/title/' + body.find(class_="imdbRatingPlugin")["data-title"]
+                logging.debug("Found imdb link:{link} for this torrent.".format(link=imdb_url))
             if body.find("a", href=re.compile("://movie.douban.com/subject")):
                 dburl = body.find("a", href=re.compile("://movie.douban.com/subject")).text
                 logging.debug("Found douban link:{link} for this torrent.".format(link=dburl))
@@ -175,10 +160,10 @@ class Byrbt(NexusPHP):
                 ("url", ('', raw_info["url"])),
                 ("dburl", ('', raw_info["dburl"])),
                 ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info, encode="html"))),
+                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),
                 ("uplver", ('', self.uplver)),
             )
-        elif raw_info["type"] == 404:  # anime
+        elif raw_info["type"] == 404:  # Anime
             post_tuple = (
                 ("type", ('', str(raw_info["type"]))),
                 ("second_type", ('', str(raw_info["second_type"]))),
@@ -198,39 +183,8 @@ class Byrbt(NexusPHP):
                 ("url", ('', raw_info["url"])),
                 ("dburl", ('', raw_info["dburl"])),
                 ("nfo", ('', '')),
-                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info, encode="html"))),
+                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),
                 ("uplver", ('', self.uplver)),
             )
 
         return post_tuple
-
-    def feed(self, torrent, torrent_info_search, flag=-1):
-        search_key = re.sub(r"[_\-.]", " ", torrent_info_search.group("search_name"))
-        pattern = "{search_key} {epo}".format(search_key=search_key, epo=torrent_info_search.group("episode"))
-
-        search_tag = self.exist_judge(pattern, torrent_info_search.group(0))
-        if search_tag == 0:  # 种子不存在，则准备发布
-            clone_id = self.db.get_data_clone_id(key=search_key, site=self.db_column)
-            if clone_id is None:
-                logging.warning("Not Find clone id from db of this torrent,May got incorrect info when clone.")
-                clone_id = self.get_last_torrent_id(search_key=search_key, search_mode=0)
-            else:
-                logging.debug("Get clone id({id}) from db OK,USE key: \"{key}\"".format(id=clone_id, key=search_key))
-
-            torrent_raw_info_dict = self.torrent_clone(clone_id)
-            if torrent_raw_info_dict:
-                logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
-                multipart_data = self.data_raw2tuple(torrent, torrent_info_search, torrent_raw_info_dict)
-                flag = self.torrent_upload(data=multipart_data)
-            else:
-                logging.error("Something may wrong,Please check torrent raw dict.Some info may help you:"
-                              "search_key: {key}, pattern: {pat}, search_tag: {tag}, "
-                              "clone_id: {cid} ".format(key=search_key, pat=pattern, tag=search_tag, cid=clone_id))
-        elif search_tag == -1:  # 如果种子存在，但种子不一致
-            logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent.Stop Posting~")
-        else:  # 如果种子存在（已经有人发布）  -> 辅种
-            flag = self.torrent_download(tid=search_tag, thanks=False)
-            logging.warning("Find dupe torrent,which id: {0},Automatically assist it~".format(search_tag))
-
-        self.db.reseed_update(did=torrent.id, rid=flag, site=self.db_column)
-        return flag

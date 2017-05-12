@@ -94,7 +94,7 @@ def sort_mp4_info(media_info_raw):
 def from_info_list_to_html(sorted_info, encode):
     line_sep = "<br>"
     text_strong = "<strong>{text}</strong>"
-    if encode.lower() is "bbcode":
+    if encode.lower() == "bbcode":
         line_sep = "\n"
         text_strong = "[b]{text}[/b]"
     general_output = text_strong.format(text="General") + line_sep.join(sorted_info[0]) + line_sep
