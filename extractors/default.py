@@ -164,5 +164,18 @@ class NexusPHP(object):
         pass
 
     def data_raw2tuple(self, torrent, torrent_name_search, raw_info: dict):
-        """At least Overridden it please"""
-        return ()
+        """At least Overridden it please,Below is a sample."""
+        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
+        post_tuple = (
+            ("type", ('', str(raw_info["type"]))),
+            ("second_type", ('', str(raw_info["second_type"]))),
+            ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
+            ("name", ('', str(raw_info["name"]))),
+            ("small_descr", ('', raw_info["small_descr"])),
+            ("url", ('', raw_info["url"])),
+            ("dburl", ('', raw_info["dburl"])),
+            ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
+            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),
+            ("uplver", ('', self.uplver)),
+        )
+        return post_tuple

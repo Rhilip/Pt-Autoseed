@@ -52,12 +52,21 @@ class NPUBits(NexusPHP):
 
     def data_raw2tuple(self, torrent, title_search_group, raw_info):
         torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
-        return (  # Submit form
+        # Assign raw info
+        name = str(raw_info["name"])
+
+        # Change some info due to the torrent's info
+        if raw_info["category"] is 402:  # Series
+            name = title_search_group.group("full_name")
+        elif raw_info["category"] is 405:  # Anime
+            name = re.sub("\.(?P<episode>\d+)\.", ".{ep}.".format(ep=title_search_group.group("episode")), name)
+
+        post_tuple = (  # Submit form
             ("transferred_url", ('', str(raw_info["transferred_url"]))),
             ("type", ('', str(raw_info["category"]))),
             ("source_sel", ('', str(raw_info["sub_category"]))),
             ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-            ("name", ('', string2base64(str(raw_info["name"])))),
+            ("name", ('', string2base64(name))),
             ("small_descr", ('', string2base64(raw_info["small_descr"]))),
             ("color", ('', 0)),  # Tell me those three key's function~
             ("font", ('', 0)),
@@ -68,3 +77,5 @@ class NPUBits(NexusPHP):
             ("transferred_torrent_file_base64", ('', '')),
             ("transferred_torrent_file_name", ('', '')),
         )
+
+        return post_tuple

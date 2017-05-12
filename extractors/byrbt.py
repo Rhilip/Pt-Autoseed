@@ -163,7 +163,7 @@ class Byrbt(NexusPHP):
                 ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),
                 ("uplver", ('', self.uplver)),
             )
-        elif raw_info["type"] == 404:  # anime
+        elif raw_info["type"] == 404:  # Anime
             post_tuple = (
                 ("type", ('', str(raw_info["type"]))),
                 ("second_type", ('', str(raw_info["second_type"]))),
