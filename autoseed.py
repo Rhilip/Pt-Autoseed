@@ -8,7 +8,7 @@ from logging.handlers import RotatingFileHandler
 
 import utils
 import transmissionrpc
-import extractors
+from extractors import Autoseed
 
 try:
     import usersetting as setting
@@ -42,20 +42,9 @@ tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_po
 # Database with its function
 db = utils.Database(setting)
 
-# Autoseed Stie
-autoseed_list = []
-reseed_tracker_host = []
-
-# Byrbt
-Byrbt_autoseed = extractors.Byrbt(setting=setting, tr_client=tc, db_client=db)
-if Byrbt_autoseed.status:
-    autoseed_list.append(Byrbt_autoseed)
-    reseed_tracker_host.append(Byrbt_autoseed.db_column)
-
-logging.info("Initialization settings Success~ The assign autoseed model:{lis}".format(lis=autoseed_list))
-
-
+autoseed = Autoseed(setting=setting, tr_client=tc, db_client=db)
 # -*- End of Loading Model -*-
+logging.info("Initialization settings Success~")
 
 
 def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False):
@@ -66,14 +55,14 @@ def update_torrent_info_from_rpc_to_db(last_id_check=0, force_clean_check=False)
     torrent_id_list = [t.id for t in tc.get_torrents() if t.id > last_id_check]
     if torrent_id_list:
         last_id_check = max(torrent_id_list)
-        last_id_db = db.get_max_in_column(table="seed_list", column_list=["download_id"] + reseed_tracker_host)
+        last_id_db = db.get_max_in_column(table="seed_list", column_list=["download_id"] + autoseed.tracker_list)
         logging.debug("Now,Torrent id count: transmission: {tr},database: {db}".format(tr=last_id_check, db=last_id_db))
         if not force_clean_check:  # Normal Update
             logging.info("Some new torrents were add to transmission,Sync to db~")
             for i in torrent_id_list:
                 t = tc.get_torrent(i)
                 to_tracker_host = re.search(r"http[s]?://(.+?)/", t.trackers[0]["announce"]).group(1)
-                if to_tracker_host not in reseed_tracker_host:  # TODO use UPsert instead
+                if to_tracker_host not in autoseed.tracker_list:  # TODO use UPsert instead
                     sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}',{:d})".format(t.name, t.id)
                 else:
                     sql = "UPDATE seed_list SET `{cow}` = {id:d} WHERE title='{name}'".format(cow=to_tracker_host,
@@ -127,56 +116,20 @@ def check_to_del_torrent_with_data_and_db():
             db.commit_sql(sql="DELETE FROM seed_list WHERE id = {0}".format(sid))
 
 
-def feed_torrent():
-    """Judge to reseed depend on un-reseed torrent's status,With Database update after reseed."""
-    result = db.get_table_seed_list_limit(tracker_list=reseed_tracker_host, operator="OR", condition="=0")
-    for t in result:  # Traversal all unseed_list
-        try:
-            dl_torrent = tc.get_torrent(t["download_id"])  # 获取下载种子信息
-        except KeyError:  # 种子不存在了
-            logging.error("The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
-                          "It will be deleted from db in next delete-check time".format(t["title"]))
-        else:
-            tname = dl_torrent.name
-
-            reseed_judge = False
-            if int(dl_torrent.progress) is 100:  # Get the download progress in percent.
-                reseed_judge = True
-                logging.info("New completed torrent: \"{name}\" ,Judge reseed or not.".format(name=tname))
-            else:
-                logging.warning("Torrent:\"{name}\" is still downloading,Wait until the next round.".format(name=tname))
-
-            if reseed_judge:
-                reseed_status = False
-                for pat in utils.pattern_group:
-                    search_group = re.search(pat, tname)
-                    if search_group:
-                        for autoseed in autoseed_list:  # Site feed
-                            if int(t[autoseed.db_column]) is 0:
-                                autoseed.feed(torrent=dl_torrent, torrent_info_search=search_group)
-                        reseed_status = True
-                        break
-                if not reseed_status:  # 不符合，更新seed_id为-1
-                    logging.warning("Mark Torrent \"{}\" As Un-reseed torrent,Stop watching.".format(tname))
-                    for tr in reseed_tracker_host:
-                        sql = "UPDATE seed_list SET `{}` = {:d} WHERE download_id = {:d}".format(tr, -1, dl_torrent.id)
-                        db.commit_sql(sql)
-
-
 def main():
     logging.info("Autoseed start~,will check database record at the First time.")
     last_id_check = update_torrent_info_from_rpc_to_db(force_clean_check=True)
     i = 0
     while True:
         last_id_check = update_torrent_info_from_rpc_to_db(last_id_check=last_id_check)  # 更新表
-        feed_torrent()  # reseed判断主函数
+        autoseed.update()  # reseed判断主函数
         if i % setting.delete_check_round == 0:
             check_to_del_torrent_with_data_and_db()  # 清理种子
 
         if setting.web_show_status:  # 发种机运行状态展示
-            data_list = db.get_table_seed_list_limit(tracker_list=reseed_tracker_host, operator="AND", condition="!=-1",
-                                                     other_decision="ORDER BY id DESC LIMIT {sum}".format(
-                                                         sum=setting.web_show_entries_number))
+            other_decision = "ORDER BY id DESC LIMIT {sum}".format(sum=setting.web_show_entries_number)
+            data_list = db.get_table_seed_list_limit(tracker_list=autoseed.tracker_list, operator="AND",
+                                                     condition="!=-1", other_decision=other_decision)
             utils.generate_web_json(setting=setting, tr_client=tc, data_list=data_list)
 
         sleep_time = setting.sleep_free_time

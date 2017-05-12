@@ -31,6 +31,14 @@ site_byrbt = {
     "anonymous_release": True,  # default: True
     "auto_thank": True  # default: True
 }
+# """NPUBits"""
+site_npubits = {
+    "status": True,
+    "cookies": "",
+    "passkey": "",
+    "anonymous_release": True,
+    "auto_thank": True
+}
 # -*- End of Reseed Site Setting -*-
 
 # -*- Feeding Torrent Setting -*-
