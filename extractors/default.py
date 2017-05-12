@@ -126,10 +126,12 @@ class NexusPHP(object):
         return tag
 
     def feed(self, torrent, torrent_info_search, flag=-1):
+        logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
         search_key = re.sub(r"[_\-.]", " ", torrent_info_search.group("search_name"))
-        pattern = "{search_key} {epo}".format(search_key=search_key, epo=torrent_info_search.group("episode"))
+        pattern = "{search_key} {epo} {gr}".format(search_key=search_key, epo=torrent_info_search.group("episode"),
+                                                   gr=torrent_info_search.group("group"))
 
-        search_tag = self.exist_judge(pattern, torrent_info_search.group(0))
+        search_tag = self.exist_judge(pattern, torrent.name)
         if search_tag == 0:  # 种子不存在，则准备发布
             clone_id = self.db.get_data_clone_id(key=search_key, site=self.db_column)
             if clone_id is None:
