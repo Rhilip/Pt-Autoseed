@@ -34,7 +34,7 @@ class Autoseed(object):
 
         logging.info("The assign autoseed model:{lis}".format(lis=self.active_seed))
 
-    def feed(self, dl_torrent):
+    def feed(self, dl_torrent, cow):
         tname = dl_torrent.name
         reseed_judge = False
         if int(dl_torrent.progress) is 100:  # Get the download progress in percent.
@@ -49,7 +49,8 @@ class Autoseed(object):
                 search_group = re.search(pat, tname)
                 if search_group:
                     for site in self.active_seed:  # Site feed
-                        site.feed(torrent=dl_torrent, torrent_info_search=search_group)
+                        if cow[site.db_column] is 0:
+                            site.feed(torrent=dl_torrent, torrent_info_search=search_group)
                     reseed_status = True
                     break
             if not reseed_status:  # 不符合，更新seed_id为-1
@@ -63,7 +64,7 @@ class Autoseed(object):
         result = self.db.get_table_seed_list_limit(tracker_list=self.active_tracker, operator="OR", condition="=0")
         for t in result:  # Traversal all unseed_list
             try:
-                self.feed(dl_torrent=self.tc.get_torrent(t["download_id"]))
+                self.feed(dl_torrent=self.tc.get_torrent(t["download_id"]), cow=t)
             except KeyError:  # 种子不存在了
                 logging.error("The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
                               "It will be deleted from db in next delete-check time".format(t["title"]))
