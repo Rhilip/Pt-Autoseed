@@ -46,7 +46,7 @@ class NexusPHP(object):
     def session_check(self):
         url_usercp_page = self.get_page(url="{host}/usercp.php".format(host=self.url_host), bs=True)
         info_block = url_usercp_page.find(id="info_block")
-        user_tag = info_block.find("a", href=re.compile("userdetails.php"))
+        user_tag = info_block.find("a", href=re.compile("userdetails.php"), class_=re.compile("Name"))
         if user_tag:
             up_name = user_tag.get_text()
             logging.debug("Model \"{mo}\" is activation now.You are assign as \"{up}\" in this site."
