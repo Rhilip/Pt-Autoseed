@@ -135,7 +135,7 @@ class NexusPHP(object):
         search_tag = self.exist_judge(pattern, torrent.name)
         if search_tag == 0:  # 种子不存在，则准备发布
             clone_id = self.db.get_data_clone_id(key=search_key, site=self.db_column)
-            if clone_id is None:
+            if clone_id is None or 0:
                 logging.warning("Not Find clone id from db of this torrent,May got incorrect info when clone.")
                 clone_id = self.get_last_torrent_id(search_key=search_key, search_mode=0)
             else:
