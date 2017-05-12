@@ -13,20 +13,13 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 class NexusPHP(object):
-    url_host = "http://www.pt_domain.com"
-    url_torrent_download = url_host + "/download.php?id={tid}&passkey={pk}"
-    url_torrent_upload = url_host + "/takeupload.php"
-    url_torrent_detail = url_host + "/details.php?id={tid}&hit=1"
-    url_torrent_file = url_host + "/torrent_info.php?id={tid}"
-    url_thank = url_host + "/thanks.php"
-    url_search = url_host + "/torrents.php?search={k}&search_mode={md}"
-    url_torrent_list = url_host + "/torrents.php"
+    url_host = "http://www.pt_domain.com"  # No '/' at the end.
+    db_column = "tracker.pt_domain.com"  # The column in table,should be as same as the first tracker's host
 
     uplver = "yes"
+    encode = "bbcode"  # bbcode or html
     status = False
     auto_thank = True
-
-    db_column = "pt_domain.com"  # The column in table
 
     def __init__(self, setting: set, site_setting: dict, tr_client, db_client):
         self._setting = setting
@@ -51,11 +44,13 @@ class NexusPHP(object):
         return type(self).__name__
 
     def session_check(self):
-        list_bs = self.get_page(url=self.url_torrent_list, bs=True)
-        up_name_tag = list_bs.find("a", href=re.compile("userdetails.php"))
-        if up_name_tag:
+        url_usercp_page = self.get_page(url="{host}/usercp.php".format(host=self.url_host), bs=True)
+        info_block = url_usercp_page.find(id="info_block")
+        user_tag = info_block.find("a", href=re.compile("userdetails.php"))
+        if user_tag:
+            up_name = user_tag.get_text()
             logging.debug("Model \"{mo}\" is activation now.You are assign as \"{up}\" in this site."
-                          "Anonymous release:{ar},auto_thank: {at}".format(mo=self.model_name(), up=up_name_tag.string,
+                          "Anonymous release:{ar},auto_thank: {at}".format(mo=self.model_name(), up=up_name,
                                                                            ar=self.uplver, at=self.auto_thank))
         else:
             self.status = False
@@ -70,15 +65,17 @@ class NexusPHP(object):
         return return_info
 
     def torrent_download(self, tid, thanks=auto_thank):
-        added_torrent = self.tc.add_torrent(torrent=self.url_torrent_download.format(tid=tid, pk=self.passkey))
+        download_url = "{host}/download.php?id={tid}&passkey={pk}".format(host=self.url_host, tid=tid, pk=self.passkey)
+        added_torrent = self.tc.add_torrent(torrent=download_url)
         logging.info("Download Torrent OK,which id: {id}.".format(id=tid))
-        if thanks:
+        if thanks:  # Automatically thanks for additional Bones.
             self.torrent_thank(tid)
         return added_torrent.id
 
     def torrent_upload(self, data: tuple):
-        post = requests.post(url=self.url_torrent_upload, cookies=self.cookies, files=data)
-        if post.url != self.url_torrent_upload:  # 发布成功检查
+        upload_url = "{host}/takeupload.php".format(host=self.url_host)
+        post = requests.post(url=upload_url, cookies=self.cookies, files=data)
+        if post.url != upload_url:  # 发布成功检查
             seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
             flag = self.torrent_download(tid=seed_torrent_download_id)
             logging.info("Reseed post OK,The torrent's in transmission: {fl}".format(fl=flag))
@@ -93,32 +90,36 @@ class NexusPHP(object):
         return flag
 
     def torrent_thank(self, tid):
-        requests.post(url=self.url_thank, cookies=self.cookies, data={"id": str(tid)})  # 自动感谢
+        url_thank = "{host}/thanks.php".format(host=self.url_host)
+        requests.post(url=url_thank, cookies=self.cookies, data={"id": str(tid)})
 
     def torrent_detail(self, tid, bs=False):
-        return self.get_page(url=self.url_torrent_detail.format(tid=tid), bs=bs)
+        return self.get_page(url="{host}/details.php?id={tid}&hit=1".format(host=self.url_host, tid=tid), bs=bs)
 
-    def page_search_text(self, search_key: str, search_mode: int):
-        return self.get_page(url=self.url_search.format(k=search_key, md=search_mode))
+    def page_search_text(self, key: str, mode: int):
+        url_search = "{host}/torrents.php?search={k}&search_mode={md}".format(host=self.url_host, k=key, md=mode)
+        return self.get_page(url=url_search)
 
     def get_last_torrent_id(self, search_key, search_mode: int = 0, tid=0) -> int:
-        bs = BeautifulSoup(self.page_search_text(search_key=search_key, search_mode=search_mode), "lxml")
+        bs = BeautifulSoup(self.page_search_text(key=search_key, mode=search_mode), "lxml")
         if bs.find_all("a", href=re.compile("download.php")):  # If exist
             href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
             tid = re.search("id=(\d+)", href).group(1)  # 找出种子id
         return tid
 
-    def extend_descr(self, torrent, info_dict, encode) -> str:
-        return self.descr.out(raw=info_dict["descr"], torrent=torrent, encode=encode,
+    def extend_descr(self, torrent, info_dict) -> str:
+        return self.descr.out(raw=info_dict["descr"], torrent=torrent, encode=self.encode,
                               before_torrent_id=info_dict["before_torrent_id"])
 
     def exist_judge(self, search_title, torrent_file_name) -> int:
         """
-        
-        如果种子在byr存在，返回种子id，不存在返回0，已存在且种子一致返回种子号，不一致返回-1"""
+        If exist in this site ,return the exist torrent's id,else return 0.
+        (Warning:if the exist torrent is not same as the pre-reseed torrent ,will return -1)
+        """
         tag = self.get_last_torrent_id(search_key=search_title)
         if tag is not 0:
-            torrent_file_page = self.get_page(url=self.url_torrent_file.format(tid=tag), bs=True)
+            torrent_file_url = "{host}/torrent_info.php?id={tid}".format(host=self.url_host, tid=tag)
+            torrent_file_page = self.get_page(url=torrent_file_url, bs=True)
             torrent_file_info_table = torrent_file_page.find("div", align="center").find("table")
             torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
             if torrent_file_name != torrent_title:  # Use pre-reseed torrent's name match the exist torrent's name

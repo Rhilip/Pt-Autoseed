@@ -84,8 +84,9 @@ def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
 
 class Byrbt(NexusPHP):
     url_host = "http://bt.byr.cn"
-
     db_column = "tracker.byr.cn"
+
+    encode = "html"
 
     def __init__(self, setting, tr_client, db_client):
         _site_setting = setting.site_byrbt
@@ -159,7 +160,7 @@ class Byrbt(NexusPHP):
                 ("url", ('', raw_info["url"])),
                 ("dburl", ('', raw_info["dburl"])),
                 ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info, encode="html"))),
+                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),
                 ("uplver", ('', self.uplver)),
             )
         elif raw_info["type"] == 404:  # anime
@@ -182,7 +183,7 @@ class Byrbt(NexusPHP):
                 ("url", ('', raw_info["url"])),
                 ("dburl", ('', raw_info["dburl"])),
                 ("nfo", ('', '')),
-                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info, encode="html"))),
+                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),
                 ("uplver", ('', self.uplver)),
             )
 

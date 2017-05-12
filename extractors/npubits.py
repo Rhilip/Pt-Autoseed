@@ -27,14 +27,15 @@ class NPUBits(NexusPHP):
         super().__init__(setting=setting, site_setting=_site_setting, tr_client=tr_client, db_client=db_client)
 
     def torrent_thank(self, tid):
-        requests.post(url=self.url_thank, cookies=self.cookies, data={"id": str(tid), "value": 0})  # 自动感谢
+        url_thank = "{host}/thanks.php".format(host=self.url_host)
+        requests.post(url=url_thank, cookies=self.cookies, data={"id": str(tid), "value": 0})
 
     def torrent_clone(self, tid) -> dict:
         """
         Use Internal API: https://npupt.com/transfer.php?url={url} ,Request Method:GET
         The url use base64 encryption, and will response a json dict.
         """
-        transferred_url = string2base64(self.url_torrent_detail.format(tid=tid))
+        transferred_url = string2base64("{host}/details.php?id={tid}&hit=1".format(host=self.url_host, tid=tid))
         res = requests.get(url="https://npupt.com/transfer.php?url={url}".format(url=transferred_url),
                            cookies=self.cookies)
         res_dic = res.json()
@@ -61,7 +62,7 @@ class NPUBits(NexusPHP):
             ("color", ('', 0)),  # Tell me those three key's function~
             ("font", ('', 0)),
             ("size", ('', 0)),
-            ("descr", ('', string2base64(self.extend_descr(torrent=torrent, info_dict=raw_info, encode="bbcode")))),
+            ("descr", ('', string2base64(self.extend_descr(torrent=torrent, info_dict=raw_info)))),
             ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
             ("uplver", ('', self.uplver)),
             ("transferred_torrent_file_base64", ('', '')),
