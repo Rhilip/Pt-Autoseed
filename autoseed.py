@@ -152,7 +152,8 @@ def feed_torrent():
                     search_group = re.search(pat, tname)
                     if search_group:
                         for autoseed in autoseed_list:  # Site feed
-                            autoseed.feed(torrent=dl_torrent, torrent_info_search=search_group)
+                            if int(t[autoseed.db_column]) is 0:
+                                autoseed.feed(torrent=dl_torrent, torrent_info_search=search_group)
                         reseed_status = True
                         break
                 if not reseed_status:  # 不符合，更新seed_id为-1
