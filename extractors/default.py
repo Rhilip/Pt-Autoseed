@@ -79,6 +79,7 @@ class NexusPHP(object):
             seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
             flag = self.torrent_download(tid=seed_torrent_download_id)
             logging.info("Reseed post OK,The torrent's in transmission: {fl}".format(fl=flag))
+            # TODO USE new torrent's id to Update `info_list` in db
         else:  # 未发布成功打log
             outer_bs = BeautifulSoup(post.text, "lxml").find("td", id="outer")
             if outer_bs.find_all("table"):  # Remove unnecessary table info(include SMS,Report)
