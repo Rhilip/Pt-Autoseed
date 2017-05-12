@@ -39,7 +39,7 @@ db = utils.Database(setting)  # Database with its function
 tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port,  # Transmission
                             user=setting.trans_user, password=setting.trans_password)
 autoseed = Autoseed(setting=setting, tr_client=tc, db_client=db)  # Autoseed
-connect = utils.Connect(tc_client=tc, db_client=db, tracker_list=autoseed.tracker_list, setting=setting)
+connect = utils.Connect(tc_client=tc, db_client=db, tracker_list=autoseed.tracker_list, setting=setting)  # Connect
 # -*- End of Loading Model -*-
 
 
@@ -52,12 +52,8 @@ def main():
         autoseed.update()  # reseed判断主函数
         if i % setting.delete_check_round == 0:
             connect.check_to_del_torrent_with_data_and_db()  # 清理种子
-
         if setting.web_show_status:  # 发种机运行状态展示
-            other_decision = "ORDER BY id DESC LIMIT {sum}".format(sum=setting.web_show_entries_number)
-            data_list = db.get_table_seed_list_limit(tracker_list=autoseed.tracker_list, operator="AND",
-                                                     condition="!=-1", other_decision=other_decision)
-            utils.generate_web_json(setting=setting, tr_client=tc, data_list=data_list)
+            connect.generate_web_json()
 
         sleep_time = setting.sleep_free_time
         if setting.busy_start_hour <= int(time.strftime("%H", time.localtime())) < setting.busy_end_hour:
@@ -65,6 +61,7 @@ def main():
 
         logging.debug("Check time {ti} OK, Reach check id {cid},"
                       " Will Sleep for {slt} seconds.".format(ti=i, cid=last_id_check, slt=sleep_time))
+
         i += 1
         time.sleep(sleep_time)
 
