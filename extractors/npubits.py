@@ -18,7 +18,6 @@ def string2base64(raw):
 
 class NPUBits(NexusPHP):
     url_host = "https://npupt.com"
-    url_search = url_host + "/torrents.php?search={k}&incldead=1&nodupe=1"  # TODO NPU use incldead,nodupe instead
 
     db_column = "npupt.com"
 
@@ -49,6 +48,15 @@ class NPUBits(NexusPHP):
         res_dic["descr"] = raw_descr
 
         return res_dic
+
+    def get_last_torrent_id(self, key, mode: int = 0, tid=0) -> int:
+        url_search = "{host}/torrents.php?search={k}&incldead=1&nodupe=1".format(host=self.url_host, k=key)  # TODO NPUBits Use incldead and nodupe instead
+        bs = self.get_page(url=url_search, bs=True)
+        first_torrent_tag = bs.find("a", href=re.compile("torrent_download"))
+        if first_torrent_tag:  # If exist
+            href = first_torrent_tag["href"]
+            tid = re.search("torrent_download\((\d+)", href).group(1)  # 找出种子id
+        return tid
 
     def data_raw2tuple(self, torrent, title_search_group, raw_info):
         torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)

@@ -96,14 +96,12 @@ class NexusPHP(object):
     def torrent_detail(self, tid, bs=False):
         return self.get_page(url="{host}/details.php?id={tid}&hit=1".format(host=self.url_host, tid=tid), bs=bs)
 
-    def page_search_text(self, key: str, mode: int):
+    def get_last_torrent_id(self, key, mode: int = 0, tid=0) -> int:
         url_search = "{host}/torrents.php?search={k}&search_mode={md}".format(host=self.url_host, k=key, md=mode)
-        return self.get_page(url=url_search)
-
-    def get_last_torrent_id(self, search_key, search_mode: int = 0, tid=0) -> int:
-        bs = BeautifulSoup(self.page_search_text(key=search_key, mode=search_mode), "lxml")
-        if bs.find_all("a", href=re.compile("download.php")):  # If exist
-            href = bs.find_all("a", href=re.compile("download.php"))[0]["href"]
+        bs = self.get_page(url=url_search, bs=True)
+        first_torrent_tag = bs.find("a", href=re.compile("download.php"))
+        if first_torrent_tag:  # If exist
+            href = first_torrent_tag["href"]
             tid = re.search("id=(\d+)", href).group(1)  # 找出种子id
         return tid
 
@@ -116,7 +114,7 @@ class NexusPHP(object):
         If exist in this site ,return the exist torrent's id,else return 0.
         (Warning:if the exist torrent is not same as the pre-reseed torrent ,will return -1)
         """
-        tag = self.get_last_torrent_id(search_key=search_title)
+        tag = self.get_last_torrent_id(key=search_title)
         if tag is not 0:
             torrent_file_url = "{host}/torrent_info.php?id={tid}".format(host=self.url_host, tid=tag)
             torrent_file_page = self.get_page(url=torrent_file_url, bs=True)
@@ -128,18 +126,18 @@ class NexusPHP(object):
 
     def feed(self, torrent, torrent_info_search, flag=-1):
         logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
-        search_key = re.sub(r"[_\-.]", " ", torrent_info_search.group("search_name"))
-        pattern = "{search_key} {epo} {gr}".format(search_key=search_key, epo=torrent_info_search.group("episode"),
-                                                   gr=torrent_info_search.group("group"))
+        key_raw = re.sub(r"[_\-.]", " ", torrent_info_search.group("search_name"))
+        key_with_ep = "{search_key} {epo} {gr}".format(search_key=key_raw, epo=torrent_info_search.group("episode"),
+                                                       gr=torrent_info_search.group("group"))
 
-        search_tag = self.exist_judge(pattern, torrent.name)
+        search_tag = self.exist_judge(key_with_ep, torrent.name)
         if search_tag == 0:  # 种子不存在，则准备发布
-            clone_id = self.db.get_data_clone_id(key=search_key, site=self.db_column)
+            clone_id = self.db.get_data_clone_id(key=key_raw, site=self.db_column)
             if clone_id is None or 0:
                 logging.warning("Not Find clone id from db of this torrent,May got incorrect info when clone.")
-                clone_id = self.get_last_torrent_id(search_key=search_key, search_mode=0)
+                clone_id = self.get_last_torrent_id(key=key_raw)
             else:
-                logging.debug("Get clone id({id}) from db OK,USE key: \"{key}\"".format(id=clone_id, key=search_key))
+                logging.debug("Get clone id({id}) from db OK,USE key: \"{key}\"".format(id=clone_id, key=key_raw))
 
             torrent_raw_info_dict = self.torrent_clone(clone_id)
             if torrent_raw_info_dict:
@@ -149,7 +147,7 @@ class NexusPHP(object):
             else:
                 logging.error("Something may wrong,Please check torrent raw dict.Some info may help you:"
                               "search_key: {key}, pattern: {pat}, search_tag: {tag}, "
-                              "clone_id: {cid} ".format(key=search_key, pat=pattern, tag=search_tag, cid=clone_id))
+                              "clone_id: {cid} ".format(key=key_raw, pat=key_with_ep, tag=search_tag, cid=clone_id))
         elif search_tag == -1:  # 如果种子存在，但种子不一致
             logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent.Stop Posting~")
         else:  # 如果种子存在（已经有人发布）  -> 辅种
