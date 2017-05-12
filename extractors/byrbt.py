@@ -108,8 +108,8 @@ class Byrbt(NexusPHP):
             body = details_bs.body
             imdb_url = dburl = ""
             if body.find(class_="imdbRatingPlugin"):
-                logging.debug("Found imdb link for this torrent.")
                 imdb_url = 'http://www.imdb.com/title/' + body.find(class_="imdbRatingPlugin")["data-title"]
+                logging.debug("Found imdb link:{link} for this torrent.".format(link=imdb_url))
             if body.find("a", href=re.compile("://movie.douban.com/subject")):
                 dburl = body.find("a", href=re.compile("://movie.douban.com/subject")).text
                 logging.debug("Found douban link:{link} for this torrent.".format(link=dburl))
