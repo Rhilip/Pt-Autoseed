@@ -38,7 +38,7 @@ class NPUBits(NexusPHP):
         res = requests.get(url="https://npupt.com/transfer.php?url={url}".format(url=transferred_url),
                            cookies=self.cookies)
         res_dic = res.json()
-        res_dic.update({"transferred_url": transferred_url})
+        res_dic.update({"transferred_url": transferred_url, "before_torrent_id": tid})
 
         # Remove code and quote.
         raw_descr = res_dic["descr"]
@@ -50,7 +50,8 @@ class NPUBits(NexusPHP):
         return res_dic
 
     def get_last_torrent_id(self, key, mode: int = 0, tid=0) -> int:
-        url_search = "{host}/torrents.php?search={k}&incldead=1&nodupe=1".format(host=self.url_host, k=key)  # TODO NPUBits Use incldead and nodupe instead
+        # TODO NPUBits Use key(incldead,nodupe) instead
+        url_search = "{host}/torrents.php?search={k}&incldead=1&nodupe=1".format(host=self.url_host, k=key)
         bs = self.get_page(url=url_search, bs=True)
         first_torrent_tag = bs.find("a", href=re.compile("torrent_download"))
         if first_torrent_tag:  # If exist
@@ -76,9 +77,9 @@ class NPUBits(NexusPHP):
             ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
             ("name", ('', string2base64(name))),
             ("small_descr", ('', string2base64(raw_info["small_descr"]))),
-            ("color", ('', 0)),  # Tell me those three key's function~
-            ("font", ('', 0)),
-            ("size", ('', 0)),
+            ("color", ('', '0')),  # Tell me those three key's function~
+            ("font", ('', '0')),
+            ("size", ('', '0')),
             ("descr", ('', string2base64(self.extend_descr(torrent=torrent, info_dict=raw_info)))),
             ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
             ("uplver", ('', self.uplver)),
