@@ -71,7 +71,7 @@ class Database(object):
 
     def get_data_clone_id(self, key, site, table='info_list', column='search_name', clone_id=None):
         key = key.replace(" ", "%").replace(".", "%")
-        sql = "SELECT * FROM `{table}` WHERE `{column}` LIKE '{key}%'".format(tb=table, cow=column, key=key)
+        sql = "SELECT * FROM `{tb}` WHERE `{cow}` LIKE '{key}%'".format(tb=table, cow=column, key=key)
         try:  # Get series info from database
             clone_id = self.get_sql(sql, r_dict=True)[0][site]
         except IndexError:  # The database doesn't have the search data, Return `None`
