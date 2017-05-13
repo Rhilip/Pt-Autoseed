@@ -62,9 +62,11 @@ class Autoseed(object):
     def update(self):
         """Get the pre-reseed list from database."""
         result = self.db.get_table_seed_list_limit(tracker_list=self.active_tracker, operator="OR", condition="=0")
-        for t in result:  # Traversal all unseed_list
+        for t in result:  # Traversal all un-reseed list
             try:
-                self.feed(dl_torrent=self.tc.get_torrent(t["download_id"]), cow=t)
-            except KeyError:  # 种子不存在了
+                dl_torrent = self.tc.get_torrent(t["download_id"])
+            except KeyError:  # Un-exist pre-reseed torrent
                 logging.error("The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
                               "It will be deleted from db in next delete-check time".format(t["title"]))
+            else:
+                self.feed(dl_torrent=dl_torrent, cow=t)
