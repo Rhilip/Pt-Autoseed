@@ -23,9 +23,18 @@ db_name = ""
 # -*- End of Main Setting -*-
 
 # -*- Reseed Site Setting -*-
+"""
+NOTICE:
+1.If you want to login by cookies,please del the inner dict "account" or let this dict empty,
+  for Autoseed will try to use account as login method first instead of cookies.
+"""
 # """Byrbt"""
 site_byrbt = {
     "status": True,  # default: False
+    "login": {
+        "cookies": ""
+        # Account method is not support in byrbt,due to ask for Verification code.
+    },
     "cookies": "",
     "passkey": "",
     "anonymous_release": True,  # default: True
@@ -34,6 +43,13 @@ site_byrbt = {
 # """NPUBits"""
 site_npubits = {
     "status": True,
+    "login": {
+        "cookies": "",
+        "account": {
+            "username": "",
+            "password": ""
+        }
+    },
     "cookies": "",
     "passkey": "",
     "anonymous_release": True,
@@ -70,7 +86,7 @@ ServerChan_SCKEY = ""
 
 # -*- Extended description Setting -*-
 extend_descr_raw = {
-    "before": {   # Key : min_reseed_time, max_reseed_time
+    "before": {  # Key : min_reseed_time, max_reseed_time
         "status": True,
         "bbcode": """
         [quote]

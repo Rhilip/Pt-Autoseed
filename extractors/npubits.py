@@ -20,6 +20,14 @@ class NPUBits(NexusPHP):
         _site_setting = setting.site_npubits
         super().__init__(setting=setting, site_setting=_site_setting, tr_client=tr_client, db_client=db_client)
 
+    def login_data(self, account_dict):
+        return {
+            "username": account_dict["username"],
+            "password": account_dict["password"],
+            "ssl": "yes",
+            "trackerssl": "yes"
+        }
+
     def torrent_thank(self, tid):
         self.post_data(url="{host}/thanks.php".format(host=self.url_host), data={"id": str(tid), "value": 0})
 
