@@ -1,13 +1,17 @@
 # Byrbt-Autoseed
-An Autoseed used to reseed TV-series in Byrbt
+An Autoseed used to reseed TV-series and Anime in Some PT sites. \
+Dome : [R酱 の 更新姬 - autoseed.rhilip.info](//autoseed.rhilip.info/) \
+\
+[![GitHub license](https://img.shields.io/badge/license-AGPL-blue.svg)](https://raw.githubusercontent.com/Rhilip/Pt-Autoseed/master/LICENSE)
 
-Dome : [R酱 の 更新姬 - autoseed.rhilip.info](//autoseed.rhilip.info/)
-
-## How it Works
-![How it Works](image/How%20it%20work.png)
+## Support Site
+| Site | URL | Supported Date |
+|:------------------:|:---:|:---:|
+| 北邮人BT | <https://bt.byr.cn/> | 2017-02-07 |
+| 蒲公英 NPUBits | <https://npupt.com/> | 2017-05-12 |
 
 ## Based Environment
-#### Ubtuntu 14.04
+#### Ubtuntu 14.04, Python > 3.4.
 * Transmission
 ```
 apt-get -y install software-properties-common
@@ -38,4 +42,8 @@ apt-get -y install mediainfo
 ```
 apt-get -y install python3-pip python3-lxml
 pip3 install pymysql transmissionrpc requests bs4 pymediainfo
+```
+* Supervisor (Suggest)
+```
+pip install supervisor
 ```

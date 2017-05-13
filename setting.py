@@ -1,7 +1,7 @@
 # -*- Main Setting about Autoseed,Transmission,Database -*-
 # Autoseed
-sleep_free_time = 600  # 空闲期脚本每次运行间隔
-sleep_busy_time = 120  # 繁忙期脚本每次运行间隔
+sleep_free_time = 600  # 空闲期脚本每次运行间隔(s)
+sleep_busy_time = 120  # 繁忙期脚本每次运行间隔(s)
 busy_start_hour = 8  # 繁忙期开始钟点 [0,24)
 busy_end_hour = 14  # 繁忙期结束钟点 (busy_start_hour,24)
 delete_check_round = 5  # 每多少次运行检查一次种子删除情况
@@ -94,7 +94,7 @@ extend_descr_raw = {
         """
     },
     "shot": {  # Key : img_url
-        "status": True,
+        "status": False,
         "bbcode": """
         [quote][color=Red]以下是Autoseed自动完成的截图，不喜勿看 [/color]
         [img]{img_url}[/img]
