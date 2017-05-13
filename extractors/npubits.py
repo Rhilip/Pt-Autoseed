@@ -3,13 +3,9 @@
 
 import re
 import base64
-import requests
 import logging
 
 from .default import NexusPHP
-
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 def string2base64(raw):
@@ -18,7 +14,6 @@ def string2base64(raw):
 
 class NPUBits(NexusPHP):
     url_host = "https://npupt.com"
-
     db_column = "npupt.com"
 
     def __init__(self, setting, tr_client, db_client):
@@ -26,18 +21,15 @@ class NPUBits(NexusPHP):
         super().__init__(setting=setting, site_setting=_site_setting, tr_client=tr_client, db_client=db_client)
 
     def torrent_thank(self, tid):
-        url_thank = "{host}/thanks.php".format(host=self.url_host)
-        requests.post(url=url_thank, cookies=self.cookies, data={"id": str(tid), "value": 0})
+        self.post_data(url="{host}/thanks.php".format(host=self.url_host), data={"id": str(tid), "value": 0})
 
     def torrent_clone(self, tid) -> dict:
         """
-        Use Internal API: https://npupt.com/transfer.php?url={url} ,Request Method:GET
+        Use Internal API: https://npupt.com/transfer.php?url={url} ,Request Method: GET
         The url use base64 encryption, and will response a json dict.
         """
         transferred_url = string2base64("{host}/details.php?id={tid}&hit=1".format(host=self.url_host, tid=tid))
-        res = requests.get(url="https://npupt.com/transfer.php?url={url}".format(url=transferred_url),
-                           cookies=self.cookies)
-        res_dic = res.json()
+        res_dic = self.get_page(url="https://npupt.com/transfer.php", params={"url": transferred_url}, json=True)
         res_dic.update({"transferred_url": transferred_url, "before_torrent_id": tid})
 
         # Remove code and quote.
@@ -47,17 +39,8 @@ class NPUBits(NexusPHP):
         raw_descr = re.sub(r"\u3000", " ", raw_descr)
         res_dic["descr"] = raw_descr
 
+        logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
         return res_dic
-
-    def get_last_torrent_id(self, key, mode: int = 0, tid=0) -> int:
-        # TODO NPUBits Use key(incldead,nodupe) instead
-        url_search = "{host}/torrents.php?search={k}&incldead=1&nodupe=1".format(host=self.url_host, k=key)
-        bs = self.get_page(url=url_search, bs=True)
-        first_torrent_tag = bs.find("a", href=re.compile("torrent_download"))
-        if first_torrent_tag:  # If exist
-            href = first_torrent_tag["href"]
-            tid = re.search("torrent_download\((\d+)", href).group(1)  # 找出种子id
-        return tid
 
     def data_raw2tuple(self, torrent, title_search_group, raw_info):
         torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)

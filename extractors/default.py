@@ -50,19 +50,24 @@ class NexusPHP(object):
         if user_tag:
             up_name = user_tag.get_text()
             logging.debug("Model \"{mo}\" is activation now.You are assign as \"{up}\" in this site."
-                          "Anonymous release:{ar},auto_thank: {at}".format(mo=self.model_name(), up=up_name,
-                                                                           ar=self.uplver, at=self.auto_thank))
+                          "Anonymous release: {ar},auto_thank: {at}".format(mo=self.model_name(), up=up_name,
+                                                                            ar=self.uplver, at=self.auto_thank))
         else:
             self.status = False
             logging.error("You may enter a wrong cookies-pair in setting,"
                           "If you want to use \"{mo}\",please exit and Check".format(mo=self.model_name()))
 
-    def get_page(self, url, bs=False):
-        page = requests.get(url=url, cookies=self.cookies)
+    def get_page(self, url, params=None, bs=False, json=False):
+        page = requests.get(url=url, params=params, cookies=self.cookies)
         return_info = page.text
         if bs:
             return_info = BeautifulSoup(return_info, "lxml")
+        elif json:
+            return_info = page.json()
         return return_info
+
+    def post_data(self, url, data):
+        return requests.post(url=url, cookies=self.cookies, data=data)
 
     def torrent_download(self, tid, thanks=auto_thank):
         download_url = "{host}/download.php?id={tid}&passkey={pk}".format(host=self.url_host, tid=tid, pk=self.passkey)
@@ -91,15 +96,19 @@ class NexusPHP(object):
         return flag
 
     def torrent_thank(self, tid):
-        url_thank = "{host}/thanks.php".format(host=self.url_host)
-        requests.post(url=url_thank, cookies=self.cookies, data={"id": str(tid)})
+        self.post_data(url="{host}/thanks.php".format(host=self.url_host), data={"id": str(tid)})
 
-    def torrent_detail(self, tid, bs=False):
-        return self.get_page(url="{host}/details.php?id={tid}&hit=1".format(host=self.url_host, tid=tid), bs=bs)
+    def page_torrent_detail(self, tid, bs=False):
+        return self.get_page(url="{host}/details.php".format(host=self.url_host), params={"id": tid, "hit": 1}, bs=bs)
 
-    def get_last_torrent_id(self, key, mode: int = 0, tid=0) -> int:
-        url_search = "{host}/torrents.php?search={k}&search_mode={md}".format(host=self.url_host, k=key, md=mode)
-        bs = self.get_page(url=url_search, bs=True)
+    def page_torrent_info(self, tid, bs=False):
+        return self.get_page(url="{host}/torrent_info.php".format(host=self.url_host), params={"id": tid}, bs=bs)
+
+    def page_search(self, payload: dict, bs=False):
+        return self.get_page(url="{host}/torrents.php".format(host=self.url_host), params=payload, bs=bs)
+
+    def search_first_torrent_id(self, key, tid=0) -> int:
+        bs = self.page_search(payload={"search": key}, bs=True)
         first_torrent_tag = bs.find("a", href=re.compile("download.php"))
         if first_torrent_tag:  # If exist
             href = first_torrent_tag["href"]
@@ -115,10 +124,9 @@ class NexusPHP(object):
         If exist in this site ,return the exist torrent's id,else return 0.
         (Warning:if the exist torrent is not same as the pre-reseed torrent ,will return -1)
         """
-        tag = self.get_last_torrent_id(key=search_title)
+        tag = self.search_first_torrent_id(key=search_title)
         if tag is not 0:
-            torrent_file_url = "{host}/torrent_info.php?id={tid}".format(host=self.url_host, tid=tag)
-            torrent_file_page = self.get_page(url=torrent_file_url, bs=True)
+            torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
             torrent_file_info_table = torrent_file_page.find("div", align="center").find("table")
             torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
             if torrent_file_name != torrent_title:  # Use pre-reseed torrent's name match the exist torrent's name
@@ -134,9 +142,9 @@ class NexusPHP(object):
         search_tag = self.exist_judge(key_with_ep, torrent.name)
         if search_tag == 0:  # 种子不存在，则准备发布
             clone_id = self.db.get_data_clone_id(key=key_raw, site=self.db_column)
-            if clone_id is None or 0:
+            if clone_id in [None, 0, "0"]:
                 logging.warning("Not Find clone id from db of this torrent,May got incorrect info when clone.")
-                clone_id = self.get_last_torrent_id(key=key_raw)
+                clone_id = self.search_first_torrent_id(key=key_raw)
             else:
                 logging.debug("Get clone id({id}) from db OK,USE key: \"{key}\"".format(id=clone_id, key=key_raw))
 

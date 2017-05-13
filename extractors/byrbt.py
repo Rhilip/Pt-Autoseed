@@ -98,7 +98,7 @@ class Byrbt(NexusPHP):
         This function will return a dict include (split_title,small_title,imdb_url,db_url,descr,before_torrent_id).
         """
         return_dict = {}
-        details_bs = self.torrent_detail(tid=tid, bs=True)
+        details_bs = self.page_torrent_detail(tid=tid, bs=True)
         title_search = re.search("种子详情 \"(?P<title>.*)\" - Powered", str(details_bs.title))
         if title_search:
             title = title_search.group("title")
