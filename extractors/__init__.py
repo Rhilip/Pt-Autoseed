@@ -32,7 +32,7 @@ class Autoseed(object):
         for site in self.active_seed:
             self.active_tracker.append(site.db_column)
 
-        logging.info("The assign autoseed model:{lis}".format(lis=self.active_seed))
+        logging.info("The assign autoseed module:{lis}".format(lis=self.active_seed))
 
     def feed(self, dl_torrent, cow):
         tname = dl_torrent.name
@@ -60,11 +60,13 @@ class Autoseed(object):
                     self.db.commit_sql(sql)
 
     def update(self):
-        """Judge to reseed depend on un-reseed torrent's status,With Database update after reseed."""
+        """Get the pre-reseed list from database."""
         result = self.db.get_table_seed_list_limit(tracker_list=self.active_tracker, operator="OR", condition="=0")
-        for t in result:  # Traversal all unseed_list
+        for t in result:  # Traversal all un-reseed list
             try:
-                self.feed(dl_torrent=self.tc.get_torrent(t["download_id"]), cow=t)
-            except KeyError:  # 种子不存在了
+                dl_torrent = self.tc.get_torrent(t["download_id"])
+            except KeyError:  # Un-exist pre-reseed torrent
                 logging.error("The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
                               "It will be deleted from db in next delete-check time".format(t["title"]))
+            else:
+                self.feed(dl_torrent=dl_torrent, cow=t)

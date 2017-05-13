@@ -21,9 +21,11 @@ class NexusPHP(object):
     status = False
     auto_thank = True
 
+    session = requests.Session()
+
     def __init__(self, setting: set, site_setting: dict, tr_client, db_client):
         self._setting = setting
-        self.cookies = cookies_raw2jar(site_setting["cookies"])
+        self.site_setting = site_setting
         self.passkey = site_setting["passkey"]
         try:
             self.status = site_setting["status"]
@@ -35,35 +37,59 @@ class NexusPHP(object):
 
         self.tc = tr_client
         self.db = db_client
-        self.descr = ExtendDescr(setting=self._setting)
+        self.descr = ExtendDescr(setting=self._setting)  # TODO Separate(It's not good idea to assign in every autoseed)
 
         if self.status:
-            self.session_check()
+            self.login()
 
     def model_name(self):
         return type(self).__name__
 
+    # -*- Login info site,and check login's info. -*-
+    def login(self):
+        login_dict = self.site_setting["login"]
+        try:
+            account_dict = login_dict["account"]
+            for pair, key in account_dict.items():
+                if key in [None, ""]:
+                    raise KeyError("One more account key(maybe username or password) is not filled in.")
+            post_data = self.login_data(account_dict)
+            self.session.post(url="{host}/takelogin.php".format(host=self.url_host), data=post_data)
+        except KeyError as err:
+            logging.error("Account login error: \"{err}\".Use cookies install.".format(err=err.args))
+            cookies = cookies_raw2jar(login_dict["cookies"])
+            self.session.headers.update(cookies)
+        else:
+            self.session_check()
+
     def session_check(self):
-        url_usercp_page = self.get_page(url="{host}/usercp.php".format(host=self.url_host), bs=True)
-        info_block = url_usercp_page.find(id="info_block")
-        user_tag = info_block.find("a", href=re.compile("userdetails.php"), class_=re.compile("Name"))
-        if user_tag:
+        page_usercp_bs = self.get_page(url="{host}/usercp.php".format(host=self.url_host), bs=True)
+        info_block = page_usercp_bs.find(id="info_block")
+        if info_block:
+            user_tag = info_block.find("a", href=re.compile("userdetails.php"), class_=re.compile("Name"))
             up_name = user_tag.get_text()
             logging.debug("Model \"{mo}\" is activation now.You are assign as \"{up}\" in this site."
-                          "Anonymous release:{ar},auto_thank: {at}".format(mo=self.model_name(), up=up_name,
-                                                                           ar=self.uplver, at=self.auto_thank))
+                          "Anonymous release: {ar},auto_thank: {at}".format(mo=self.model_name(), up=up_name,
+                                                                            ar=self.uplver, at=self.auto_thank))
         else:
             self.status = False
-            logging.error("You may enter a wrong cookies-pair in setting,"
-                          "If you want to use \"{mo}\",please exit and Check".format(mo=self.model_name()))
+            logging.error("Can not verify identity.If you want to use \"{mo}\","
+                          "please exit and Check".format(mo=self.model_name()))
 
-    def get_page(self, url, bs=False):
-        page = requests.get(url=url, cookies=self.cookies)
+    # -*- Encapsulation requests's method,with format-out as bs or json when use get -*-
+    def get_page(self, url, params=None, bs=False, json=False):
+        page = self.session.get(url=url, params=params)
         return_info = page.text
         if bs:
             return_info = BeautifulSoup(return_info, "lxml")
+        elif json:
+            return_info = page.json()
         return return_info
 
+    def post_data(self, url, data=None, files=None):
+        return self.session.post(url=url, data=data, files=files)
+
+    # -*- Torrent's download, upload and thank -*-
     def torrent_download(self, tid, thanks=auto_thank):
         download_url = "{host}/download.php?id={tid}&passkey={pk}".format(host=self.url_host, tid=tid, pk=self.passkey)
         added_torrent = self.tc.add_torrent(torrent=download_url)
@@ -74,7 +100,7 @@ class NexusPHP(object):
 
     def torrent_upload(self, data: tuple):
         upload_url = "{host}/takeupload.php".format(host=self.url_host)
-        post = requests.post(url=upload_url, cookies=self.cookies, files=data)
+        post = self.post_data(url=upload_url, files=data)
         if post.url != upload_url:  # 发布成功检查
             seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # 获取种子编号
             flag = self.torrent_download(tid=seed_torrent_download_id)
@@ -91,15 +117,20 @@ class NexusPHP(object):
         return flag
 
     def torrent_thank(self, tid):
-        url_thank = "{host}/thanks.php".format(host=self.url_host)
-        requests.post(url=url_thank, cookies=self.cookies, data={"id": str(tid)})
+        self.post_data(url="{host}/thanks.php".format(host=self.url_host), data={"id": str(tid)})
 
-    def torrent_detail(self, tid, bs=False):
-        return self.get_page(url="{host}/details.php?id={tid}&hit=1".format(host=self.url_host, tid=tid), bs=bs)
+    # -*- Get page detail.php, torrent_info.php, torrents.php -*-
+    def page_torrent_detail(self, tid, bs=False):
+        return self.get_page(url="{host}/details.php".format(host=self.url_host), params={"id": tid, "hit": 1}, bs=bs)
 
-    def get_last_torrent_id(self, key, mode: int = 0, tid=0) -> int:
-        url_search = "{host}/torrents.php?search={k}&search_mode={md}".format(host=self.url_host, k=key, md=mode)
-        bs = self.get_page(url=url_search, bs=True)
+    def page_torrent_info(self, tid, bs=False):
+        return self.get_page(url="{host}/torrent_info.php".format(host=self.url_host), params={"id": tid}, bs=bs)
+
+    def page_search(self, payload: dict, bs=False):
+        return self.get_page(url="{host}/torrents.php".format(host=self.url_host), params=payload, bs=bs)
+
+    def search_first_torrent_id(self, key, tid=0) -> int:
+        bs = self.page_search(payload={"search": key}, bs=True)
         first_torrent_tag = bs.find("a", href=re.compile("download.php"))
         if first_torrent_tag:  # If exist
             href = first_torrent_tag["href"]
@@ -115,16 +146,16 @@ class NexusPHP(object):
         If exist in this site ,return the exist torrent's id,else return 0.
         (Warning:if the exist torrent is not same as the pre-reseed torrent ,will return -1)
         """
-        tag = self.get_last_torrent_id(key=search_title)
+        tag = self.search_first_torrent_id(key=search_title)
         if tag is not 0:
-            torrent_file_url = "{host}/torrent_info.php?id={tid}".format(host=self.url_host, tid=tag)
-            torrent_file_page = self.get_page(url=torrent_file_url, bs=True)
+            torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
             torrent_file_info_table = torrent_file_page.find("div", align="center").find("table")
             torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
             if torrent_file_name != torrent_title:  # Use pre-reseed torrent's name match the exist torrent's name
                 tag = -1
         return tag
 
+    # -*- The feeding function -*-
     def feed(self, torrent, torrent_info_search, flag=-1):
         logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
         key_raw = re.sub(r"[_\-.]", " ", torrent_info_search.group("search_name"))
@@ -134,9 +165,9 @@ class NexusPHP(object):
         search_tag = self.exist_judge(key_with_ep, torrent.name)
         if search_tag == 0:  # 种子不存在，则准备发布
             clone_id = self.db.get_data_clone_id(key=key_raw, site=self.db_column)
-            if clone_id is None or 0:
+            if clone_id in [None, 0, "0"]:
                 logging.warning("Not Find clone id from db of this torrent,May got incorrect info when clone.")
-                clone_id = self.get_last_torrent_id(key=key_raw)
+                clone_id = self.search_first_torrent_id(key=key_raw)
             else:
                 logging.debug("Get clone id({id}) from db OK,USE key: \"{key}\"".format(id=clone_id, key=key_raw))
 
@@ -158,23 +189,12 @@ class NexusPHP(object):
         self.db.reseed_update(did=torrent.id, rid=flag, site=self.db_column)
         return flag
 
+    # -*- At least Overridden function,Please overridden below when add a new site -*-
+    def login_data(self, account_dict):  # If you want to login by account but not cookies
+        raise KeyError("Unsupported method.")
+
     def torrent_clone(self, tid) -> dict:
-        """At least Overridden it please"""
         pass
 
     def data_raw2tuple(self, torrent, torrent_name_search, raw_info: dict):
-        """At least Overridden it please,Below is a sample."""
-        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
-        post_tuple = (
-            ("type", ('', str(raw_info["type"]))),
-            ("second_type", ('', str(raw_info["second_type"]))),
-            ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-            ("name", ('', str(raw_info["name"]))),
-            ("small_descr", ('', raw_info["small_descr"])),
-            ("url", ('', raw_info["url"])),
-            ("dburl", ('', raw_info["dburl"])),
-            ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),
-            ("uplver", ('', self.uplver)),
-        )
-        return post_tuple
+        return ()
