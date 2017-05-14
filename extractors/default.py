@@ -59,7 +59,7 @@ class NexusPHP(object):
             logging.error("Account login error: \"{err}\".Use cookies install.".format(err=err.args))
             cookies = cookies_raw2jar(login_dict["cookies"])
             self.session.headers.update(cookies)
-        else:
+        finally:
             self.session_check()
 
     def session_check(self):
