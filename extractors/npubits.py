@@ -16,9 +16,8 @@ class NPUBits(NexusPHP):
     url_host = "https://npupt.com"
     db_column = "npupt.com"
 
-    def __init__(self, setting, tr_client, db_client):
-        _site_setting = setting.site_npubits
-        super().__init__(setting=setting, site_setting=_site_setting, tr_client=tr_client, db_client=db_client)
+    def __init__(self, site_setting):
+        super().__init__(site_setting=site_setting)
 
     def login_data(self, account_dict):
         return {

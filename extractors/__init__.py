@@ -2,6 +2,7 @@ import re
 import logging
 
 from utils.pattern import pattern_group
+from utils.loadsetting import tc, db, setting
 
 from .byrbt import Byrbt
 from .npubits import NPUBits
@@ -11,21 +12,17 @@ class Autoseed(object):
     active_seed = []
     active_tracker = []
 
-    def __init__(self, setting, tr_client, db_client):
-        self.setting = setting
-        self.tc = tr_client
-        self.db = db_client
-
+    def __init__(self):
         self.load_autoseed()
 
     def load_autoseed(self):
         # Byrbt
-        autoseed_byrbt = Byrbt(setting=self.setting, tr_client=self.tc, db_client=self.db)
+        autoseed_byrbt = Byrbt(site_setting=setting.site_byrbt)
         if autoseed_byrbt.status:
             self.active_seed.append(autoseed_byrbt)
 
         # NPUBits
-        autoseed_npubits = NPUBits(setting=self.setting, tr_client=self.tc, db_client=self.db)
+        autoseed_npubits = NPUBits(site_setting=setting.site_npubits)
         if autoseed_byrbt.status:
             self.active_seed.append(autoseed_npubits)
 
@@ -57,14 +54,14 @@ class Autoseed(object):
                 logging.warning("Mark Torrent \"{}\" As Un-reseed torrent,Stop watching.".format(tname))
                 for tracker in self.active_tracker:
                     sql = "UPDATE seed_list SET `{}` = {:d} WHERE download_id = {:d}".format(tracker, -1, dl_torrent.id)
-                    self.db.commit_sql(sql)
+                    db.commit_sql(sql)
 
     def update(self):
         """Get the pre-reseed list from database."""
-        result = self.db.get_table_seed_list_limit(tracker_list=self.active_tracker, operator="OR", condition="=0")
+        result = db.get_table_seed_list_limit(tracker_list=self.active_tracker, operator="OR", condition="=0")
         for t in result:  # Traversal all un-reseed list
             try:
-                dl_torrent = self.tc.get_torrent(t["download_id"])
+                dl_torrent = tc.get_torrent(t["download_id"])
             except KeyError:  # Un-exist pre-reseed torrent
                 logging.error("The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
                               "It will be deleted from db in next delete-check time".format(t["title"]))

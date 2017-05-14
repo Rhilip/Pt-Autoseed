@@ -38,6 +38,11 @@ apt-get -y install mysql-server
 apt-get -y install mediainfo
 ```
 * ~~ffmpeg~~(rtinst.sh will install it)
+```
+apt-add-repository -y ppa:mc3man/trusty-media
+apt-get update
+apt-get -y install ffmpeg
+```
 * Python3 model
 ```
 apt-get -y install python3-pip python3-lxml
@@ -46,4 +51,11 @@ pip3 install pymysql transmissionrpc requests bs4 pymediainfo
 * Supervisor (Suggest)
 ```
 pip install supervisor
+```
+
+## How to Use
+```
+cp setting.py usersetting.py
+vi usersetting.py
+sudo python3 autoseed.py
 ```

@@ -5,8 +5,9 @@ import re
 import logging
 import requests
 from utils.cookie import cookies_raw2jar
-from utils.extend_descr import ExtendDescr
+
 from bs4 import BeautifulSoup
+from utils.loadsetting import tc, db, descr
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -23,8 +24,7 @@ class NexusPHP(object):
 
     session = requests.Session()
 
-    def __init__(self, setting: set, site_setting: dict, tr_client, db_client):
-        self._setting = setting
+    def __init__(self, site_setting: dict):
         self.site_setting = site_setting
         self.passkey = site_setting["passkey"]
         try:
@@ -34,10 +34,6 @@ class NexusPHP(object):
                 self.uplver = "no"
         except KeyError:
             pass
-
-        self.tc = tr_client
-        self.db = db_client
-        self.descr = ExtendDescr(setting=self._setting)  # TODO Separate(It's not good idea to assign in every autoseed)
 
         if self.status:
             self.login()
@@ -92,7 +88,7 @@ class NexusPHP(object):
     # -*- Torrent's download, upload and thank -*-
     def torrent_download(self, tid, thanks=auto_thank):
         download_url = "{host}/download.php?id={tid}&passkey={pk}".format(host=self.url_host, tid=tid, pk=self.passkey)
-        added_torrent = self.tc.add_torrent(torrent=download_url)
+        added_torrent = tc.add_torrent(torrent=download_url)
         logging.info("Download Torrent OK,which id: {id}.".format(id=tid))
         if thanks:  # Automatically thanks for additional Bones.
             self.torrent_thank(tid)
@@ -138,8 +134,7 @@ class NexusPHP(object):
         return tid
 
     def extend_descr(self, torrent, info_dict) -> str:
-        return self.descr.out(raw=info_dict["descr"], torrent=torrent, encode=self.encode,
-                              before_torrent_id=info_dict["before_torrent_id"])
+        return descr.out(raw=info_dict["descr"], torrent=torrent, encode=self.encode, clone_id=info_dict["clone_id"])
 
     def exist_judge(self, search_title, torrent_file_name) -> int:
         """
@@ -164,7 +159,7 @@ class NexusPHP(object):
 
         search_tag = self.exist_judge(key_with_ep, torrent.name)
         if search_tag == 0:  # 种子不存在，则准备发布
-            clone_id = self.db.get_data_clone_id(key=key_raw, site=self.db_column)
+            clone_id = db.get_data_clone_id(key=key_raw, site=self.db_column)
             if clone_id in [None, 0, "0"]:
                 logging.warning("Not Find clone id from db of this torrent,May got incorrect info when clone.")
                 clone_id = self.search_first_torrent_id(key=key_raw)
@@ -186,7 +181,7 @@ class NexusPHP(object):
             flag = self.torrent_download(tid=search_tag, thanks=False)
             logging.warning("Find dupe torrent,which id: {0},Automatically assist it~".format(search_tag))
 
-        self.db.reseed_update(did=torrent.id, rid=flag, site=self.db_column)
+        db.reseed_update(did=torrent.id, rid=flag, site=self.db_column)
         return flag
 
     # -*- At least Overridden function,Please overridden below when add a new site -*-

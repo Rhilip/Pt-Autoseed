@@ -12,12 +12,12 @@ class ExtendDescr(object):
         self._setting = setting
         self.raw_dict = setting.extend_descr_raw
 
-    def out(self, raw, torrent, before_torrent_id, encode="bbcode"):
+    def out(self, raw, torrent, clone_id, encode="bbcode"):
         file = self._setting.trans_downloaddir + "/" + torrent.files()[0]["name"]
         before = self.build_before(encode)
         shot = self.build_shot(file=file, encode=encode)
         media_info = self.build_mediainfo(file=file, encode=encode)
-        clone_info = self.build_clone_info(before_torrent_id=before_torrent_id, encode=encode)
+        clone_info = self.build_clone_info(before_torrent_id=clone_id, encode=encode)
 
         return """{before}{raw}{shot}{mediainfo}{clone_info}""" \
             .format(before=before, raw=raw, shot=shot, mediainfo=media_info, clone_info=clone_info)

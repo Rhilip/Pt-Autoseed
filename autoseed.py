@@ -3,43 +3,18 @@
 
 import time
 import logging
-from logging.handlers import RotatingFileHandler
 
-import utils
-import transmissionrpc
 from extractors import Autoseed
+from utils.connect import Connect
+from utils.loadsetting import setting, fileHandler, consoleHandler
 
-try:
-    import usersetting as setting
-except ImportError:
-    import setting
-
-# -*- Logging Setting -*-
-logging_level = logging.INFO
-if setting.logging_debug_level:
-    logging_level = logging.DEBUG
-
-logFormatter = logging.Formatter(fmt=setting.logging_format, datefmt=setting.logging_datefmt)
-rootLogger = logging.getLogger('')
+# -*- Logging Model -*-
+rootLogger = logging.getLogger('')  # Logging
 rootLogger.setLevel(logging.NOTSET)
+rootLogger.addHandler(fileHandler).addHandler(consoleHandler)
 
-fileHandler = RotatingFileHandler(filename=setting.logging_filename, mode='a', backupCount=2,
-                                  maxBytes=setting.logging_file_maxBytes, encoding=None, delay=0)
-fileHandler.setFormatter(logFormatter)
-fileHandler.setLevel(logging_level)
-rootLogger.addHandler(fileHandler)
-
-consoleHandler = logging.StreamHandler()
-consoleHandler.setFormatter(logFormatter)
-rootLogger.addHandler(consoleHandler)
-# -*- End of Logging Setting -*-
-
-# -*- Loading Model -*-
-db = utils.Database(setting)  # Database with its function
-tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port,  # Transmission
-                            user=setting.trans_user, password=setting.trans_password)
-autoseed = Autoseed(setting=setting, tr_client=tc, db_client=db)  # Autoseed
-connect = utils.Connect(tc_client=tc, db_client=db, tracker_list=autoseed.active_tracker, setting=setting)  # Connect
+autoseed = Autoseed()  # Autoseed
+connect = Connect(tracker_list=autoseed.active_tracker)  # Connect
 # -*- End of Loading Model -*-
 
 

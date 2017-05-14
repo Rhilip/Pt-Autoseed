@@ -88,9 +88,8 @@ class Byrbt(NexusPHP):
 
     encode = "html"
 
-    def __init__(self, setting, tr_client, db_client):
-        _site_setting = setting.site_byrbt
-        super().__init__(setting=setting, site_setting=_site_setting, tr_client=tr_client, db_client=db_client)
+    def __init__(self, site_setting):
+        super().__init__(site_setting=site_setting)
 
     def torrent_clone(self, tid) -> dict:
         """
