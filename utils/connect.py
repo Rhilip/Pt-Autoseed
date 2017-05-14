@@ -10,7 +10,7 @@ class Connect(object):
     def __init__(self, tracker_list):
         self.tracker_list = tracker_list
 
-    def update_torrent_info_from_rpc_to_db(self, last_id_check=0, force_clean_check=False):
+    def update_torrent_info_from_rpc_to_db(self, last_id_check=0, last_id_db=None, force_clean_check=False):
         """
         Sync torrent's id from transmission to database,
         List Start on last check id,and will return the max id as the last check id.
@@ -18,9 +18,9 @@ class Connect(object):
         torrent_id_list = [t.id for t in tc.get_torrents() if t.id > last_id_check]
         if torrent_id_list:
             last_id_check = max(torrent_id_list)
-            last_id_db = db.get_max_in_column(table="seed_list", column_list=["download_id"] + self.tracker_list)
-            logging.debug(
-                "Now,Torrent id count: transmission: {tr},database: {db}".format(tr=last_id_check, db=last_id_db))
+            if last_id_db is None:
+                last_id_db = db.get_max_in_column(table="seed_list", column_list=["download_id"] + self.tracker_list)
+            logging.debug("Max tid, transmission: {tr},database: {db}".format(tr=last_id_check, db=last_id_db))
             if not force_clean_check:  # Normal Update
                 logging.info("Some new torrents were add to transmission,Sync to db~")
                 for i in torrent_id_list:
@@ -36,7 +36,7 @@ class Connect(object):
                 logging.error(
                     "It seems the torrent list didn't match with db-records,Clean the \"seed_list\" for safety.")
                 db.commit_sql(sql="DELETE FROM seed_list")  # Delete all line from seed_list
-                self.update_torrent_info_from_rpc_to_db()
+                self.update_torrent_info_from_rpc_to_db(last_id_db=0)
         else:
             logging.debug("No new torrent(s),Return with nothing to do.")
         return last_id_check
