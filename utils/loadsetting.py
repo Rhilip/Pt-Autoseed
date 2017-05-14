@@ -13,7 +13,7 @@ except ImportError:
 db = Database(setting)  # Database with its function
 tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port,  # Transmission
                             user=setting.trans_user, password=setting.trans_password)
-descr = ExtendDescr(setting=setting)  # TODO Separate(It's not good idea to assign in every autoseed)
+descr = ExtendDescr(setting=setting)
 
 logging_level = logging.INFO
 if setting.logging_debug_level:

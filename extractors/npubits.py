@@ -36,17 +36,22 @@ class NPUBits(NexusPHP):
         The url use base64 encryption, and will response a json dict.
         """
         transferred_url = string2base64("{host}/details.php?id={tid}&hit=1".format(host=self.url_host, tid=tid))
-        res_dic = self.get_page(url="https://npupt.com/transfer.php", params={"url": transferred_url}, json=True)
-        res_dic.update({"transferred_url": transferred_url, "before_torrent_id": tid})
+        try:
+            res_dic = self.get_page(url="https://npupt.com/transfer.php", params={"url": transferred_url}, json=True)
+        except ValueError:
+            logging.error("Error,this torrent may not exist or ConnectError")
+            res_dic = {}
+        else:
+            res_dic.update({"transferred_url": transferred_url, "before_torrent_id": tid})
 
-        # Remove code and quote.
-        raw_descr = res_dic["descr"]
-        raw_descr = re.sub(r"\[code\](.+)\[/code\]", "", raw_descr, flags=re.S)
-        raw_descr = re.sub(r"\[quote\](.+)\[/quote\]", "", raw_descr, flags=re.S)
-        raw_descr = re.sub(r"\u3000", " ", raw_descr)
-        res_dic["descr"] = raw_descr
+            # Remove code and quote.
+            raw_descr = res_dic["descr"]
+            raw_descr = re.sub(r"\[code\](.+)\[/code\]", "", raw_descr, flags=re.S)
+            raw_descr = re.sub(r"\[quote\](.+)\[/quote\]", "", raw_descr, flags=re.S)
+            raw_descr = re.sub(r"\u3000", " ", raw_descr)
+            res_dic["descr"] = raw_descr
 
-        logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
+            logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
         return res_dic
 
     def data_raw2tuple(self, torrent, title_search_group, raw_info):

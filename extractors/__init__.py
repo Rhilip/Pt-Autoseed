@@ -28,7 +28,6 @@ class Autoseed(object):
 
         for site in self.active_seed:
             self.active_tracker.append(site.db_column)
-
         logging.info("The assign autoseed module:{lis}".format(lis=self.active_seed))
 
     def feed(self, dl_torrent, cow):

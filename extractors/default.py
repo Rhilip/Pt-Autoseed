@@ -26,9 +26,9 @@ class NexusPHP(object):
 
     def __init__(self, site_setting: dict):
         self.site_setting = site_setting
+        self.status = site_setting["status"]
         self.passkey = site_setting["passkey"]
         try:
-            self.status = site_setting["status"]
             self.auto_thank = site_setting["auto_thank"]
             if not site_setting["anonymous_release"]:
                 self.uplver = "no"
@@ -50,11 +50,11 @@ class NexusPHP(object):
                 if key in [None, ""]:
                     raise KeyError("One more account key(maybe username or password) is not filled in.")
             post_data = self.login_data(account_dict)
-            self.session.post(url="{host}/takelogin.php".format(host=self.url_host), data=post_data)
+            self.post_data(url="{host}/takelogin.php".format(host=self.url_host), data=post_data)
         except KeyError as err:
             logging.error("Account login error: \"{err}\".Use cookies install.".format(err=err.args))
             cookies = cookies_raw2jar(login_dict["cookies"])
-            self.session.headers.update(cookies)
+            self.session.cookies.update(cookies)
         finally:
             self.session_check()
 

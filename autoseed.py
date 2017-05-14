@@ -1,6 +1,7 @@
 # ！/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+import sys
 import time
 import logging
 
@@ -11,10 +12,15 @@ from utils.loadsetting import setting, fileHandler, consoleHandler
 # -*- Logging Model -*-
 rootLogger = logging.getLogger('')  # Logging
 rootLogger.setLevel(logging.NOTSET)
-rootLogger.addHandler(fileHandler).addHandler(consoleHandler)
+rootLogger.addHandler(fileHandler)
+rootLogger.addHandler(consoleHandler)
 
 autoseed = Autoseed()  # Autoseed
-connect = Connect(tracker_list=autoseed.active_tracker)  # Connect
+if autoseed.active_tracker:
+    connect = Connect(tracker_list=autoseed.active_tracker)  # Connect
+    logging.info("Initialization settings Success~")
+else:
+    sys.exit("None of autoseed is active,Exit.")
 # -*- End of Loading Model -*-
 
 
@@ -42,5 +48,4 @@ def main():
 
 
 if __name__ == '__main__':
-    logging.info("Initialization settings Success~")
     main()
