@@ -42,7 +42,7 @@ class NPUBits(NexusPHP):
             logging.error("Error,this torrent may not exist or ConnectError")
             res_dic = {}
         else:
-            res_dic.update({"transferred_url": transferred_url, "before_torrent_id": tid})
+            res_dic.update({"transferred_url": transferred_url, "clone_id": tid})
 
             # Remove code and quote.
             raw_descr = res_dic["descr"]

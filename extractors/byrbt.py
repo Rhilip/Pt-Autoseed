@@ -132,7 +132,7 @@ class Byrbt(NexusPHP):
                 "url": imdb_url,
                 "dburl": dburl,
                 "descr": descr_out,
-                "before_torrent_id": tid
+                "clone_id": tid
             })
         else:
             logging.error("Error,this torrent may not exist or ConnectError")
