@@ -6,31 +6,28 @@ import logging
 
 
 class Database(object):
-    def __init__(self, setting):
-        self.db = pymysql.connect(host=setting.db_address, port=setting.db_port,
-                                  user=setting.db_user, password=setting.db_password,
-                                  db=setting.db_name, charset='utf8')
+    def __init__(self, host, port, user, password, db):
+        self.db = pymysql.connect(host=host, port=port, user=user, password=password, db=db, charset='utf8')
+        self.cursor = self.db.cursor()
 
     def commit_sql(self, sql: str):
         """Submit SQL statement"""
-        cursor = self.db.cursor()
         try:
-            cursor.execute(sql)
+            self.cursor.execute(sql)
             self.db.commit()
-            cursor.close()
             logging.debug("A commit to db success,DDL: \"{sql}\"".format(sql=sql))
-        except:
-            logging.critical("A commit to db ERROR,DDL: " + sql)
+        except pymysql.Error as err:
+            logging.critical("Mysql Error: {err},DDL: {sql}".format(err=err.args, sql=sql))
             self.db.rollback()
 
     def get_sql(self, sql: str, r_dict=False):
         """Get data from the database"""
-        cursor = self.db.cursor()
-        if r_dict:  # 以字典形式返回
+        if r_dict:  # Dict Cursor
             cursor = self.db.cursor(pymysql.cursors.DictCursor)
+        else:
+            cursor = self.cursor
         row = cursor.execute(sql)
         result = cursor.fetchall()
-        cursor.close()
         logging.debug("Some information from db,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
         return result
 

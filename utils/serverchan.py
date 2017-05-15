@@ -6,9 +6,9 @@ import logging
 
 
 class ServerChan(object):
-    def __init__(self, setting):
-        self.status = setting.ServerChan_status
-        self.key_url = "http://sc.ftqq.com/" + setting.ServerChan_SCKEY + ".send"
+    def __init__(self, status, key):
+        self.status = status
+        self.key_url = "http://sc.ftqq.com/" + key + ".send"
 
     def send(self, text, desp):
         """

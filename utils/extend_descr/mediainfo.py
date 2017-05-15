@@ -3,11 +3,11 @@ import logging
 import pymediainfo
 
 encode_dict = {
-    "bbcode": {
+    "html": {
         "line_sep": "<br>",
         "text_strong": "<strong>{text}</strong>"
     },
-    "html": {
+    "bbcode": {
         "line_sep": "\n",
         "text_strong": "[b]{text}[/b]"
     }
