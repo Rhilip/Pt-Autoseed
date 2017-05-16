@@ -33,7 +33,9 @@ class MediaInfo(object):
         media_info_raw = pymediainfo.MediaInfo.parse(self.file)
         suffix = str(os.path.splitext(self.file)[1][1:])
 
-        general = video = audio = []
+        general = []
+        video = []
+        audio = []
         if suffix.lower() == "mkv":
             for track in media_info_raw.tracks:
                 if track.track_type == 'General':
@@ -49,7 +51,7 @@ class MediaInfo(object):
                                "Writing library : {0}".format(track.writing_library)
                                ]
                 if track.track_type == 'Video':
-                    video_temp = [
+                    video.append([
                         "ID : {0}".format(track.track_id),
                         "Format : {0}".format(track.format),
                         "Format profile : {0}".format(track.codec_profile),
@@ -63,18 +65,16 @@ class MediaInfo(object):
                         "Writing library : {0}".format(track.writing_library),
                         "Encoding settings : {0}".format(track.encoding_settings),
                         "Matrix coefficients : {0}".format(track.matrix_coefficients),
-                    ]
-                    video.append(video_temp)
+                    ])
                 if track.track_type == 'Audio':
-                    audio_temp = [
+                    audio.append([
                         "ID : {0}".format(track.track_id),
                         "Format : {0}".format(track.format),
                         "Bit rate : {0}".format(track.other_bit_rate[0]),
                         "Channel(s) : {0}".format(track.channel_s),
                         "Sampling rate : {0}".format(track.other_sampling_rate[0]),
                         "Forced : {0}".format(track.forced),
-                    ]
-                    audio.append(audio_temp)
+                    ])
         elif suffix.lower() == "mp4":
             for track in media_info_raw.tracks:
                 if track.track_type == 'General':
@@ -85,7 +85,7 @@ class MediaInfo(object):
                                "Overall bit rate : {0}".format(track.other_overall_bit_rate[0])
                                ]
                 if track.track_type == 'Video':
-                    video_temp = [
+                    video.append([
                         "ID : {0}".format(track.track_id),
                         "Format : {0}".format(track.format),
                         "Bit rate : {0}".format(track.other_bit_rate[0]),
@@ -93,17 +93,15 @@ class MediaInfo(object):
                         "Height : {0}".format(track.height),
                         "Display aspect ratio : {0}".format(track.display_aspect_ratio),
                         "Frame rate : {0}".format(track.other_frame_rate[0]),
-                    ]
-                    video.append(video_temp)
+                    ])
                 if track.track_type == 'Audio':
-                    audio_temp = [
+                    audio.append([
                         "ID : {0}".format(track.track_id),
                         "Format : {0}".format(track.format),
                         "Bit rate : {0}".format(track.other_bit_rate[0]),
                         "Channel(s) : {0}".format(track.channel_s),
                         "Sampling rate : {0}".format(track.other_sampling_rate[0]),
-                    ]
-                    audio.append(audio_temp)
+                    ])
 
         return [general, video, audio]
 
