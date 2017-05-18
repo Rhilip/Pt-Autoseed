@@ -60,9 +60,9 @@ class NPUBits(NexusPHP):
         name = str(raw_info["name"])
 
         # Change some info due to the torrent's info
-        if raw_info["category"] is 402:  # Series
+        if raw_info["category"] == "402":  # Series
             name = title_search_group.group("full_name")
-        elif raw_info["category"] is 405:  # Anime
+        elif raw_info["category"] == "405":  # Anime
             name = re.sub("\.(?P<episode>\d+)\.", ".{ep}.".format(ep=title_search_group.group("episode")), name)
 
         post_tuple = (  # Submit form

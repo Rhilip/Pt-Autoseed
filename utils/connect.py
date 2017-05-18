@@ -25,7 +25,7 @@ class Connect(object):
                 logging.info("Some new torrents were add to transmission,Sync to db~")
                 for i in torrent_id_list:
                     t = tc.get_torrent(i)
-                    to_tracker_host = re.search(r"http[s]?://(.+?)/", t.trackers[0]["announce"]).group(1)
+                    to_tracker_host = re.search(r"(?:udp|http[s]?)://(.+?)/", t.trackers[0]["announce"]).group(1)
                     if to_tracker_host not in self.tracker_list:  # TODO use UPsert instead
                         sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}',{:d})".format(t.name, t.id)
                     else:
