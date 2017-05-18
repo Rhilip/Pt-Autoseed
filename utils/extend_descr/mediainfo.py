@@ -109,7 +109,7 @@ class MediaInfo(object):
         line_sep = encode_dict[self.encode]["line_sep"]
         text_strong = encode_dict[self.encode]["text_strong"]
 
-        general_output = text_strong.format(text="General") + line_sep.join(sorted_info[0]) + line_sep
+        general_output = text_strong.format(text="General") + line_sep + line_sep.join(sorted_info[0]) + line_sep
         video_output = text_strong.format(text="Video") + line_sep
         audio_output = text_strong.format(text="Audio") + line_sep
         for i in sorted_info[1]:
