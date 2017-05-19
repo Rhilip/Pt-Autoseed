@@ -23,7 +23,7 @@ class Autoseed(object):
 
         # NPUBits
         autoseed_npubits = NPUBits(site_setting=setting.site_npubits)
-        if autoseed_byrbt.status:
+        if autoseed_npubits.status:
             self.active_seed.append(autoseed_npubits)
 
         for site in self.active_seed:
