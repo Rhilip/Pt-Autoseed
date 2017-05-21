@@ -51,7 +51,7 @@ class ExtendDescr(object):
         return str_clone_info
 
     def build_mediainfo(self, file, encode, str_media_info="") -> str:
-        media_info = MediaInfo(file=file, encode=encode)
-        if self.raw_dict["mediainfo"]["status"]:
-            str_media_info = self.raw_dict["mediainfo"][encode].format(info=media_info.show())
+        media_info = MediaInfo(file=file, encode=encode).show()
+        if self.raw_dict["mediainfo"]["status"] and media_info:
+            str_media_info = self.raw_dict["mediainfo"][encode].format(info=media_info)
         return str_media_info
