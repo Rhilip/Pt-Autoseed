@@ -5,7 +5,6 @@ import transmissionrpc
 
 from .database import Database
 from .serverchan import ServerChan
-from .extend_descr import ExtendDescr
 
 try:
     import usersetting as setting
@@ -17,7 +16,6 @@ db = Database(host=setting.db_address, port=setting.db_port, db=setting.db_name,
               user=setting.db_user, password=setting.db_password)  # Database with its function
 tc = transmissionrpc.Client(address=setting.trans_address, port=setting.trans_port,  # Transmission
                             user=setting.trans_user, password=setting.trans_password)
-descr = ExtendDescr(setting=setting)
 push = ServerChan(status=setting.ServerChan_status, key=setting.ServerChan_SCKEY)
 
 # -*- Assign logging Handler -*-

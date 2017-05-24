@@ -1,13 +1,15 @@
 # ！/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import re
 import logging
-import requests
-from utils.cookie import cookies_raw2jar
+import re
 
+import requests
 from bs4 import BeautifulSoup
-from utils.loadsetting import tc, descr
+
+from utils.cookie import cookies_raw2jar
+from utils.extend_descr import out as descr_out
+from utils.loadsetting import tc
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -135,7 +137,7 @@ class NexusPHP(Base):
         return tid
 
     def extend_descr(self, torrent, info_dict) -> str:
-        return descr.out(raw=info_dict["descr"], torrent=torrent, encode=self.encode, clone_id=info_dict["clone_id"])
+        return descr_out(raw=info_dict["descr"], torrent=torrent, encode=self.encode, clone_id=info_dict["clone_id"])
 
     def exist_judge(self, search_title, torrent_file_name) -> int:
         """
