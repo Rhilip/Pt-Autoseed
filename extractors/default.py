@@ -13,16 +13,33 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
 
-class NexusPHP(object):
+class Base(object):
     url_host = "http://www.pt_domain.com"  # No '/' at the end.
     db_column = "tracker.pt_domain.com"  # The column in table,should be as same as the first tracker's host
-
-    uplver = "yes"
     encode = "bbcode"  # bbcode or html
     status = False
-    auto_thank = True
-
     cookies = None
+
+    def model_name(self):
+        return type(self).__name__
+
+    # -*- Encapsulation requests's method,with format-out as bs or json when use get -*-
+    def get_page(self, url, params=None, bs=False, json=False):
+        page = requests.get(url=url, params=params, cookies=self.cookies)
+        return_info = page.text
+        if bs:
+            return_info = BeautifulSoup(return_info, "lxml")
+        elif json:
+            return_info = page.json()
+        return return_info
+
+    def post_data(self, url, params=None, data=None, files=None):
+        return requests.post(url=url, params=params, data=data, files=files, cookies=self.cookies)
+
+
+class NexusPHP(Base):
+    auto_thank = True
+    uplver = "yes"
 
     def __init__(self, site_setting: dict):
         self.site_setting = site_setting
@@ -37,9 +54,6 @@ class NexusPHP(object):
 
         if self.status:
             self.login()
-
-    def model_name(self):
-        return type(self).__name__
 
     # -*- Login info site,and check login's info. -*-
     def login(self):
@@ -71,19 +85,6 @@ class NexusPHP(object):
             self.status = False
             logging.error("Can not verify identity.If you want to use \"{mo}\","
                           "please exit and Check".format(mo=self.model_name()))
-
-    # -*- Encapsulation requests's method,with format-out as bs or json when use get -*-
-    def get_page(self, url, params=None, bs=False, json=False):
-        page = requests.get(url=url, params=params, cookies=self.cookies)
-        return_info = page.text
-        if bs:
-            return_info = BeautifulSoup(return_info, "lxml")
-        elif json:
-            return_info = page.json()
-        return return_info
-
-    def post_data(self, url, data=None, files=None):
-        return requests.post(url=url, data=data, files=files, cookies=self.cookies)
 
     # -*- Torrent's download, upload and thank -*-
     def torrent_download(self, tid, thanks=auto_thank):
