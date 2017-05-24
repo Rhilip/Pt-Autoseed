@@ -4,9 +4,6 @@ import logging
 from utils.pattern import pattern_group
 from utils.loadsetting import tc, db, setting
 
-from .byrbt import Byrbt
-from .npubits import NPUBits
-
 
 class Autoseed(object):
     active_seed = []
@@ -17,14 +14,18 @@ class Autoseed(object):
 
     def load_autoseed(self):
         # Byrbt
-        autoseed_byrbt = Byrbt(site_setting=setting.site_byrbt)
-        if autoseed_byrbt.status:
-            self.active_seed.append(autoseed_byrbt)
+        if setting.site_byrbt["status"]:
+            from .byrbt import Byrbt
+            autoseed_byrbt = Byrbt(site_setting=setting.site_byrbt)
+            if autoseed_byrbt.status:
+                self.active_seed.append(autoseed_byrbt)
 
         # NPUBits
-        autoseed_npubits = NPUBits(site_setting=setting.site_npubits)
-        if autoseed_npubits.status:
-            self.active_seed.append(autoseed_npubits)
+        if setting.site_npubits["status"]:
+            from .npubits import NPUBits
+            autoseed_npubits = NPUBits(site_setting=setting.site_npubits)
+            if autoseed_npubits.status:
+                self.active_seed.append(autoseed_npubits)
 
         for site in self.active_seed:
             self.active_tracker.append(site.db_column)
