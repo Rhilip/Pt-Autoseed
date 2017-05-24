@@ -22,7 +22,7 @@ class NexusPHP(object):
     status = False
     auto_thank = True
 
-    session = requests.Session()
+    cookies = None
 
     def __init__(self, site_setting: dict):
         self.site_setting = site_setting
@@ -50,11 +50,11 @@ class NexusPHP(object):
                 if key in [None, ""]:
                     raise KeyError("One more account key(maybe username or password) is not filled in.")
             post_data = self.login_data(account_dict)
-            self.post_data(url="{host}/takelogin.php".format(host=self.url_host), data=post_data)
+            r = self.post_data(url="{host}/takelogin.php".format(host=self.url_host), data=post_data)
+            self.cookies = r.cookies
         except KeyError as err:
             logging.error("Account login error: \"{err}\".Use cookies install.".format(err=err.args))
-            cookies = cookies_raw2jar(login_dict["cookies"])
-            self.session.cookies.update(cookies)
+            self.cookies = cookies_raw2jar(login_dict["cookies"])
         finally:
             self.session_check()
 
@@ -74,7 +74,7 @@ class NexusPHP(object):
 
     # -*- Encapsulation requests's method,with format-out as bs or json when use get -*-
     def get_page(self, url, params=None, bs=False, json=False):
-        page = self.session.get(url=url, params=params)
+        page = requests.get(url=url, params=params, cookies=self.cookies)
         return_info = page.text
         if bs:
             return_info = BeautifulSoup(return_info, "lxml")
@@ -83,7 +83,7 @@ class NexusPHP(object):
         return return_info
 
     def post_data(self, url, data=None, files=None):
-        return self.session.post(url=url, data=data, files=files)
+        return requests.post(url=url, data=data, files=files, cookies=self.cookies)
 
     # -*- Torrent's download, upload and thank -*-
     def torrent_download(self, tid, thanks=auto_thank):
