@@ -78,7 +78,7 @@ class MTPT(NexusPHP):
         Will response a json dict.
         """
         try:
-            res_dic = self.get_page(url="http://pt.nwsuaf6.edu.cn/citetorrent.php", params={"torrent_id": tid},
+            res_dic = self.get_page(url="{host}/citetorrent.php".format(host=self.url_host), params={"torrent_id": tid},
                                     json=True)
         except ValueError:
             logging.error("Error,this torrent may not exist or ConnectError")
