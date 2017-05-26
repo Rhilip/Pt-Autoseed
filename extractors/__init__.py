@@ -1,8 +1,8 @@
-import re
 import logging
+import re
 
-from utils.pattern import pattern_group
 from utils.loadsetting import tc, db, setting
+from utils.pattern import pattern_group
 
 
 class Autoseed(object):

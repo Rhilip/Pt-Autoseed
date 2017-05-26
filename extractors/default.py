@@ -55,25 +55,10 @@ class NexusPHP(Base):
             pass
 
         if self.status:
-            self.login()
-
-    # -*- Login info site,and check login's info. -*-
-    def login(self):
-        login_dict = self.site_setting["login"]
-        try:
-            account_dict = login_dict["account"]
-            for pair, key in account_dict.items():
-                if key in [None, ""]:
-                    raise KeyError("One more account key(maybe username or password) is not filled in.")
-            post_data = self.login_data(account_dict)
-            r = self.post_data(url="{host}/takelogin.php".format(host=self.url_host), data=post_data)
-            self.cookies = r.cookies
-        except KeyError as err:
-            logging.error("Account login error: \"{err}\".Use cookies install.".format(err=err.args))
-            self.cookies = cookies_raw2jar(login_dict["cookies"])
-        finally:
+            self.cookies = cookies_raw2jar(site_setting["cookies"])
             self.session_check()
 
+    # -*- Check login's info -*-
     def session_check(self):
         page_usercp_bs = self.get_page(url="{host}/usercp.php".format(host=self.url_host), bs=True)
         info_block = page_usercp_bs.find(id="info_block")
@@ -106,14 +91,20 @@ class NexusPHP(Base):
             logging.info("Reseed post OK,The torrent's in transmission: {fl}".format(fl=flag))
             # TODO USE new torrent's id to Update `info_list` in db
         else:  # 未发布成功打log
-            outer_bs = BeautifulSoup(post.text, "lxml").find("td", id="outer")
-            if outer_bs.find_all("table"):  # Remove unnecessary table info(include SMS,Report)
-                for table in outer_bs.find_all("table"):
-                    table.extract()
-            outer_message = outer_bs.get_text().replace("\n", "")
+            outer_message = self.torrent_upload_err_message(post_text=post.text)
             flag = -1
             logging.error("Upload this torrent Error,The Server echo:\"{0}\",Stop Posting".format(outer_message))
         return flag
+
+    @staticmethod
+    def torrent_upload_err_message(post_text) -> str:
+        outer_bs = BeautifulSoup(post_text, "lxml")
+        outer_tag = outer_bs.find("td", id="outer")
+        if outer_tag.find_all("table"):  # Remove unnecessary table info(include SMS,Report)
+            for table in outer_tag.find_all("table"):
+                table.extract()
+        outer_message = outer_tag.get_text().replace("\n", "")
+        return outer_message
 
     def torrent_thank(self, tid):
         self.post_data(url="{host}/thanks.php".format(host=self.url_host), data={"id": str(tid)})
@@ -192,9 +183,6 @@ class NexusPHP(Base):
         return flag
 
     # -*- At least Overridden function,Please overridden below when add a new site -*-
-    def login_data(self, account_dict):  # If you want to login by account but not cookies
-        raise KeyError("Unsupported method.")
-
     def torrent_clone(self, tid) -> dict:
         pass
 

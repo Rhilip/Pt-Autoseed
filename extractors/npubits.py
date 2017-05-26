@@ -1,9 +1,9 @@
 # ！/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import re
 import base64
 import logging
+import re
 
 from .default import NexusPHP
 
@@ -19,16 +19,23 @@ class NPUBits(NexusPHP):
     def __init__(self, site_setting):
         super().__init__(site_setting=site_setting)
 
-    def login_data(self, account_dict):
-        return {
-            "username": account_dict["username"],
-            "password": account_dict["password"],
-            "ssl": "yes",
-            "trackerssl": "yes"
-        }
+    @staticmethod
+    def torrent_upload_err_message(post_text) -> str:
+        """Use Internal hack for NBPub"""
+        err_tag = re.search("<!-- __Error__\((?P<msg>.+)\) -->", post_text)
+        err_message = err_tag.group("msg")
+        return err_message
 
     def torrent_thank(self, tid):
         self.post_data(url="{host}/thanks.php".format(host=self.url_host), data={"id": str(tid), "value": 0})
+
+    def search_first_torrent_id(self, key, tid=0) -> int:
+        bs = self.page_search(payload={"search": key}, bs=True)
+        first_torrent_tag = bs.find("a", href=re.compile("torrent_download"))
+        if first_torrent_tag:  # If exist
+            href = first_torrent_tag["href"]
+            tid = re.search("javascript:torrent_download\((\d+)", href).group(1)  # 找出种子id
+        return tid
 
     def torrent_clone(self, tid) -> dict:
         """

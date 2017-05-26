@@ -1,6 +1,8 @@
-import os
 import base64
 import logging
+
+import os
+
 from utils.loadsetting import setting
 
 thumbnails_pattern = "/thumbnails"
@@ -15,7 +17,7 @@ if not os.path.exists(web_loc_pat):
 
 def thumbnails(file) -> str:
     file_url = None
-    shot_file_name = base64.b64encode(bytes(file, "utf-8")).decode("utf-8")[0:32]
+    shot_file_name = base64.b64encode(bytes(file, "utf-8")).decode("utf-8")[-32:]
     thumbnails_file_name = "{file}.png".format(file=shot_file_name)
     thu_file_loc = "{web_loc_pat}/{s_f}".format(web_loc_pat=web_loc_pat, s_f=thumbnails_file_name)
 
@@ -23,7 +25,7 @@ def thumbnails(file) -> str:
     if not os.path.isfile(thu_file_loc):
         # TODO Automatically generated Screenshot time.
         ffmpeg_sh = "ffmpeg -ss 00:10:10 -y -i {file} -vframes 1 {thu_loc}".format(file=file, thu_loc=thu_file_loc)
-        stderr = os.system(ffmpeg_sh)  # err -> 1
+        stderr = os.system(ffmpeg_sh)
 
     if stderr == 0:
         file_url = "{web_url}{pat}/{s_f}".format(web_url=web_url, pat=thumbnails_pattern, s_f=thumbnails_file_name)

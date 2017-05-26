@@ -1,6 +1,6 @@
-# Byrbt-Autoseed
+# PT-Autoseed
 An Autoseed used to reseed TV-series and Anime in Some PT sites. \
-Dome : [R酱 の 更新姬 - autoseed.rhilip.info](//autoseed.rhilip.info/) \
+The Reseed List: Saw Gist [Rhilip/Reseed List](https://gist.github.com/Rhilip/34ad82070d71bb3fa75f293d24101588) please.\
 \
 [![GitHub license](https://img.shields.io/badge/license-AGPL-blue.svg)](https://raw.githubusercontent.com/Rhilip/Pt-Autoseed/master/LICENSE)
 
@@ -22,22 +22,22 @@ apt-get -y install transmission-cli transmission-common transmission-daemon
 * Flexget
 ```
 apt-get -y install python-pip
-pip install flexget
+pip install flexget transmissionrpc
 ```
 * rtorrent + irssi-autodl
 ```
 wget --no-check-certificate https://raw.githubusercontent.com/arakasi72/rtinst/master/rtinst.sh
 bash rtinst.sh -t
 ```
-* MySQL
+* MySQL (Use a remote mysqld alternative is feasible)
 ```
 apt-get -y install mysql-server
 ```
-* MediaInfo
+* ~~MediaInfo~~ (rtinst.sh will install it)
 ```
 apt-get -y install mediainfo
 ```
-* ~~ffmpeg~~(rtinst.sh will install it)
+* ~~ffmpeg~~ (rtinst.sh will install it)
 ```
 apt-add-repository -y ppa:mc3man/trusty-media
 apt-get update
@@ -59,3 +59,12 @@ cp setting.py usersetting.py
 vi usersetting.py
 sudo python3 autoseed.py
 ```
+
+## Contribute
+* Fork the repository on GitHub to start making your changes to the master branch (or branch off of it).
+* Help to fix and update the reseed torrent's description.
+* If the funds permit, please donate to help me update this repo and the autoseed server.
+
+| WeChat | Alipay |
+|:---:|:---:|
+| <img src="https://blog.rhilip.info/wp-content/uploads/2017/05/wechat-e1494641989576.png" width = "300" > | <img src="https://blog.rhilip.info/wp-content/uploads/2017/04/alipay-e1494642034126.jpg" width = "300" > |
