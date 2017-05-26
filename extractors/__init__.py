@@ -27,6 +27,13 @@ class Autoseed(object):
             if autoseed_npubits.status:
                 self.active_seed.append(autoseed_npubits)
 
+        # nwsuaf6
+        if setting.site_nwsuaf6["status"]:
+            from .nwsuaf6 import MTPT
+            autoseed_nwsuaf6 = MTPT(site_setting=setting.site_nwsuaf6)
+            if autoseed_nwsuaf6.status:
+                self.active_seed.append(autoseed_nwsuaf6)
+
         for site in self.active_seed:
             self.active_tracker.append(site.db_column)
         logging.info("The assign autoseed module:{lis}".format(lis=self.active_seed))

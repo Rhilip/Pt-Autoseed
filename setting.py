@@ -44,6 +44,14 @@ site_npubits = {
     "anonymous_release": True,
     "auto_thank": True
 }
+# """MTPT(nwsuaf6)"""
+site_nwsuaf6 = {
+    "status": True,
+    "cookies": "",
+    "passkey": "",
+    "anonymous_release": True,
+    "auto_thank": True
+}
 # -*- End of Reseed Site Setting -*-
 
 # -*- Feeding Torrent Setting -*-

@@ -14,14 +14,6 @@ class MTPT(NexusPHP):
     def __init__(self, site_setting):
         super().__init__(site_setting=site_setting)
 
-    def login_data(self, account_dict):
-        return {
-            "username": account_dict["username"],
-            "password": account_dict["password"],
-            "dutime": "month",
-            "returnto": "torrents.php"
-        }
-
     def torrent_clone(self, tid) -> dict:
         """
         Use Internal API: http://pt.nwsuaf6.edu.cn/citetorrent.php?torrent_id={tid} ,Request Method: GET

@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: 2017-05-14 14:47:59
+-- Generation Time: 2017-05-26 15:31:41
 -- 服务器版本： 5.5.48-log
 -- PHP Version: 7.0.7
 
@@ -21,10 +21,13 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE IF NOT EXISTS `info_list` (
-  `sort_id` int(11) NOT NULL,
-  `search_name` text NOT NULL COMMENT '搜索名称',
-  `tracker.byr.cn` int(11) DEFAULT NULL COMMENT 'byr克隆种子号',
-  `npupt.com` int(11) DEFAULT NULL COMMENT 'npubits克隆种子号'
+  `sort_id`           int(11) NOT NULL,
+  `search_name`       text NOT NULL COMMENT '搜索名称',
+  `tracker.byr.cn`    int(11) DEFAULT NULL COMMENT 'byr克隆种子号',
+  `npupt.com`         INT(11) DEFAULT NULL
+  COMMENT 'npubits克隆种子号',
+  `pt.nwsuaf6.edu.cn` INT(11) DEFAULT NULL
+  COMMENT 'nwsuaf6克隆种子号'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -34,11 +37,12 @@ CREATE TABLE IF NOT EXISTS `info_list` (
 --
 
 CREATE TABLE IF NOT EXISTS `seed_list` (
-  `id` int(11) NOT NULL,
-  `title` text NOT NULL,
-  `download_id` int(11) NOT NULL,
-  `tracker.byr.cn` int(11) NOT NULL,
-  `npupt.com` int(11) NOT NULL
+  `id`                int(11) NOT NULL,
+  `title`             text    NOT NULL,
+  `download_id`       int(11) NOT NULL,
+  `tracker.byr.cn`    int(11) NOT NULL,
+  `npupt.com`         INT(11) NOT NULL,
+  `pt.nwsuaf6.edu.cn` INT(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
