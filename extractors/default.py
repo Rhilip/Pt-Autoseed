@@ -58,7 +58,7 @@ class NexusPHP(Base):
             self.cookies = cookies_raw2jar(site_setting["cookies"])
             self.session_check()
 
-    # -*- Login info site,and check login's info. -*-
+    # -*- Check login's info -*-
     def session_check(self):
         page_usercp_bs = self.get_page(url="{host}/usercp.php".format(host=self.url_host), bs=True)
         info_block = page_usercp_bs.find(id="info_block")

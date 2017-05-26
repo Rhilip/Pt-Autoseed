@@ -29,6 +29,14 @@ class NPUBits(NexusPHP):
     def torrent_thank(self, tid):
         self.post_data(url="{host}/thanks.php".format(host=self.url_host), data={"id": str(tid), "value": 0})
 
+    def search_first_torrent_id(self, key, tid=0) -> int:
+        bs = self.page_search(payload={"search": key}, bs=True)
+        first_torrent_tag = bs.find("a", href=re.compile("torrent_download"))
+        if first_torrent_tag:  # If exist
+            href = first_torrent_tag["href"]
+            tid = re.search("javascript:torrent_download\((\d+)", href).group(1)  # 找出种子id
+        return tid
+
     def torrent_clone(self, tid) -> dict:
         """
         Use Internal API: https://npupt.com/transfer.php?url={url} ,Request Method: GET
