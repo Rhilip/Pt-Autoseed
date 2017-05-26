@@ -57,8 +57,7 @@ class Autoseed(object):
             if not reseed_status:  # 不符合，更新seed_id为-1
                 logging.warning("Mark Torrent \"{}\" As Un-reseed torrent,Stop watching.".format(tname))
                 for tracker in self.active_tracker:
-                    sql = "UPDATE seed_list SET `{}` = {:d} WHERE download_id = {:d}".format(tracker, -1, dl_torrent.id)
-                    db.commit_sql(sql)
+                    db.reseed_update(did=dl_torrent.id, rid=-1, site=tracker)
         else:
             logging.warning("Torrent:\"{name}\" is still downloading,Wait until the next round.".format(name=tname))
 

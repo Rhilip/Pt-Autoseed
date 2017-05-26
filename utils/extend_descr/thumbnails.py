@@ -24,7 +24,7 @@ def thumbnails(file) -> str:
     stderr = 0
     if not os.path.isfile(thu_file_loc):
         # TODO Automatically generated Screenshot time.
-        ffmpeg_sh = "ffmpeg -ss 00:10:10 -y -i {file} -vframes 1 {thu_loc}".format(file=file, thu_loc=thu_file_loc)
+        ffmpeg_sh = "ffmpeg -ss 00:10:10 -y -i \"{file}\" -vframes 1 {thu_loc}".format(file=file, thu_loc=thu_file_loc)
         stderr = os.system(ffmpeg_sh)
 
     if stderr == 0:
