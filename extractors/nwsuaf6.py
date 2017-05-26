@@ -84,7 +84,7 @@ class MTPT(NexusPHP):
             logging.error("Error,this torrent may not exist or ConnectError")
             res_dic = {}
         else:
-            res_dic.update({"cite_torrent": tid})
+            res_dic.update({"clone_id": tid})
 
             # Remove code and quote.
             raw_descr = res_dic["descr"]
@@ -103,10 +103,10 @@ class MTPT(NexusPHP):
                             torrent_title_search=title_search_group)
 
         post_tuple = (  # Submit form
-            ("cite_torrent", ('', str(raw_info["transferred_url"]))),
+            ("cite_torrent", ('', str(raw_info["clone_id"]))),
             ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
             ("type", ('', str(raw_info["category"]))),
-            ("source_sel", ('', str(raw_info["sub_category"]))),
+            ("source_sel", ('', str(raw_info["source"]))),
             ("name", ('', name)),
             ("small_descr", ('', raw_info["small_descr"])),
             ("imdburl", ('', raw_info["url"])),
