@@ -31,11 +31,7 @@ NOTICE:
 # """Byrbt"""
 site_byrbt = {
     "status": True,  # default: False
-    "login": {
-        "cookies": ""
-        # Account method is not support in byrbt,due to ask for Verification code.
-    },
-    "cookies": "",
+    "cookies": "",  # raw_cookies
     "passkey": "",
     "anonymous_release": True,  # default: True
     "auto_thank": True  # default: True
@@ -43,13 +39,6 @@ site_byrbt = {
 # """NPUBits"""
 site_npubits = {
     "status": True,
-    "login": {
-        "cookies": "",
-        "account": {
-            "username": "",
-            "password": ""
-        }
-    },
     "cookies": "",
     "passkey": "",
     "anonymous_release": True,

@@ -19,18 +19,10 @@ class NPUBits(NexusPHP):
     def __init__(self, site_setting):
         super().__init__(site_setting=site_setting)
 
-    def login_data(self, account_dict):
-        return {
-            "username": account_dict["username"],
-            "password": account_dict["password"],
-            "ssl": "yes",
-            "trackerssl": "yes"
-        }
-
     @staticmethod
-    def torrent_upload_err_message(outer_text) -> str:
+    def torrent_upload_err_message(post_text) -> str:
         """Use Internal hack for NBPub"""
-        err_tag = re.search("<!-- __Error__\((?P<msg>.+)\) -->", outer_text)
+        err_tag = re.search("<!-- __Error__\((?P<msg>.+)\) -->", post_text)
         err_message = err_tag.group("msg")
         return err_message
 

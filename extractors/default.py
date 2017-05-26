@@ -55,25 +55,10 @@ class NexusPHP(Base):
             pass
 
         if self.status:
-            self.login()
-
-    # -*- Login info site,and check login's info. -*-
-    def login(self):
-        login_dict = self.site_setting["login"]
-        try:
-            account_dict = login_dict["account"]
-            for pair, key in account_dict.items():
-                if key in [None, ""]:
-                    raise KeyError("One more account key(maybe username or password) is not filled in.")
-            post_data = self.login_data(account_dict)
-            r = self.post_data(url="{host}/takelogin.php".format(host=self.url_host), data=post_data)
-            self.cookies = r.cookies
-        except KeyError as err:
-            logging.error("Account login error: \"{err}\".Use cookies install.".format(err=err.args))
-            self.cookies = cookies_raw2jar(login_dict["cookies"])
-        finally:
+            self.cookies = cookies_raw2jar(site_setting["cookies"])
             self.session_check()
 
+    # -*- Login info site,and check login's info. -*-
     def session_check(self):
         page_usercp_bs = self.get_page(url="{host}/usercp.php".format(host=self.url_host), bs=True)
         info_block = page_usercp_bs.find(id="info_block")
@@ -198,9 +183,6 @@ class NexusPHP(Base):
         return flag
 
     # -*- At least Overridden function,Please overridden below when add a new site -*-
-    def login_data(self, account_dict):  # If you want to login by account but not cookies
-        raise KeyError("Unsupported method.")
-
     def torrent_clone(self, tid) -> dict:
         pass
 
