@@ -8,22 +8,40 @@ import requests
 from bs4 import BeautifulSoup
 
 from utils.cookie import cookies_raw2jar
-from utils.loadsetting import tc, db, descr
+from utils.extend_descr import out as descr_out
+from utils.loadsetting import tc
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
 
-class NexusPHP(object):
+class Base(object):
     url_host = "http://www.pt_domain.com"  # No '/' at the end.
     db_column = "tracker.pt_domain.com"  # The column in table,should be as same as the first tracker's host
-
-    uplver = "yes"
     encode = "bbcode"  # bbcode or html
     status = False
-    auto_thank = True
-
     cookies = None
+
+    def model_name(self):
+        return type(self).__name__
+
+    # -*- Encapsulation requests's method,with format-out as bs or json when use get -*-
+    def get_page(self, url, params=None, bs=False, json=False):
+        page = requests.get(url=url, params=params, cookies=self.cookies)
+        return_info = page.text
+        if bs:
+            return_info = BeautifulSoup(return_info, "lxml")
+        elif json:
+            return_info = page.json()
+        return return_info
+
+    def post_data(self, url, params=None, data=None, files=None):
+        return requests.post(url=url, params=params, data=data, files=files, cookies=self.cookies)
+
+
+class NexusPHP(Base):
+    auto_thank = True
+    uplver = "yes"
 
     def __init__(self, site_setting: dict):
         self.site_setting = site_setting
@@ -38,9 +56,6 @@ class NexusPHP(object):
 
         if self.status:
             self.login()
-
-    def model_name(self):
-        return type(self).__name__
 
     # -*- Login info site,and check login's info. -*-
     def login(self):
@@ -72,19 +87,6 @@ class NexusPHP(object):
             self.status = False
             logging.error("Can not verify identity.If you want to use \"{mo}\","
                           "please exit and Check".format(mo=self.model_name()))
-
-    # -*- Encapsulation requests's method,with format-out as bs or json when use get -*-
-    def get_page(self, url, params=None, bs=False, json=False):
-        page = requests.get(url=url, params=params, cookies=self.cookies)
-        return_info = page.text
-        if bs:
-            return_info = BeautifulSoup(return_info, "lxml")
-        elif json:
-            return_info = page.json()
-        return return_info
-
-    def post_data(self, url, data=None, files=None):
-        return requests.post(url=url, data=data, files=files, cookies=self.cookies)
 
     # -*- Torrent's download, upload and thank -*-
     def torrent_download(self, tid, thanks=auto_thank):
@@ -141,7 +143,7 @@ class NexusPHP(object):
         return tid
 
     def extend_descr(self, torrent, info_dict) -> str:
-        return descr.out(raw=info_dict["descr"], torrent=torrent, encode=self.encode, clone_id=info_dict["clone_id"])
+        return descr_out(raw=info_dict["descr"], torrent=torrent, encode=self.encode, clone_id=info_dict["clone_id"])
 
     def exist_judge(self, search_title, torrent_file_name) -> int:
         """
@@ -158,37 +160,41 @@ class NexusPHP(object):
         return tag
 
     # -*- The feeding function -*-
-    def feed(self, torrent, torrent_info_search, flag=-1):
+    def torrent_feed(self, torrent, name_pattern, clone_db_dict, flag=-1):
         logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
-        key_raw = re.sub(r"[_\-.]", " ", torrent_info_search.group("search_name"))
-        key_with_ep = "{search_key} {epo} {gr}".format(search_key=key_raw, epo=torrent_info_search.group("episode"),
-                                                       gr=torrent_info_search.group("group"))
+        key_raw = clone_db_dict["search_name"]
+        key_with_ep = "{search_key} {epo} {gr}".format(search_key=key_raw, epo=name_pattern.group("episode"),
+                                                       gr=name_pattern.group("group"))
 
         search_tag = self.exist_judge(key_with_ep, torrent.name)
-        if search_tag == 0:  # 种子不存在，则准备发布
-            clone_id = db.get_data_clone_id(key=key_raw, site=self.db_column)
-            if clone_id in [None, 0, "0"]:
+        # TODO The repack (or v2) will not be reseeded.
+        if search_tag == 0:  # Non-existent repetition torrent, prepare to reseed
+            try:
+                clone_id = clone_db_dict[self.db_column]
+                if clone_id in [None, 0, "0"]:
+                    raise KeyError("The db-record is not return the clone id.")
+            except KeyError:
                 logging.warning("Not Find clone id from db of this torrent,May got incorrect info when clone.")
                 clone_id = self.search_first_torrent_id(key=key_raw)
             else:
                 logging.debug("Get clone id({id}) from db OK,USE key: \"{key}\"".format(id=clone_id, key=key_raw))
 
-            torrent_raw_info_dict = self.torrent_clone(clone_id)
-            if torrent_raw_info_dict:
-                logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
-                multipart_data = self.data_raw2tuple(torrent, torrent_info_search, torrent_raw_info_dict)
-                flag = self.torrent_upload(data=multipart_data)
-            else:
-                logging.error("Something may wrong,Please check torrent raw dict.Some info may help you:"
-                              "search_key: {key}, pattern: {pat}, search_tag: {tag}, "
-                              "clone_id: {cid} ".format(key=key_raw, pat=key_with_ep, tag=search_tag, cid=clone_id))
+            if clone_id not in [-1, "-1"]:  # (This search name) Set to no re-seed for this site in database.
+                torrent_raw_info_dict = self.torrent_clone(clone_id)
+                if torrent_raw_info_dict:
+                    logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
+                    multipart_data = self.data_raw2tuple(torrent, name_pattern, raw_info=torrent_raw_info_dict)
+                    flag = self.torrent_upload(data=multipart_data)
+                else:
+                    logging.error("Something may wrong,Please check torrent raw dict.Some info may help you:"
+                                  "search_key: {key}, pattern: {pat}, search_tag: {tag}, "
+                                  "clone_id: {cid} ".format(key=key_raw, pat=key_with_ep, tag=search_tag, cid=clone_id))
         elif search_tag == -1:  # 如果种子存在，但种子不一致
             logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent.Stop Posting~")
         else:  # 如果种子存在（已经有人发布）  -> 辅种
             flag = self.torrent_download(tid=search_tag, thanks=False)
             logging.warning("Find dupe torrent,which id: {0},Automatically assist it~".format(search_tag))
 
-        db.reseed_update(did=torrent.id, rid=flag, site=self.db_column)
         return flag
 
     # -*- At least Overridden function,Please overridden below when add a new site -*-

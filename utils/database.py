@@ -66,13 +66,12 @@ class Database(object):
         judge = "WHERE {raw} {left}".format(raw=raw_judge, left=other_decision)
         return self.get_table_seed_list(decision=judge)
 
-    def get_data_clone_id(self, key, site, table='info_list', column='search_name', clone_id=None):
-        key = key.replace(" ", "%").replace(".", "%")
-        sql = "SELECT * FROM `{tb}` WHERE `{cow}` LIKE '{key}%'".format(tb=table, cow=column, key=key)
-        try:  # Get series info from database
-            clone_id = self.get_sql(sql, r_dict=True)[0][site]
-        except IndexError:  # The database doesn't have the search data, Return `None`
-            pass
+    def get_data_clone_id(self, key, table='info_list', column='search_name'):
+        sql = "SELECT * FROM `{tb}` WHERE `{cow}` LIKE '{key}%'".format(tb=table, cow=column, key=key.replace(" ", "%"))
+        try:  # Get clone id info from database
+            clone_id = self.get_sql(sql, r_dict=True)[0]
+        except IndexError:  # The database doesn't have the search data, Return dict only with raw key.
+            clone_id = {"search_name": key}
 
         return clone_id
 

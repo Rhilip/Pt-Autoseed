@@ -4,9 +4,6 @@ import logging
 from utils.pattern import pattern_group
 from utils.loadsetting import tc, db, setting
 
-from .byrbt import Byrbt
-from .npubits import NPUBits
-
 
 class Autoseed(object):
     active_seed = []
@@ -17,14 +14,18 @@ class Autoseed(object):
 
     def load_autoseed(self):
         # Byrbt
-        autoseed_byrbt = Byrbt(site_setting=setting.site_byrbt)
-        if autoseed_byrbt.status:
-            self.active_seed.append(autoseed_byrbt)
+        if setting.site_byrbt["status"]:
+            from .byrbt import Byrbt
+            autoseed_byrbt = Byrbt(site_setting=setting.site_byrbt)
+            if autoseed_byrbt.status:
+                self.active_seed.append(autoseed_byrbt)
 
         # NPUBits
-        autoseed_npubits = NPUBits(site_setting=setting.site_npubits)
-        if autoseed_npubits.status:
-            self.active_seed.append(autoseed_npubits)
+        if setting.site_npubits["status"]:
+            from .npubits import NPUBits
+            autoseed_npubits = NPUBits(site_setting=setting.site_npubits)
+            if autoseed_npubits.status:
+                self.active_seed.append(autoseed_npubits)
 
         for site in self.active_seed:
             self.active_tracker.append(site.db_column)
@@ -32,21 +33,18 @@ class Autoseed(object):
 
     def feed(self, dl_torrent, cow):
         tname = dl_torrent.name
-        reseed_judge = False
         if int(dl_torrent.progress) is 100:  # Get the download progress in percent.
-            reseed_judge = True
             logging.info("New completed torrent: \"{name}\" ,Judge reseed or not.".format(name=tname))
-        else:
-            logging.warning("Torrent:\"{name}\" is still downloading,Wait until the next round.".format(name=tname))
-
-        if reseed_judge:
             reseed_status = False
             for pat in pattern_group:
-                search_group = re.search(pat, tname)
-                if search_group:
+                search = re.search(pat, tname)
+                if search:
+                    key_raw = re.sub(r"[_\-.]", " ", search.group("search_name"))
+                    clone_dict = db.get_data_clone_id(key=key_raw)
                     for site in self.active_seed:  # Site feed
                         if cow[site.db_column] is 0:
-                            site.feed(torrent=dl_torrent, torrent_info_search=search_group)
+                            tag = site.torrent_feed(torrent=dl_torrent, name_pattern=search, clone_db_dict=clone_dict)
+                            db.reseed_update(did=dl_torrent.id, rid=tag, site=site.db_column)
                     reseed_status = True
                     break
             if not reseed_status:  # 不符合，更新seed_id为-1
@@ -54,6 +52,8 @@ class Autoseed(object):
                 for tracker in self.active_tracker:
                     sql = "UPDATE seed_list SET `{}` = {:d} WHERE download_id = {:d}".format(tracker, -1, dl_torrent.id)
                     db.commit_sql(sql)
+        else:
+            logging.warning("Torrent:\"{name}\" is still downloading,Wait until the next round.".format(name=tname))
 
     def update(self):
         """Get the pre-reseed list from database."""
