@@ -6,6 +6,64 @@ import re
 
 from .default import NexusPHP
 
+title_split_dict = {
+    "402": {  # 剧集
+        "order": ["release_time", "chinese_name", "english_name", "jidu", "filetype", "serial"],
+        "limit": {
+            "filetype": ["MKV", "RMVB", "MP4", "AVI", "MPEG", "ts", "ISO", "其他文件类型"],
+            "serial": ["剧场/OVA", "完结剧集", "连载剧集"]
+        }
+    },
+    "405": {  # 动漫
+        "order": ["month", "chinese_name", "english_name", "num", "subtitle_group",
+                  "subtitle", "resolution", "quality", "filetype", "wanjieornot"],
+        "limit": {
+            "subtitle": ["简体GB", "繁体BIG5", "繁简外挂", "简体外挂", "繁体外挂", "无字幕", "其他"],
+            "resolution": ["1080P", "720P", "480P", "其他"],
+            "quality": ["DVDrip", "HDRip", "BDRip", "R5", "DVDScr", "BDMV", "BDISO", "DVDISO", "其他品质"],
+            "filetype": ["MKV", "RMVB", "MP4", "AVI", "MPEG", "ts", "ISO", "其他文件类型"],
+            "wanjieornot": ["完结", "连载"]
+        }
+    }
+}
+
+
+def update_title(raw_title, cat, torrent_title_search):  # -> str
+    # Separate raw title
+    split = title_split_dict[cat]["order"]
+    raw_title_group = re.findall(r"\[[^\]]*\]", raw_title)
+    temporarily_dict = {}
+
+    len_split = len(title_split_dict[cat]["order"])
+    if len_split != len(raw_title_group):
+        logging.warning("The raw title \"{raw}\" may lack of tag (now: {no},ask: {co}),"
+                        "The split may wrong.".format(raw=raw_title, no=len(raw_title_group), co=len_split))
+        while len_split > len(raw_title_group):
+            raw_title_group.append("")
+    raw_title_group.reverse()
+    for i in split:
+        j = raw_title_group.pop()
+        title_split = re.sub("\[(?P<in>.+)\]", "\g<in>", j)
+        if i in title_split_dict[cat]["limit"]:
+            if title_split not in title_split_dict[cat]["limit"][i]:
+                title_split = ""  # type_dict[raw_type]["limit"][i][0]
+                raw_title_group.append(j)
+        temporarily_dict.update({i: title_split})
+
+    # Update temporarily dict
+    if cat == "402":  # Series
+        temporarily_dict["english_name"] = torrent_title_search.group("full_name")
+        temporarily_dict["jidu"] = torrent_title_search.group("episode")
+    elif cat == "405":  # Anime
+        temporarily_dict["num"] = torrent_title_search.group("episode")
+
+    # Generate new title
+    new_title = ""
+    for i in split:
+        new_title += "[{inner}]".format(inner=temporarily_dict[i])
+
+    return new_title
+
 
 class MTPT(NexusPHP):
     url_host = "http://pt.nwsuaf6.edu.cn"
@@ -41,13 +99,8 @@ class MTPT(NexusPHP):
     def data_raw2tuple(self, torrent, title_search_group, raw_info):
         torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
         # Assign raw info
-        name = str(raw_info["name"])
-
-        # Change some info due to the torrent's info
-        if raw_info["category"] == "402":  # Series
-            name = title_search_group.group("full_name")
-        elif raw_info["category"] == "405":  # Anime
-            name = re.sub("\[(?P<episode>\d+)\]", "[{ep}]".format(ep=title_search_group.group("episode")), name)
+        name = update_title(raw_title=raw_info["name"], cat=raw_info["category"],
+                            torrent_title_search=title_search_group)
 
         post_tuple = (  # Submit form
             ("cite_torrent", ('', str(raw_info["transferred_url"]))),

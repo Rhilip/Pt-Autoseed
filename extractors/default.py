@@ -138,7 +138,7 @@ class NexusPHP(Base):
         tag = self.search_first_torrent_id(key=search_title)
         if tag is not 0:
             torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
-            torrent_file_info_table = torrent_file_page.find("div", align="center").find("table")
+            torrent_file_info_table = torrent_file_page.find("ul", id="colapse")
             torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
             if torrent_file_name != torrent_title:  # Use pre-reseed torrent's name match the exist torrent's name
                 tag = -1
