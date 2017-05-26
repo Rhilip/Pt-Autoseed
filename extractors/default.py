@@ -1,12 +1,13 @@
 # ！/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import re
 import logging
-import requests
-from utils.cookie import cookies_raw2jar
+import re
 
+import requests
 from bs4 import BeautifulSoup
+
+from utils.cookie import cookies_raw2jar
 from utils.loadsetting import tc, db, descr
 
 logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -103,14 +104,20 @@ class NexusPHP(object):
             logging.info("Reseed post OK,The torrent's in transmission: {fl}".format(fl=flag))
             # TODO USE new torrent's id to Update `info_list` in db
         else:  # 未发布成功打log
-            outer_bs = BeautifulSoup(post.text, "lxml").find("td", id="outer")
-            if outer_bs.find_all("table"):  # Remove unnecessary table info(include SMS,Report)
-                for table in outer_bs.find_all("table"):
-                    table.extract()
-            outer_message = outer_bs.get_text().replace("\n", "")
+            outer_bs = BeautifulSoup(post.text, "lxml")
+            outer_message = self.torrent_upload_err_message(outer_bs)
             flag = -1
             logging.error("Upload this torrent Error,The Server echo:\"{0}\",Stop Posting".format(outer_message))
         return flag
+
+    @staticmethod
+    def torrent_upload_err_message(outer_bs) -> str:
+        outer_tag = outer_bs.find("td", id="outer")
+        if outer_tag.find_all("table"):  # Remove unnecessary table info(include SMS,Report)
+            for table in outer_tag.find_all("table"):
+                table.extract()
+        outer_message = outer_tag.get_text().replace("\n", "")
+        return outer_message
 
     def torrent_thank(self, tid):
         self.post_data(url="{host}/thanks.php".format(host=self.url_host), data={"id": str(tid)})

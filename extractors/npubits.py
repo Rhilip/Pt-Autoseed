@@ -1,9 +1,9 @@
 # ！/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import re
 import base64
 import logging
+import re
 
 from .default import NexusPHP
 
@@ -26,6 +26,12 @@ class NPUBits(NexusPHP):
             "ssl": "yes",
             "trackerssl": "yes"
         }
+
+    @staticmethod
+    def torrent_upload_err_message(outer_bs) -> str:
+        err_tag = outer_bs.find("div", class_="jumbotron")
+        err_message = err_tag.find("p").get_text()
+        return err_message
 
     def torrent_thank(self, tid):
         self.post_data(url="{host}/thanks.php".format(host=self.url_host), data={"id": str(tid), "value": 0})
