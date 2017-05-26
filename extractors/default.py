@@ -106,14 +106,14 @@ class NexusPHP(Base):
             logging.info("Reseed post OK,The torrent's in transmission: {fl}".format(fl=flag))
             # TODO USE new torrent's id to Update `info_list` in db
         else:  # 未发布成功打log
-            outer_bs = BeautifulSoup(post.text, "lxml")
-            outer_message = self.torrent_upload_err_message(outer_bs)
+            outer_message = self.torrent_upload_err_message(post_text=post.text)
             flag = -1
             logging.error("Upload this torrent Error,The Server echo:\"{0}\",Stop Posting".format(outer_message))
         return flag
 
     @staticmethod
-    def torrent_upload_err_message(outer_bs) -> str:
+    def torrent_upload_err_message(post_text) -> str:
+        outer_bs = BeautifulSoup(post_text, "lxml")
         outer_tag = outer_bs.find("td", id="outer")
         if outer_tag.find_all("table"):  # Remove unnecessary table info(include SMS,Report)
             for table in outer_tag.find_all("table"):

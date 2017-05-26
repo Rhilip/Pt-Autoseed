@@ -28,9 +28,10 @@ class NPUBits(NexusPHP):
         }
 
     @staticmethod
-    def torrent_upload_err_message(outer_bs) -> str:
-        err_tag = outer_bs.find("div", class_="jumbotron")
-        err_message = err_tag.find("p").get_text()
+    def torrent_upload_err_message(outer_text) -> str:
+        """Use Internal hack for NBPub"""
+        err_tag = re.search("<!-- __Error__\((?P<msg>.+)\) -->", outer_text)
+        err_message = err_tag.group("msg")
         return err_message
 
     def torrent_thank(self, tid):

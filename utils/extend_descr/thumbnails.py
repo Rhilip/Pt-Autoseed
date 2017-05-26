@@ -1,6 +1,8 @@
-import os
 import base64
 import logging
+
+import os
+
 from utils.loadsetting import setting
 
 thumbnails_pattern = "/thumbnails"

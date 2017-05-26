@@ -1,8 +1,9 @@
 # ！/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-import pymysql
 import logging
+
+import pymysql
 
 
 class Database(object):
