@@ -17,8 +17,13 @@ pattern_group = [
         "(?P<episode>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
         "(?:\.(?P<filetype>\w+)$|$)"
     ),
-    re.compile(  # Anime
-        "(?P<full_name>\[(?P<group>.+?)\]\[?(?P<search_name>.+?)\]?\[(?P<episode>\d+)\].+)"
-        "(?:\.(?P<filetype>mp4|mkv))?"
+    re.compile(  # Anime - One_piece(Skytree)
+        "(?P<full_name>\[(?P<group>Skytree)\]\[海贼王\]\[(?P<search_name>One_Piece)\]"
+        "\[(?P<episode>789)\]\[GB_JP\]\[X264_AAC\]\[720P\]\[CRRIP\]\[天空树双语字幕组\])"
+        "(?:\.(?P<filetype>mp4)$|$)"
+    ),
+    re.compile(  # Anime (Normal)
+        "(?P<full_name>\[(?P<group>.+?)\]\[?(?P<search_name>.+?)\]?\[(?P<episode>\d+(?:\(\d+\))?)\].+)"
+        "(?:\.(?P<filetype>\w+)$|$)"
     )
 ]
