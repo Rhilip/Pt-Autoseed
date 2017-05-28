@@ -157,7 +157,7 @@ class NexusPHP(Base):
         return tag
 
     # -*- The feeding function -*-
-    def torrent_feed(self, torrent, name_pattern, clone_db_dict, flag=-1):
+    def torrent_feed(self, torrent, name_pattern, clone_db_dict):
         logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
         key_raw = clone_db_dict["search_name"]
         key_with_gp = "{search_key} {gr}".format(search_key=key_raw, gr=name_pattern.group("group"))
@@ -167,6 +167,7 @@ class NexusPHP(Base):
         if search_tag == -1 and re.search("REPACK|PROPER|v2", torrent.name):
             search_tag = 0  # For REPACK will let search_tag == -1 when use function exits_judge.
 
+        flag = -1
         if search_tag == 0:  # Non-existent repetition torrent, prepare to reseed
             try:
                 clone_id = clone_db_dict[self.db_column]
@@ -190,9 +191,8 @@ class NexusPHP(Base):
                     if flag is not -1:
                         err = False
             if err:
-                logging.error("Something may wrong,Please check torrent raw dict.Those info may help you:"
-                              "search_key_with_gp_ep: {pat}, search_tag: {tag}, clone_id: {cid} "
-                              .format(pat=key_with_gp_ep, tag=search_tag, cid=clone_id))
+                logging.error("The torrent reseed ERROR.Those info may help you: search_key: {pat}, dupe_tag: {tag}"
+                              "clone_id: {cid}".format(pat=key_with_gp_ep, tag=search_tag, cid=clone_id))
         elif search_tag == -1:  # 如果种子存在，但种子不一致
             logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent.Stop Posting~")
         else:  # 如果种子存在（已经有人发布）  -> 辅种

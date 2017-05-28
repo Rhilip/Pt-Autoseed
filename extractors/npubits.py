@@ -44,12 +44,12 @@ class NPUBits(NexusPHP):
         Use Internal API: https://npupt.com/transfer.php?url={url} ,Request Method: GET
         The url use base64 encryption, and will response a json dict.
         """
+        res_dic = {}
         transferred_url = string2base64("{host}/details.php?id={tid}&hit=1".format(host=self.url_host, tid=tid))
         try:
-            res_dic = self.get_page(url="https://npupt.com/transfer.php", params={"url": transferred_url}, json=True)
+            res_dic = self.get_page(url=self.url_host + "/transfer.php", params={"url": transferred_url}, json=True)
         except ValueError:
             logging.error("Error,this torrent may not exist or ConnectError")
-            res_dic = {}
         else:
             res_dic.update({"transferred_url": transferred_url, "clone_id": tid})
 

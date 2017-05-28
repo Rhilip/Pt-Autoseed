@@ -77,12 +77,11 @@ class MTPT(NexusPHP):
         Use Internal API: http://pt.nwsuaf6.edu.cn/citetorrent.php?torrent_id={tid} ,Request Method: GET
         Will response a json dict.
         """
+        res_dic = {}
         try:
-            res_dic = self.get_page(url="{host}/citetorrent.php".format(host=self.url_host), params={"torrent_id": tid},
-                                    json=True)
+            res_dic = self.get_page(url=self.url_host + "/citetorrent.php", params={"torrent_id": tid}, json=True)
         except ValueError:
             logging.error("Error,this torrent may not exist or ConnectError")
-            res_dic = {}
         else:
             res_dic.update({"clone_id": tid})
 
