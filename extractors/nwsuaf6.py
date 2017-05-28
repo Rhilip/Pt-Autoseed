@@ -60,7 +60,9 @@ def update_title(raw_title, cat, torrent_title_search):  # -> str
     # Generate new title
     new_title = ""
     for i in split:
-        new_title += "[{inner}]".format(inner=temporarily_dict[i])
+        inner = temporarily_dict[i]
+        if len(inner) is not 0:
+            new_title += "[{inner}]".format(inner=inner)
 
     return new_title
 
