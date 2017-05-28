@@ -23,11 +23,6 @@ db_name = ""
 # -*- End of Main Setting -*-
 
 # -*- Reseed Site Setting -*-
-"""
-NOTICE:
-1.If you want to login by cookies,please del the inner dict "account" or let this dict empty,
-  for Autoseed will try to use account as login method first instead of cookies.
-"""
 # """Byrbt"""
 site_byrbt = {
     "status": True,  # default: False

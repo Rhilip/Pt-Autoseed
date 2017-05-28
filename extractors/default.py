@@ -164,7 +164,9 @@ class NexusPHP(Base):
         key_with_gp_ep = "{key_gp} {ep}".format(key_gp=key_with_gp, ep=name_pattern.group("episode"))
 
         search_tag = self.exist_judge(key_with_gp_ep, torrent.name)
-        # TODO The repack (or v2) will not be reseeded.
+        if search_tag == -1 and re.search("REPACK|PROPER|v2", torrent.name):
+            search_tag = 0  # For REPACK will let search_tag == -1 when use function exits_judge.
+
         if search_tag == 0:  # Non-existent repetition torrent, prepare to reseed
             try:
                 clone_id = clone_db_dict[self.db_column]
@@ -178,7 +180,7 @@ class NexusPHP(Base):
                     clone_id = self.first_tid_in_search_list(key=key_raw)
 
             err = True
-            if clone_id not in [0, "0", "-1"]:  # (This search name) Set to no re-seed for this site in database.
+            if int(clone_id) not in [0, -1]:  # -1 -> (This search name) Set to no re-seed for this site in database.
                 logging.info("The clone id for \"{title}\" is {cid}.".format(title=torrent.name, cid=clone_id))
                 torrent_raw_info_dict = self.torrent_clone(clone_id)
                 if torrent_raw_info_dict:
