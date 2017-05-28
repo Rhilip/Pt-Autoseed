@@ -92,8 +92,8 @@ class NexusPHP(Base):
             logging.info("Reseed post OK,The torrent's in transmission: {fl}".format(fl=flag))
             # TODO USE new torrent's id to Update `info_list` in db
         else:  # 未发布成功打log
-            outer_message = self.torrent_upload_err_message(post_text=post.text)
             flag = -1
+            outer_message = self.torrent_upload_err_message(post_text=post.text)
             logging.error("Upload this torrent Error,The Server echo:\"{0}\",Stop Posting".format(outer_message))
         return flag
 
@@ -160,32 +160,37 @@ class NexusPHP(Base):
     def torrent_feed(self, torrent, name_pattern, clone_db_dict, flag=-1):
         logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
         key_raw = clone_db_dict["search_name"]
-        key_with_ep = "{search_key} {epo} {gr}".format(search_key=key_raw, epo=name_pattern.group("episode"),
-                                                       gr=name_pattern.group("group"))
+        key_with_gp = "{search_key} {gr}".format(search_key=key_raw, gr=name_pattern.group("group"))
+        key_with_gp_ep = "{key_gp} {ep}".format(key_gp=key_with_gp, ep=name_pattern.group("episode"))
 
-        search_tag = self.exist_judge(key_with_ep, torrent.name)
+        search_tag = self.exist_judge(key_with_gp_ep, torrent.name)
         # TODO The repack (or v2) will not be reseeded.
         if search_tag == 0:  # Non-existent repetition torrent, prepare to reseed
             try:
                 clone_id = clone_db_dict[self.db_column]
                 if clone_id in [None, 0, "0"]:
                     raise KeyError("The db-record is not return the clone id.")
+                logging.debug("Get clone id({id}) from db OK,USE key: \"{key}\"".format(id=clone_id, key=key_raw))
             except KeyError:
                 logging.warning("Not Find clone id from db of this torrent,May got incorrect info when clone.")
-                clone_id = self.first_tid_in_search_list(key=key_raw)
-            else:
-                logging.debug("Get clone id({id}) from db OK,USE key: \"{key}\"".format(id=clone_id, key=key_raw))
+                clone_id = self.first_tid_in_search_list(key=key_with_gp)  # USE introduction of the same group First
+                if clone_id == 0:  # Generic search
+                    clone_id = self.first_tid_in_search_list(key=key_raw)
 
-            if clone_id not in [-1, "-1"]:  # (This search name) Set to no re-seed for this site in database.
+            err = True
+            if clone_id not in [0, "0", "-1"]:  # (This search name) Set to no re-seed for this site in database.
+                logging.info("The clone id for \"{title}\" is {cid}.".format(title=torrent.name, cid=clone_id))
                 torrent_raw_info_dict = self.torrent_clone(clone_id)
                 if torrent_raw_info_dict:
                     logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
                     multipart_data = self.data_raw2tuple(torrent, name_pattern, raw_info=torrent_raw_info_dict)
                     flag = self.torrent_upload(data=multipart_data)
-                else:
-                    logging.error("Something may wrong,Please check torrent raw dict.Some info may help you:"
-                                  "search_key: {key}, pattern: {pat}, search_tag: {tag}, "
-                                  "clone_id: {cid} ".format(key=key_raw, pat=key_with_ep, tag=search_tag, cid=clone_id))
+                    if flag is not -1:
+                        err = False
+            if err:
+                logging.error("Something may wrong,Please check torrent raw dict.Those info may help you:"
+                              "search_key_with_gp_ep: {pat}, search_tag: {tag}, clone_id: {cid} "
+                              .format(pat=key_with_gp_ep, tag=search_tag, cid=clone_id))
         elif search_tag == -1:  # 如果种子存在，但种子不一致
             logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent.Stop Posting~")
         else:  # 如果种子存在（已经有人发布）  -> 辅种
