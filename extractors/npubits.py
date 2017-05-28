@@ -32,7 +32,7 @@ class NPUBits(NexusPHP):
     def search_list(self, key):
         tid_list = []
         bs = self.page_search(payload={"search": key}, bs=True)
-        download_tag = bs.find("a", href=re.compile("torrent_download"))
+        download_tag = bs.find_all("a", href=re.compile("torrent_download"))
         for tag in download_tag:
             href = tag["href"]
             tid = re.search("javascript:torrent_download\((\d+)", href).group(1)  # 找出种子id
