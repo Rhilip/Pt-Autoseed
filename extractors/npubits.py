@@ -29,13 +29,15 @@ class NPUBits(NexusPHP):
     def torrent_thank(self, tid):
         self.post_data(url="{host}/thanks.php".format(host=self.url_host), data={"id": str(tid), "value": 0})
 
-    def search_first_torrent_id(self, key, tid=0) -> int:
+    def search_list(self, key):
+        tid_list = []
         bs = self.page_search(payload={"search": key}, bs=True)
-        first_torrent_tag = bs.find("a", href=re.compile("torrent_download"))
-        if first_torrent_tag:  # If exist
-            href = first_torrent_tag["href"]
+        download_tag = bs.find("a", href=re.compile("torrent_download"))
+        for tag in download_tag:
+            href = tag["href"]
             tid = re.search("javascript:torrent_download\((\d+)", href).group(1)  # 找出种子id
-        return tid
+            tid_list.append(tid)
+        return tid_list
 
     def torrent_clone(self, tid) -> dict:
         """

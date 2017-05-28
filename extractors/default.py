@@ -77,6 +77,7 @@ class NexusPHP(Base):
     def torrent_download(self, tid, thanks=auto_thank):
         download_url = "{host}/download.php?id={tid}&passkey={pk}".format(host=self.url_host, tid=tid, pk=self.passkey)
         added_torrent = tc.add_torrent(torrent=download_url)
+        # Another way is download torrent file to watch-dir(see early commits),But it will no return added_torrent.id
         logging.info("Download Torrent OK,which id: {id}.".format(id=tid))
         if thanks:  # Automatically thanks for additional Bones.
             self.torrent_thank(tid)
@@ -119,12 +120,23 @@ class NexusPHP(Base):
     def page_search(self, payload: dict, bs=False):
         return self.get_page(url="{host}/torrents.php".format(host=self.url_host), params=payload, bs=bs)
 
-    def search_first_torrent_id(self, key, tid=0) -> int:
+    def search_list(self, key) -> list:
+        tid_list = []
         bs = self.page_search(payload={"search": key}, bs=True)
-        first_torrent_tag = bs.find("a", href=re.compile("download.php"))
-        if first_torrent_tag:  # If exist
-            href = first_torrent_tag["href"]
+        download_tag = bs.find_all("a", href=re.compile("download.php"))
+        for tag in download_tag:
+            href = tag["href"]
             tid = re.search("id=(\d+)", href).group(1)  # 找出种子id
+            tid_list.append(tid)
+        return tid_list
+
+    def first_tid_in_search_list(self, key) -> int:
+        tid_list = self.search_list(key=key)
+        logging.debug("USE key: {key} to search,and the Return tid-list: {list}".format(key=key, list=tid_list))
+        try:
+            tid = tid_list[0]
+        except IndexError:
+            tid = 0
         return tid
 
     def extend_descr(self, torrent, info_dict) -> str:
@@ -135,7 +147,7 @@ class NexusPHP(Base):
         If exist in this site ,return the exist torrent's id,else return 0.
         (Warning:if the exist torrent is not same as the pre-reseed torrent ,will return -1)
         """
-        tag = self.search_first_torrent_id(key=search_title)
+        tag = self.first_tid_in_search_list(key=search_title)
         if tag is not 0:
             torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
             torrent_file_info_table = torrent_file_page.find("ul", id="colapse")
@@ -160,7 +172,7 @@ class NexusPHP(Base):
                     raise KeyError("The db-record is not return the clone id.")
             except KeyError:
                 logging.warning("Not Find clone id from db of this torrent,May got incorrect info when clone.")
-                clone_id = self.search_first_torrent_id(key=key_raw)
+                clone_id = self.first_tid_in_search_list(key=key_raw)
             else:
                 logging.debug("Get clone id({id}) from db OK,USE key: \"{key}\"".format(id=clone_id, key=key_raw))
 

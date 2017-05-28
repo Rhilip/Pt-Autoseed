@@ -46,6 +46,7 @@ class Autoseed(object):
             for pat in pattern_group:
                 search = re.search(pat, tname)
                 if search:
+                    logging.debug("The search group: {gr]".format(search.groups()))
                     key_raw = re.sub(r"[_\-.]", " ", search.group("search_name"))
                     clone_dict = db.get_data_clone_id(key=key_raw)
                     for site in self.active_seed:  # Site feed
@@ -55,7 +56,7 @@ class Autoseed(object):
                     reseed_status = True
                     break
             if not reseed_status:  # 不符合，更新seed_id为-1
-                logging.warning("Mark Torrent \"{}\" As Un-reseed torrent,Stop watching.".format(tname))
+                logging.warning("No match pattern,Mark \"{}\" As Un-reseed torrent,Stop watching.".format(tname))
                 for tracker in self.active_tracker:
                     db.reseed_update(did=dl_torrent.id, rid=-1, site=tracker)
         else:
