@@ -159,9 +159,9 @@ class NexusPHP(Base):
     # -*- The feeding function -*-
     def torrent_feed(self, torrent, name_pattern, clone_db_dict):
         logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
-        key_raw = clone_db_dict["search_name"]
-        key_with_gp = "{search_key} {gr}".format(search_key=key_raw, gr=name_pattern.group("group"))
-        key_with_gp_ep = "{key_gp} {ep}".format(key_gp=key_with_gp, ep=name_pattern.group("episode"))
+        key_raw = clone_db_dict["search_name"]  # maximum 10 keywords (NexusPHP: torrents.php,line 696),so gp ep first
+        key_with_gp = "{gr} {search_key}".format(search_key=key_raw, gr=name_pattern.group("group"))
+        key_with_gp_ep = "{ep} {gp_key}".format(gp_key=key_with_gp, ep=name_pattern.group("episode"))
 
         search_tag = self.exist_judge(key_with_gp_ep, torrent.name)
         if search_tag == -1 and re.search("REPACK|PROPER|v2", torrent.name):
