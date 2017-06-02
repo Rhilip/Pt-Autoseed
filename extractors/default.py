@@ -181,6 +181,7 @@ class NexusPHP(Base):
                     clone_id = self.first_tid_in_search_list(key=key_raw)
 
             err = True
+            multipart_data = None
             if int(clone_id) not in [0, -1]:  # -1 -> (This search name) Set to no re-seed for this site in database.
                 logging.info("The clone id for \"{title}\" is {cid}.".format(title=torrent.name, cid=clone_id))
                 torrent_raw_info_dict = self.torrent_clone(clone_id)
@@ -191,8 +192,8 @@ class NexusPHP(Base):
                     if flag is not -1:
                         err = False
             if err:
-                logging.error("The torrent reseed ERROR.Those info may help you: search_key: {pat}, dupe_tag: {tag}"
-                              "clone_id: {cid}".format(pat=key_with_gp_ep, tag=search_tag, cid=clone_id))
+                logging.error("The torrent reseed ERROR. With: search_key: {pat}, dupe_tag: {tag}, clone_id: {cid}, "
+                              "data: {da}".format(pat=key_with_gp_ep, tag=search_tag, cid=clone_id, da=multipart_data))
         elif search_tag == -1:  # 如果种子存在，但种子不一致
             logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent.Stop Posting~")
         else:  # 如果种子存在（已经有人发布）  -> 辅种
