@@ -55,8 +55,8 @@ class NPUBits(NexusPHP):
 
             # Remove code and quote.
             raw_descr = res_dic["descr"]
-            raw_descr = re.sub(r"\[code\](.+)\[/code\]", "", raw_descr, flags=re.S)
-            raw_descr = re.sub(r"\[quote\](.+)\[/quote\]", "", raw_descr, flags=re.S)
+            raw_descr = re.sub(r"\[code\](.+?)\[/code\]", "", raw_descr, flags=re.S)
+            raw_descr = re.sub(r"\[quote\](.+?)\[/quote\]", "", raw_descr, flags=re.S)
             raw_descr = re.sub(r"\u3000", " ", raw_descr)
             res_dic["descr"] = raw_descr
 

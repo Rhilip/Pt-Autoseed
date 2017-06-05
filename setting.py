@@ -120,7 +120,7 @@ extend_descr_raw = {
     },
     "mediainfo": {  # Key : info
         "status": True,
-        "bbcode": "[quote=MediaInfo (Autoseed自动生成，仅供参考)]{info}[/quote]",
+        "bbcode": "[quote=MediaInfo (自动生成，仅供参考)]{info}[/quote]",
         "html": """
         <fieldset class="autoseed">
             <legend><b>MediaInfo:（自动生成，仅供参考）</b></legend>
@@ -130,7 +130,7 @@ extend_descr_raw = {
     },
     "clone_info": {  # Key : torrent_id
         "status": True,
-        "bbcode": "该种子信息克隆自本站种子： [url=/details.php?id={torrent_id}&hit=1]{torrent_id}[/url]",
+        "bbcode": "[quote=Clone Info]该种子信息克隆自本站种子： [url=/details.php?id={torrent_id}&hit=1]{torrent_id}[/url][/quote]",
         "html": """
         <div class="byrbt_info_clone autoseed" data-clone="{torrent_id}" data-version="Autoseed" style="display:none">
             <a href="https://github.com/Rhilip/Pt-Autoseed" target="_blank">Powered by Rhilip's Autoseed</a>
