@@ -105,11 +105,14 @@ class Byrbt(NexusPHP):
                 del img_tag["data-pagespeed-url-hash"]
                 img_tag["src"] = re.sub(r"images/(?:(?:\d+x)+|x)(?P<raw>.*)\.pagespeed\.ic.*",
                                         "images/\g<raw>", img_tag["src"])
+
+            # Remove unnessary description
+            for tag in descr.find_all(class_="autoseed") + descr.find_all(class_="byrbt_info_clone_ignore"):
+                tag.extract()
             # Delete Clone Info
             if descr.find(class_="byrbt_info_clone"):
                 descr.find(class_="byrbt_info_clone").extract()
-            for fieldset in descr.find_all("fieldset"):
-                fieldset.extract()
+
             descr_out = re.search(r"<div id=\"kdescr\">(?P<in>.+)</div>$", str(descr), re.S).group("in")
             return_dict.update({
                 "small_descr": "",  # body.find(id="subtitle").find("li").text
