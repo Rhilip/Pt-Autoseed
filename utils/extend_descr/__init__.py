@@ -8,23 +8,25 @@ from .thumbnails import thumbnails
 raw_dict = setting.extend_descr_raw
 
 
-def out(raw, torrent, clone_id, encode="bbcode") -> str:
+def out(raw, torrent, clone_id, encode) -> str:
     file = setting.trans_downloaddir + "/" + torrent.files()[0]["name"]
+
+    if encode not in ["bbcode", "html"]:
+        encode = "bbcode"
+
     before = build_before(encode)
     shot = build_shot(file=file, encode=encode)
     media_info = build_mediainfo(file=file, encode=encode)
     clone_info = build_clone_info(before_torrent_id=clone_id, encode=encode)
 
-    return """{before}{raw}{shot}{mediainfo}{clone_info}""" \
-        .format(before=before, raw=raw, shot=shot, mediainfo=media_info, clone_info=clone_info)
+    return_str = before + raw + shot + media_info + clone_info
+    return return_str
 
 
 def build_before(encode) -> str:
     str_before = ""
     if raw_dict["before"]["status"]:
-        min_time = int(setting.torrent_minSeedTime / 86400)
-        max_time = int(setting.torrent_maxSeedTime / 86400)
-        str_before = raw_dict["before"][encode].format(min_reseed_time=min_time, max_reseed_time=max_time)
+        str_before = raw_dict["before"][encode]
     return str_before
 
 

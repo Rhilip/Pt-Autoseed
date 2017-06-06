@@ -77,6 +77,9 @@ ServerChan_SCKEY = ""
 # -*- End of Show status Setting -*-
 
 # -*- Extended description Setting -*-
+min_time = int(torrent_minSeedTime / 86400)
+max_time = int(torrent_maxSeedTime / 86400)
+
 extend_descr_raw = {
     "before": {  # Key : min_reseed_time, max_reseed_time
         "status": True,
@@ -87,7 +90,7 @@ extend_descr_raw = {
         [*]如果发布档较大，请耐心等待校验。
         [*]有关更新说明请查看对应 Github :[url=https://github.com/Rhilip/Pt-Autoseed]Rhilip/Pt-Autoseed[/url]，申请搬运，请发Issues留言。
         [/quote]
-        """,
+        """.format(min_reseed_time=min_time, max_reseed_time=max_time),
         "html": """
         <fieldset class="autoseed">
             <legend><b>Quote:</b></legend>
@@ -99,7 +102,7 @@ extend_descr_raw = {
                 <li>有关更新说明请查看对应 Github : <a href="https://github.com/Rhilip/Pt-Autoseed" target="_blank">Rhilip/Pt-Autoseed</a> ，申请搬运，请发Issues留言。</li>
             </ul>
         </fieldset>
-        """
+        """.format(min_reseed_time=min_time, max_reseed_time=max_time)
     },
     "shot": {  # Key : img_url
         "status": False,
