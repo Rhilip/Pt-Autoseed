@@ -1,14 +1,18 @@
-import re
-import time
 import json
 import logging
+import re
+import time
 
 from .loadsetting import tc, db, setting
 
 
 class Connect(object):
+    db_column = [fi["Field"] for fi in db.get_sql("SHOW COLUMNS FROM `seed_list`", r_dict=True)]
+    tracker_list = db_column[3:]  # ['id','title','download_id',...]
+
     def __init__(self, tracker_list):
-        self.tracker_list = tracker_list
+        self.reseed_tracker_list = tracker_list
+        self.un_reseed_tracker_list = [item for item in self.tracker_list if item not in tracker_list]
 
     def update_torrent_info_from_rpc_to_db(self, last_id_check=0, last_id_db=None, force_clean_check=False):
         """
@@ -19,19 +23,27 @@ class Connect(object):
         if torrent_id_list:
             last_id_check = max(torrent_id_list)
             if last_id_db is None:
-                last_id_db = db.get_max_in_column(table="seed_list", column_list=["download_id"] + self.tracker_list)
+                last_id_db = db.get_max_in_column(table="seed_list", column_list=self.db_column[2:])
             logging.debug("Max tid, transmission: {tr},database: {db}".format(tr=last_id_check, db=last_id_db))
             if not force_clean_check:  # Normal Update
                 logging.info("Some new torrents were add to transmission,Sync to db~")
                 for i in torrent_id_list:
                     t = tc.get_torrent(i)
-                    to_tracker_host = re.search(r"(?:udp|http[s]?)://(.+?)/", t.trackers[0]["announce"]).group(1)
-                    if to_tracker_host not in self.tracker_list:  # TODO use UPsert instead
-                        sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}',{:d})".format(t.name, t.id)
+                    try:
+                        to_tracker_host = re.search(r"p[s]?://(?P<host>.+?)/", t.trackers[0]["announce"]).group("host")
+                    except AttributeError:
+                        to_tracker_host = "download_id"
+
+                    if to_tracker_host in self.tracker_list:
+                        sql = "UPDATE seed_list SET `{cow}` = {id:d} " \
+                              "WHERE title='{name}'".format(cow=to_tracker_host, name=t.name, id=t.id)
                     else:
-                        sql = "UPDATE seed_list SET `{cow}` = {id:d} WHERE title='{name}'".format(cow=to_tracker_host,
-                                                                                                  name=t.name, id=t.id)
+                        sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}',{:d})".format(t.name, t.id)
                     db.commit_sql(sql)
+
+                # Set un_reseed column into -1
+                for tracker in self.un_reseed_tracker_list:
+                    db.commit_sql(sql="UPDATE seed_list SET `{cow}` = -1 WHERE `{cow}` = 0 ".format(cow=tracker))
             elif last_id_check != last_id_db:  # 第一次启动检查(force_clean_check)
                 logging.error(
                     "It seems the torrent list didn't match with db-records,Clean the \"seed_list\" for safety.")
@@ -84,7 +96,7 @@ class Connect(object):
     def generate_web_json(self):
         data = []
         other_decision = "ORDER BY id DESC LIMIT {sum}".format(sum=setting.web_show_entries_number)
-        data_list = db.get_table_seed_list_limit(tracker_list=self.tracker_list, operator="AND",
+        data_list = db.get_table_seed_list_limit(tracker_list=self.reseed_tracker_list, operator="AND",
                                                  condition="!=-1", other_decision=other_decision)
         for cow in data_list:
             sid = cow.pop("id")
