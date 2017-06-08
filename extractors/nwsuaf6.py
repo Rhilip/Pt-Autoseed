@@ -71,9 +71,6 @@ class MTPT(NexusPHP):
     url_host = "http://pt.nwsuaf6.edu.cn"
     db_column = "pt.nwsuaf6.edu.cn"
 
-    def __init__(self, site_setting):
-        super().__init__(site_setting=site_setting)
-
     def torrent_clone(self, tid) -> dict:
         """
         Use Internal API: http://pt.nwsuaf6.edu.cn/citetorrent.php?torrent_id={tid} ,Request Method: GET

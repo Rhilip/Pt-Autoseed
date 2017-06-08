@@ -16,9 +16,6 @@ class NPUBits(NexusPHP):
     url_host = "https://npupt.com"
     db_column = "npupt.com"
 
-    def __init__(self, site_setting):
-        super().__init__(site_setting=site_setting)
-
     @staticmethod
     def torrent_upload_err_message(post_text) -> str:
         """Use Internal hack for NBPub"""

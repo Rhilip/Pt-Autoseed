@@ -72,9 +72,6 @@ class Byrbt(NexusPHP):
 
     encode = "html"
 
-    def __init__(self, site_setting):
-        super().__init__(site_setting=site_setting)
-
     def torrent_clone(self, tid) -> dict:
         """
         Reconstruction from BYRBT Info Clone by Deparsoul version 20170400,thx
