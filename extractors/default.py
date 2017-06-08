@@ -164,7 +164,7 @@ class NexusPHP(Base):
         key_with_gp_ep = "{ep} {gp_key}".format(gp_key=key_with_gp, ep=name_pattern.group("episode"))
 
         search_tag = self.exist_judge(key_with_gp_ep, torrent.name)
-        if search_tag == -1 and re.search("REPACK|PROPER|v2", torrent.name):
+        if search_tag == -1 and re.search("repack|proper|v2|rev", str(torrent.name).lower()):
             search_tag = 0  # For REPACK will let search_tag == -1 when use function exits_judge.
 
         flag = -1
