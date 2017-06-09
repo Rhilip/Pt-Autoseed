@@ -3,7 +3,7 @@ from logging.handlers import RotatingFileHandler
 
 import transmissionrpc
 
-from .database import Database
+from .database import Database, MySQLHandler
 from .serverchan import ServerChan
 
 try:
@@ -32,3 +32,6 @@ fileHandler.setLevel(logging_level)
 
 consoleHandler = logging.StreamHandler()
 consoleHandler.setFormatter(logFormatter)
+
+dbHandler = MySQLHandler(db=db)
+dbHandler.setLevel(logging.INFO)

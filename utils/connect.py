@@ -23,7 +23,7 @@ class Connect(object):
         if torrent_id_list:
             last_id_check = max(torrent_id_list)
             if last_id_db is None:
-                last_id_db = db.get_max_in_column(table="seed_list", column_list=self.db_column[2:])
+                last_id_db = db.get_max_in_columns(table="seed_list", column_list=self.db_column[2:])
             logging.debug("Max tid, transmission: {tr},database: {db}".format(tr=last_id_check, db=last_id_db))
             if not force_clean_check:  # Normal Update
                 logging.info("Some new torrents were add to transmission,Sync to db~")

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import time
 
 import pymysql
 
@@ -11,41 +12,46 @@ class Database(object):
         self.db = pymysql.connect(host=host, port=port, user=user, password=password, db=db, charset='utf8')
         self.cursor = self.db.cursor()
 
-    def commit_sql(self, sql: str):
+    def commit_sql(self, sql: str, log=True):
         """Submit SQL statement"""
         try:
             self.cursor.execute(sql)
             self.db.commit()
-            logging.debug("A commit to db success,DDL: \"{sql}\"".format(sql=sql))
+            if log:
+                logging.debug("A commit to db success,DDL: \"{sql}\"".format(sql=sql))
         except pymysql.Error as err:
             logging.critical("Mysql Error: {err},DDL: {sql}".format(err=err.args, sql=sql))
             self.db.rollback()
 
-    def get_sql(self, sql: str, r_dict=False):
+    def get_sql(self, sql: str, r_dict=False, fetch_all=True, log=True):
         """Get data from the database"""
         if r_dict:  # Dict Cursor
             cursor = self.db.cursor(pymysql.cursors.DictCursor)
         else:
             cursor = self.cursor
         row = cursor.execute(sql)
-        result = cursor.fetchall()
-        logging.debug("Some information from db,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
+        if fetch_all:
+            result = cursor.fetchall()
+        else:
+            result = cursor.fetchone()
+        if log:
+            logging.debug("Some information from db,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
         return result
 
-    def get_max_in_one_column(self, table, column):
+    def get_max_in_one_column(self, table, column, log=True):
         """Find the maximum value of the table in that column from the database"""
         sql = "SELECT MAX(`" + column + "`) FROM `" + table + "`"
-        result = self.get_sql(sql)
+        result = self.get_sql(sql, log=log)
         t = result[0][0]
         if not t:
             t = 0
         return t
 
-    def get_max_in_column(self, table, column_list: list or str, max_num=0):
+    def get_max_in_columns(self, table, column_list: list or str, max_num=0):
         """Find the maximum value of the table in a list of column from the database"""
         if isinstance(column_list, list):
             for column in column_list:
-                t = self.get_max_in_one_column(table=table, column=column)
+                t = self.get_max_in_one_column(table=table, column=column, log=False)
                 max_num = max(max_num, t)
         else:
             max_num = self.get_max_in_one_column(table=table, column=column_list)
@@ -79,3 +85,97 @@ class Database(object):
     def reseed_update(self, did, rid, site):
         sql = "UPDATE seed_list SET `{col}` = {rid} WHERE download_id={did}".format(col=site, rid=rid, did=did)
         self.commit_sql(sql)
+
+
+class MySQLHandler(logging.Handler):
+    """
+    Logging handler for MySQL.
+    """
+
+    initial_sql = """CREATE TABLE IF NOT EXISTS log(
+    Created TEXT,
+    Name TEXT,
+    LogLevel INT,
+    LogLevelName TEXT,
+    Message TEXT,
+    Args TEXT,
+    Module TEXT,
+    FuncName TEXT,
+    LineNo INT,
+    Exception TEXT,
+    Process INT,
+    Thread TEXT,
+    ThreadName TEXT
+    )"""
+
+    insertion_sql = """INSERT INTO log(
+    Created,
+    Name,
+    LogLevel,
+    LogLevelName,
+    Message,
+    Args,
+    Module,
+    FuncName,
+    LineNo,
+    Exception,
+    Process,
+    Thread,
+    ThreadName
+    )
+    VALUES (
+    '%(dbtime)s',
+    '%(name)s',
+    '%(levelno)d',
+    '%(levelname)s',
+    '%(msg)s',
+    '%(args)s',
+    '%(module)s',
+    '%(funcName)s',
+    '%(lineno)d',
+    '%(exc_text)s',
+    '%(process)d',
+    '%(thread)s',
+    '%(threadName)s'
+    );
+    """
+
+    def __init__(self, db: Database):
+        """
+        Constructor
+        @param db: class utils.database.Database
+        @return: mySQLHandler
+        """
+
+        logging.Handler.__init__(self)
+
+        # Try to connect to DB
+        self.db = db
+
+        # Check if 'log' table in db already exists, else create it.
+        self.check_table_presence()
+
+    def check_table_presence(self):
+        sql = "SHOW TABLES LIKE 'log'"
+        result = self.db.get_sql(sql=sql, fetch_all=False, log=False)
+        if not result:
+            self.db.commit_sql(sql=self.initial_sql, log=False)
+
+    def emit(self, record):
+        """
+        Connect to DB, execute SQL Request, disconnect from DB
+        @param record:
+        @return: 
+        """
+        # Use default formatting:
+        self.format(record)
+        # Set the database time up:
+        record.dbtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(record.created))
+
+        if record.exc_info:
+            record.exc_text = logging._defaultFormatter.formatException(record.exc_info)
+        else:
+            record.exc_text = ""
+        # Insert log record:
+        sql = self.insertion_sql % record.__dict__
+        self.db.commit_sql(sql=sql, log=False)
