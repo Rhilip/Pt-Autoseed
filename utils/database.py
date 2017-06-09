@@ -44,6 +44,10 @@ CREATE TABLE IF NOT EXISTS `log`(
 
 
 class Database(object):
+    table_list = None
+    column_in_info_list = None
+    column_in_seed_list = None
+
     def __init__(self, host, port, user, password, db):
         self.db = pymysql.connect(host=host, port=port, user=user, password=password, db=db, charset='utf8')
         self.check_table_presence()
@@ -88,13 +92,40 @@ class Database(object):
         log_status = False
         sql = "SHOW TABLES"
         result = self.get_sql(sql=sql, fetch_all=True, log=log_status)
-        table_list = [cow[0] for cow in result]
-        if name_table_seed_list not in table_list:
+
+        # Check table (with create)
+        self.table_list = (cow[0] for cow in result)
+        if name_table_seed_list not in self.table_list:
             self.commit_sql(sql=create_table_seed_list, log=log_status)
             # del create_table_seed_list
-        if name_table_info_list not in table_list:
+        if name_table_info_list not in self.table_list:
             self.commit_sql(sql=create_table_info_list, log=log_status)
             # del create_table_info_list
+
+        # Check cow (Get column in those table)
+        self.column_update()
+        logging.info("The table in Database check OK!")
+
+    def column_update(self):
+        seed_sql = "SHOW columns FROM `{tab}`".format(tab=name_table_seed_list)
+        self.column_in_seed_list = [i[0] for i in self.get_sql(seed_sql, r_dict=False, log=False)]
+        info_sql = "SHOW columns FROM `{tab}`".format(tab=name_table_info_list)
+        self.column_in_info_list = [i[0] for i in self.get_sql(info_sql, r_dict=False, log=False)]
+
+        logging.debug("Update the column.\"seed_list\": {seed},"
+                      "\"info_list\":{info}".format(seed=self.column_in_seed_list, info=self.column_in_info_list))
+
+    def check_reseed_cow(self, reseed_cow: str):
+        if reseed_cow not in self.column_in_seed_list:
+            sql = "ALTER TABLE `{tab}` ADD `{reseed}` TEXT DEFAULT NOT NULL AFTER " \
+                  "`{before}`;".format(tab=name_table_seed_list, reseed=reseed_cow, before=self.column_in_seed_list[-1])
+            self.commit_sql(sql=sql)
+        if reseed_cow not in self.column_in_info_list:
+            sql = "ALTER TABLE `{tab}` ADD `{reseed}` TEXT DEFAULT NULL AFTER " \
+                  "`{before}`;".format(tab=name_table_info_list, reseed=reseed_cow, before=self.column_in_info_list[-1])
+            self.commit_sql(sql=sql)
+        logging.info("Column Check OK!")
+        self.column_update()
 
     # Procedure Oriented Function
     def get_max_in_one_column(self, table, column, log=True):
