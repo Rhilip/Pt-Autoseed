@@ -1,0 +1,4 @@
+[submodule "setup"]
+  path = setup
+  url = https://github.com/Rhilip/PT-Autoseed-install.git
+  branch = master
