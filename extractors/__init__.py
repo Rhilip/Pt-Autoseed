@@ -7,12 +7,10 @@ from utils.pattern import pattern_group
 
 class Autoseed(object):
     active_seed = []
-    active_tracker = []
+    active_online_seed = []
+    active_online_tracker = []
 
     def __init__(self):
-        self.load_autoseed()
-
-    def load_autoseed(self):
         # Byrbt
         if setting.site_byrbt["status"]:
             from .byrbt import Byrbt
@@ -34,9 +32,14 @@ class Autoseed(object):
             if autoseed_nwsuaf6.status:
                 self.active_seed.append(autoseed_nwsuaf6)
 
-        for site in self.active_seed:
-            self.active_tracker.append(site.db_column)
+        self.active_tracker = (site.db_column for site in self.active_seed)
         logging.info("The assign autoseed module:{lis}".format(lis=self.active_seed))
+
+        self.reseed_site_online_check()
+
+    def reseed_site_online_check(self):
+        self.active_online_seed = (site for site in self.active_seed if site.online_check() and site.status)
+        self.active_online_tracker = (site.db_column for site in self.active_online_seed)
 
     def feed(self, dl_torrent, cow):
         tname = dl_torrent.name
@@ -49,8 +52,8 @@ class Autoseed(object):
                     logging.debug("The search group: {gr}".format(gr=search.groups()))
                     key_raw = re.sub(r"[_\-.]", " ", search.group("search_name"))
                     clone_dict = db.get_data_clone_id(key=key_raw)
-                    for site in self.active_seed:  # Site feed
-                        if site.online_check() and cow[site.db_column] is 0:
+                    for site in self.active_online_seed:  # Site feed
+                        if int(cow[site.db_column]) is 0:
                             tag = site.torrent_feed(torrent=dl_torrent, name_pattern=search, clone_db_dict=clone_dict)
                             db.reseed_update(did=dl_torrent.id, rid=tag, site=site.db_column)
                     reseed_status = True
@@ -64,7 +67,8 @@ class Autoseed(object):
 
     def update(self):
         """Get the pre-reseed list from database."""
-        result = db.get_table_seed_list_limit(tracker_list=self.active_tracker, operator="OR", condition="=0")
+        self.reseed_site_online_check()
+        result = db.get_table_seed_list_limit(tracker_list=self.active_online_tracker, operator="OR", condition="=0")
         for t in result:  # Traversal all un-reseed list
             try:
                 dl_torrent = tc.get_torrent(t["download_id"])
