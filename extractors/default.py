@@ -42,6 +42,7 @@ class Base(object):
             if self.online_check_count != 0:
                 logging.info("The Site: {si} is Now online,"
                              "after {count} times tries.".format(si=self.url_host, count=self.online_check_count))
+                self.session_check()
             self.online_check_count = 0
         return online
 
@@ -57,6 +58,9 @@ class Base(object):
 
     def post_data(self, url, params=None, data=None, files=None):
         return requests.post(url=url, params=params, data=data, files=files, cookies=self.cookies)
+
+    def session_check(self):
+        pass
 
 
 class NexusPHP(Base):
