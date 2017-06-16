@@ -10,6 +10,8 @@ class Autoseed(object):
     active_online_seed = []
     active_online_tracker = []
 
+    downloading_torrent_queue = []
+
     def __init__(self):
         # Byrbt
         if setting.site_byrbt["status"]:
@@ -42,28 +44,26 @@ class Autoseed(object):
         self.active_online_tracker = (site.db_column for site in self.active_online_seed)
 
     def feed(self, dl_torrent, cow):
+        reseed_status = False
+
         tname = dl_torrent.name
-        if int(dl_torrent.progress) is 100:  # Get the download progress in percent.
-            logging.info("New completed torrent: \"{name}\" ,Judge reseed or not.".format(name=tname))
-            reseed_status = False
-            for pat in pattern_group:
-                search = re.search(pat, tname)
-                if search:
-                    logging.debug("The search group: {gr}".format(gr=search.groups()))
-                    key_raw = re.sub(r"[_\-.]", " ", search.group("search_name"))
-                    clone_dict = db.get_data_clone_id(key=key_raw)
-                    for site in self.active_online_seed:  # Site feed
-                        if int(cow[site.db_column]) is 0:
-                            tag = site.torrent_feed(torrent=dl_torrent, name_pattern=search, clone_db_dict=clone_dict)
-                            db.reseed_update(did=dl_torrent.id, rid=tag, site=site.db_column)
-                    reseed_status = True
-                    break
-            if not reseed_status:  # 不符合，更新seed_id为-1
-                logging.warning("No match pattern,Mark \"{}\" As Un-reseed torrent,Stop watching.".format(tname))
-                for tracker in self.active_tracker:
-                    db.reseed_update(did=dl_torrent.id, rid=-1, site=tracker)
-        else:
-            logging.warning("Torrent:\"{name}\" is still downloading,Wait until the next round.".format(name=tname))
+        for pat in pattern_group:
+            search = re.search(pat, tname)
+            if search:
+                logging.debug("The search group: {gr}".format(gr=search.groups()))
+                key_raw = re.sub(r"[_\-.]", " ", search.group("search_name"))
+                clone_dict = db.get_data_clone_id(key=key_raw)
+                for site in self.active_online_seed:  # Site feed
+                    if int(cow[site.db_column]) is 0:
+                        tag = site.torrent_feed(torrent=dl_torrent, name_pattern=search, clone_db_dict=clone_dict)
+                        db.reseed_update(did=dl_torrent.id, rid=tag, site=site.db_column)
+                reseed_status = True
+                break
+
+        if not reseed_status:  # Update seed_id == -1 if no matched pattern
+            logging.warning("No match pattern,Mark \"{}\" As Un-reseed torrent,Stop watching.".format(tname))
+            for tracker in self.active_tracker:
+                db.reseed_update(did=dl_torrent.id, rid=-1, site=tracker)
 
     def update(self):
         """Get the pre-reseed list from database."""
@@ -76,4 +76,14 @@ class Autoseed(object):
                 logging.error("The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
                               "It will be deleted from db in next delete-check time".format(t["title"]))
             else:
-                self.feed(dl_torrent=dl_torrent, cow=t)
+                tname = dl_torrent.name
+                if int(dl_torrent.progress) is 100:  # Get the download progress in percent.
+                    logging.info("New completed torrent: \"{name}\" ,Judge reseed or not.".format(name=tname))
+                    self.feed(dl_torrent=dl_torrent, cow=t)
+                    if dl_torrent.id in self.downloading_torrent_queue:
+                        self.downloading_torrent_queue.pop(dl_torrent.id)
+                elif dl_torrent.id in self.downloading_torrent_queue:
+                    pass
+                else:
+                    logging.warning("Torrent:\"{name}\" is still downloading,Wait......".format(name=tname))
+                    self.downloading_torrent_queue.append(dl_torrent.id)
