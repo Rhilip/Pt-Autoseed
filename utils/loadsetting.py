@@ -3,8 +3,8 @@ from logging.handlers import RotatingFileHandler
 
 import transmissionrpc
 
-from .database import Database, MySQLHandler
-from .serverchan import ServerChan
+from utils.database import Database, MySQLHandler
+from utils.serverchan import ServerChan
 
 try:
     import usersetting as setting

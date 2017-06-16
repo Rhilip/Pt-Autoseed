@@ -3,7 +3,7 @@ import logging
 import re
 import time
 
-from .loadsetting import tc, db, setting
+from utils.loadsetting import tc, db, setting
 
 
 class Connect(object):

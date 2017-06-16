@@ -43,7 +43,7 @@ class Base(object):
                 logging.info("The Site: {si} is Now online,"
                              "after {count} times tries.".format(si=self.url_host, count=self.online_check_count))
                 self.session_check()
-            self.online_check_count = 0
+                self.online_check_count = 0
         return online
 
     # -*- Encapsulation requests's method,with format-out as bs or json when use get -*-
