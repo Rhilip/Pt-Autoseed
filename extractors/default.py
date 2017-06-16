@@ -14,6 +14,8 @@ from utils.loadsetting import tc
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
+REQUESTS_TIMEOUT = 5
+
 
 class Base(object):
     url_host = "http://www.pt_domain.com"  # No '/' at the end.
@@ -24,6 +26,15 @@ class Base(object):
 
     def model_name(self):
         return type(self).__name__
+
+    def online_check(self):
+        online = True
+        try:
+            requests.get(url=self.url_host, stream=True, timeout=REQUESTS_TIMEOUT)
+        except requests.exceptions.Timeout:
+            online = False
+            logging.warning("Site: {si} is offline now.".format(si=self.url_host))
+        return online
 
     # -*- Encapsulation requests's method,with format-out as bs or json when use get -*-
     def get_page(self, url, params=None, bs=False, json=False):

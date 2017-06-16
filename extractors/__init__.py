@@ -50,7 +50,7 @@ class Autoseed(object):
                     key_raw = re.sub(r"[_\-.]", " ", search.group("search_name"))
                     clone_dict = db.get_data_clone_id(key=key_raw)
                     for site in self.active_seed:  # Site feed
-                        if cow[site.db_column] is 0:
+                        if site.online_check() and cow[site.db_column] is 0:
                             tag = site.torrent_feed(torrent=dl_torrent, name_pattern=search, clone_db_dict=clone_dict)
                             db.reseed_update(did=dl_torrent.id, rid=tag, site=site.db_column)
                     reseed_status = True
