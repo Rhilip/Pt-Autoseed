@@ -33,7 +33,7 @@ class Base(object):
         online = True
         try:
             requests.get(url=self.url_host, stream=True, timeout=REQUESTS_TIMEOUT)
-        except requests.exceptions.Timeout:
+        except requests.exceptions.RequestException:
             online = False
             if self.online_check_count == 0:
                 logging.warning("Site: {si} is offline now.".format(si=self.url_host))
