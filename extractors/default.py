@@ -14,6 +14,8 @@ from utils.loadsetting import tc
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("requests").setLevel(logging.WARNING)
 
+REQUESTS_TIMEOUT = 5
+
 
 class Base(object):
     url_host = "http://www.pt_domain.com"  # No '/' at the end.
@@ -22,8 +24,26 @@ class Base(object):
     status = False
     cookies = None
 
+    online_check_count = 0
+
     def model_name(self):
         return type(self).__name__
+
+    def online_check(self):
+        online = True
+        try:
+            requests.get(url=self.url_host, stream=True, timeout=REQUESTS_TIMEOUT)
+        except requests.exceptions.RequestException:
+            online = False
+            if self.online_check_count == 0:
+                logging.warning("Site: {si} is offline now.".format(si=self.url_host))
+            self.online_check_count += 1
+        else:
+            if self.online_check_count != 0:
+                logging.info("The Site: {si} is Now online,"
+                             "after {count} times tries.".format(si=self.url_host, count=self.online_check_count))
+            self.online_check_count = 0
+        return online
 
     # -*- Encapsulation requests's method,with format-out as bs or json when use get -*-
     def get_page(self, url, params=None, bs=False, json=False):
@@ -47,6 +67,7 @@ class NexusPHP(Base):
         self.site_setting = site_setting
         self.status = site_setting["status"]
         self.passkey = site_setting["passkey"]
+        self.cookies = cookies_raw2jar(site_setting["cookies"])
         try:
             self.auto_thank = site_setting["auto_thank"]
             if not site_setting["anonymous_release"]:
@@ -54,8 +75,7 @@ class NexusPHP(Base):
         except KeyError:
             pass
 
-        if self.status:
-            self.cookies = cookies_raw2jar(site_setting["cookies"])
+        if self.status and self.online_check():
             self.session_check()
 
     # -*- Check login's info -*-

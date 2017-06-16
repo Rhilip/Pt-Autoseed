@@ -1,0 +1,3 @@
+[submodule "PT-Autoseed-install"]
+	path = PT-Autoseed-install
+	url = https://github.com/Rhilip/PT-Autoseed-install.git
