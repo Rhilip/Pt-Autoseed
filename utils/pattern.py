@@ -13,7 +13,7 @@ NOTICE:
 pattern_group = [
     re.compile(  # Series (Which name match with 0day Source,see https://scenerules.org/t.html?id=tvx2642k16.nfo 16.4)
         "\.?(?P<full_name>(?P<search_name>[\w\-. ]+?)[. ]"
-        "(?P<episode>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)).+?(?:-(?P<group>.+?))?)"
+        "(?P<episode>(?:(?:[Ss]\d+)?[Ee][Pp]?\d+(?:-[Ee]?[Pp]?\d+)?)|(?:[Ss]\d+)|(?:Complete)).+?(?:-(?P<group>.+?))?)"
         "(?:\.(?P<filetype>\w+)$|$)"
     ),
     re.compile(  # Anime - One_piece(Skytree)
