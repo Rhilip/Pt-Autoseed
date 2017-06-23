@@ -154,13 +154,19 @@ class NexusPHP(Base):
         tid_list = self.search_list(key=key)
         logging.debug("USE key: {key} to search,and the Return tid-list: {list}".format(key=key, list=tid_list))
         try:
-            tid = tid_list[0]
+            tid = int(tid_list[0])
         except IndexError:
             tid = 0
         return tid
 
     def extend_descr(self, torrent, info_dict) -> str:
         return descr_out(raw=info_dict["descr"], torrent=torrent, encode=self.encode, clone_id=info_dict["clone_id"])
+
+    def exist_torrent_title(self, tag):
+        torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
+        torrent_file_info_table = torrent_file_page.find("ul", id="colapse")
+        torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
+        return torrent_title
 
     def exist_judge(self, search_title, torrent_file_name) -> int:
         """
@@ -169,9 +175,7 @@ class NexusPHP(Base):
         """
         tag = self.first_tid_in_search_list(key=search_title)
         if tag is not 0:
-            torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
-            torrent_file_info_table = torrent_file_page.find("ul", id="colapse")
-            torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
+            torrent_title = self.exist_torrent_title(tag=tag)
             if torrent_file_name != torrent_title:  # Use pre-reseed torrent's name match the exist torrent's name
                 tag = -1
         return tag

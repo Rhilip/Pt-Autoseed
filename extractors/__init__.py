@@ -15,24 +15,31 @@ class Autoseed(object):
     def load_autoseed(self):
         # Byrbt
         if setting.site_byrbt["status"]:
-            from .byrbt import Byrbt
+            from extractors.byrbt import Byrbt
             autoseed_byrbt = Byrbt(site_setting=setting.site_byrbt)
             if autoseed_byrbt.status:
                 self.active_seed.append(autoseed_byrbt)
 
         # NPUBits
         if setting.site_npubits["status"]:
-            from .npubits import NPUBits
+            from extractors.npubits import NPUBits
             autoseed_npubits = NPUBits(site_setting=setting.site_npubits)
             if autoseed_npubits.status:
                 self.active_seed.append(autoseed_npubits)
 
         # nwsuaf6
         if setting.site_nwsuaf6["status"]:
-            from .nwsuaf6 import MTPT
+            from extractors.nwsuaf6 import MTPT
             autoseed_nwsuaf6 = MTPT(site_setting=setting.site_nwsuaf6)
             if autoseed_nwsuaf6.status:
                 self.active_seed.append(autoseed_nwsuaf6)
+
+        # TJUPT
+        if setting.site_tjupt["status"]:
+            from extractors.tjupt import TJUPT
+            autoseed_tjupt = TJUPT(site_setting=setting.site_tjupt)
+            if autoseed_tjupt.status:
+                self.active_seed.append(autoseed_tjupt)
 
         for site in self.active_seed:
             self.active_tracker.append(site.db_column)

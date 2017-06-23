@@ -21,13 +21,17 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE IF NOT EXISTS `info_list` (
-  `sort_id`           int(11) NOT NULL,
-  `search_name`       text NOT NULL COMMENT '搜索名称',
-  `tracker.byr.cn`    int(11) DEFAULT NULL COMMENT 'byr克隆种子号',
-  `npupt.com`         INT(11) DEFAULT NULL
-  COMMENT 'npubits克隆种子号',
-  `pt.nwsuaf6.edu.cn` INT(11) DEFAULT NULL
-  COMMENT 'nwsuaf6克隆种子号'
+  `sort_id`               INT(11) NOT NULL,
+  `search_name`           TEXT    NOT NULL
+  COMMENT '搜索名称',
+  `tracker.byr.cn`        INT(11) DEFAULT NULL
+  COMMENT 'byr克隆种子号',
+  `npupt.com`             INT(11) DEFAULT NULL
+  COMMENT 'npu克隆种子号',
+  `pt.nwsuaf6.edu.cn`     INT(11) DEFAULT NULL
+  COMMENT 'mtpt克隆种子号',
+  `pttracker6.tju.edu.cn` INT(11) DEFAULT NULL
+  COMMENT 'tju克隆种子号'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -37,12 +41,13 @@ CREATE TABLE IF NOT EXISTS `info_list` (
 --
 
 CREATE TABLE IF NOT EXISTS `seed_list` (
-  `id`                int(11) NOT NULL,
-  `title`             text    NOT NULL,
-  `download_id`       int(11) NOT NULL,
-  `tracker.byr.cn`    int(11) NOT NULL,
-  `npupt.com`         INT(11) NOT NULL,
-  `pt.nwsuaf6.edu.cn` INT(11) NOT NULL
+  `id`                    INT(11) NOT NULL,
+  `title`                 TEXT    NOT NULL,
+  `download_id`           INT(11) NOT NULL,
+  `tracker.byr.cn`        INT(11) NOT NULL,
+  `npupt.com`             INT(11) NOT NULL,
+  `pt.nwsuaf6.edu.cn`     INT(11) NOT NULL,
+  `pttracker6.tju.edu.cn` INT(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
