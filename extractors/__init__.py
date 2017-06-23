@@ -15,26 +15,34 @@ class Autoseed(object):
     def __init__(self):
         # Byrbt
         if setting.site_byrbt["status"]:
-            from .byrbt import Byrbt
+            from extractors.byrbt import Byrbt
             autoseed_byrbt = Byrbt(site_setting=setting.site_byrbt)
             if autoseed_byrbt.status:
                 self.active_seed.append(autoseed_byrbt)
 
         # NPUBits
         if setting.site_npubits["status"]:
-            from .npubits import NPUBits
+            from extractors.npubits import NPUBits
             autoseed_npubits = NPUBits(site_setting=setting.site_npubits)
             if autoseed_npubits.status:
                 self.active_seed.append(autoseed_npubits)
 
         # nwsuaf6
         if setting.site_nwsuaf6["status"]:
-            from .nwsuaf6 import MTPT
+            from extractors.nwsuaf6 import MTPT
             autoseed_nwsuaf6 = MTPT(site_setting=setting.site_nwsuaf6)
             if autoseed_nwsuaf6.status:
                 self.active_seed.append(autoseed_nwsuaf6)
 
-        self.active_tracker = (site.db_column for site in self.active_seed)
+        # TJUPT
+        if setting.site_tjupt["status"]:
+            from extractors.tjupt import TJUPT
+            autoseed_tjupt = TJUPT(site_setting=setting.site_tjupt)
+            if autoseed_tjupt.status:
+                self.active_seed.append(autoseed_tjupt)
+
+        for site in self.active_seed:
+            self.active_seed.append(site.db_column)
         logging.info("The assign autoseed module:{lis}".format(lis=self.active_seed))
 
         self.reseed_site_online_check()
@@ -62,7 +70,7 @@ class Autoseed(object):
 
         if not reseed_status:  # Update seed_id == -1 if no matched pattern
             logging.warning("No match pattern,Mark \"{}\" As Un-reseed torrent,Stop watching.".format(tname))
-            for tracker in self.active_tracker:
+            for tracker in self.active_seed:
                 db.reseed_update(did=dl_torrent.id, rid=-1, site=tracker)
 
     def update(self):

@@ -47,6 +47,14 @@ site_nwsuaf6 = {
     "anonymous_release": True,
     "auto_thank": True
 }
+# """TJUPT"""
+site_tjupt = {
+    "status": True,
+    "cookies": "",
+    "passkey": "",
+    "anonymous_release": True,
+    "auto_thank": True
+}
 # -*- End of Reseed Site Setting -*-
 
 # -*- Feeding Torrent Setting -*-
