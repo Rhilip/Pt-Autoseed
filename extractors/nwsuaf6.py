@@ -28,45 +28,6 @@ title_split_dict = {
 }
 
 
-def update_title(raw_title, cat, torrent_title_search):  # -> str
-    # Separate raw title
-    split = title_split_dict[cat]["order"]
-    raw_title_group = re.findall(r"\[[^\]]*\]", raw_title)
-    temporarily_dict = {}
-
-    len_split = len(title_split_dict[cat]["order"])
-    if len_split != len(raw_title_group):
-        logging.warning("The raw title \"{raw}\" may lack of tag (now: {no},ask: {co}),"
-                        "The split may wrong.".format(raw=raw_title, no=len(raw_title_group), co=len_split))
-        while len_split > len(raw_title_group):
-            raw_title_group.append("")
-    raw_title_group.reverse()
-    for i in split:
-        j = raw_title_group.pop()
-        title_split = re.sub("\[(?P<in>.+)\]", "\g<in>", j)
-        if i in title_split_dict[cat]["limit"]:
-            if title_split not in title_split_dict[cat]["limit"][i]:
-                title_split = ""  # type_dict[raw_type]["limit"][i][0]
-                raw_title_group.append(j)
-        temporarily_dict.update({i: title_split})
-
-    # Update temporarily dict
-    if cat == "402":  # Series
-        temporarily_dict["english_name"] = torrent_title_search.group("full_name")
-        temporarily_dict["jidu"] = torrent_title_search.group("episode")
-    elif cat == "405":  # Anime
-        temporarily_dict["num"] = torrent_title_search.group("episode")
-
-    # Generate new title
-    new_title = ""
-    for i in split:
-        inner = temporarily_dict[i]
-        if len(inner) is not 0:
-            new_title += "[{inner}]".format(inner=inner)
-
-    return new_title
-
-
 class MTPT(NexusPHP):
     url_host = "http://pt.nwsuaf6.edu.cn"
     db_column = "pt.nwsuaf6.edu.cn"
@@ -94,18 +55,59 @@ class MTPT(NexusPHP):
             logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
         return res_dic
 
-    def data_raw2tuple(self, torrent, title_search_group, raw_info):
-        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
+    def date_raw_update(self, torrent_name_search, raw_info: dict):
+
+        raw_title = raw_info["name"]
+        cat = raw_info["category"]
+
+        split = title_split_dict[cat]["order"]
+        raw_title_group = re.findall(r"\[[^\]]*\]", raw_title)
+        temporarily_dict = {}
+
+        len_split = len(title_split_dict[cat]["order"])
+        if len_split != len(raw_title_group):
+            logging.warning("The raw title \"{raw}\" may lack of tag (now: {no},ask: {co}),"
+                            "The split may wrong.".format(raw=raw_title, no=len(raw_title_group), co=len_split))
+            while len_split > len(raw_title_group):
+                raw_title_group.append("")
+        raw_title_group.reverse()
+        for i in split:
+            j = raw_title_group.pop()
+            title_split = re.sub("\[(?P<in>.+)\]", "\g<in>", j)
+            if i in title_split_dict[cat]["limit"]:
+                if title_split not in title_split_dict[cat]["limit"][i]:
+                    title_split = ""  # type_dict[raw_type]["limit"][i][0]
+                    raw_title_group.append(j)
+            temporarily_dict.update({i: title_split})
+
+        # Update temporarily dict
+        if cat == "402":  # Series
+            temporarily_dict["english_name"] = torrent_name_search.group("full_name")
+            temporarily_dict["jidu"] = torrent_name_search.group("episode")
+        elif cat == "405":  # Anime
+            temporarily_dict["num"] = torrent_name_search.group("episode")
+
+        # Generate new title
+        new_title = ""
+        for i in split:
+            inner = temporarily_dict[i]
+            if len(inner) is not 0:
+                new_title += "[{inner}]".format(inner=inner)
+
         # Assign raw info
-        name = update_title(raw_title=raw_info["name"], cat=raw_info["category"],
-                            torrent_title_search=title_search_group)
+        raw_info["name"] = new_title
+
+        return raw_info
+
+    def data_raw2tuple(self, torrent, raw_info):
+        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
 
         post_tuple = (  # Submit form
             ("cite_torrent", ('', str(raw_info["clone_id"]))),
             ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
             ("type", ('', str(raw_info["category"]))),
             ("source_sel", ('', str(raw_info["source"]))),
-            ("name", ('', name)),
+            ("name", ('', raw_info["name"])),
             ("small_descr", ('', raw_info["small_descr"])),
             ("imdburl", ('', raw_info["url"])),
             ("dburl", ('', raw_info["dburl"])),

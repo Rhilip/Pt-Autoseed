@@ -42,6 +42,8 @@ def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
     raw_title_group = re.findall(r"\[[^\]]*\]", raw_title)
 
     return_dict = {
+        "raw_type": raw_type,
+        "raw_second_type": raw_sec_type,
         "type": type_dict[raw_type]["cat"],
         "second_type": type_dict[raw_type]["sec_type"][raw_sec_type],
     }
@@ -122,49 +124,35 @@ class Byrbt(NexusPHP):
             logging.error("Error,this torrent may not exist or ConnectError")
         return return_dict
 
-    def data_raw2tuple(self, torrent, torrent_name_search, raw_info: dict):
-        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
-        post_tuple = ()
+    def date_raw_update(self, torrent_name_search, raw_info: dict):
         if raw_info["type"] == 401:  # Series
-            post_tuple = (  # Submit form
-                ("type", ('', str(raw_info["type"]))),
-                ("second_type", ('', str(raw_info["second_type"]))),
-                ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-                ("tv_type", ('', str(raw_info["tv_type"]))),
-                ("cname", ('', raw_info["cname"])),
-                ("tv_ename", ('', torrent_name_search.group("full_name"))),
-                ("tv_season", ('', torrent_name_search.group("episode"))),
-                ("tv_filetype", ('', raw_info["tv_filetype"])),
-                ("type", ('', str(raw_info["type"]))),
-                ("small_descr", ('', raw_info["small_descr"])),
-                ("url", ('', raw_info["url"])),
-                ("dburl", ('', raw_info["dburl"])),
-                ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),
-                ("uplver", ('', self.uplver)),
-            )
+            raw_info["tv_ename"] = torrent_name_search.group("full_name")
+            raw_info["tv_season"] = torrent_name_search.group("episode")
         elif raw_info["type"] == 404:  # Anime
-            post_tuple = (
-                ("type", ('', str(raw_info["type"]))),
-                ("second_type", ('', str(raw_info["second_type"]))),
-                ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-                ("comic_type", ('', str(raw_info["comic_type"]))),
-                ("subteam", ('', torrent_name_search.group("group"))),
-                ("comic_cname", ('', raw_info["comic_cname"])),
-                ("comic_ename", ('', raw_info["comic_ename"])),
-                ("comic_episode", ('', torrent_name_search.group("episode"))),
-                ("comic_quality", ('', raw_info["comic_quality"])),
-                ("comic_source", ('', raw_info["comic_source"])),
-                ("comic_filetype", ('', raw_info["comic_filetype"])),
-                ("comic_year", ('', raw_info["comic_year"])),
-                ("comic_country", ('', raw_info["comic_country"])),
-                ("type", ('', str(raw_info["type"]))),
-                ("small_descr", ('', raw_info["small_descr"])),
-                ("url", ('', raw_info["url"])),
-                ("dburl", ('', raw_info["dburl"])),
-                ("nfo", ('', '')),
-                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),
-                ("uplver", ('', self.uplver)),
-            )
+            raw_info["comic_episode"] = torrent_name_search.group("episode")
 
-        return post_tuple
+        return raw_info
+
+    def data_raw2tuple(self, torrent, raw_info: dict):
+        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
+        begin_list = [
+            ("type", ('', str(raw_info["type"]))),
+            ("second_type", ('', str(raw_info["second_type"]))),
+            ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent'))
+        ]
+
+        cat_post_list = [(cat, ('', str(raw_info[cat]))) for cat in type_dict[raw_info["raw_type"]]["split"]]
+
+        end_post_list = [
+            ("type", ('', str(raw_info["type"]))),
+            ("small_descr", ('', raw_info["small_descr"])),
+            ("url", ('', raw_info["url"])),
+            ("dburl", ('', raw_info["dburl"])),
+            ("nfo", ('', '')),
+            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),
+            ("uplver", ('', self.uplver)),
+        ]
+
+        post_list = begin_list + cat_post_list + end_post_list
+
+        return tuple(post_list)

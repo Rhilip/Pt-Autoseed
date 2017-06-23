@@ -215,7 +215,8 @@ class NexusPHP(Base):
                 torrent_raw_info_dict = self.torrent_clone(clone_id)
                 if torrent_raw_info_dict:
                     logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
-                    multipart_data = self.data_raw2tuple(torrent, name_pattern, raw_info=torrent_raw_info_dict)
+                    new_dict = self.date_raw_update(torrent_name_search=name_pattern, raw_info=torrent_raw_info_dict)
+                    multipart_data = self.data_raw2tuple(torrent, raw_info=new_dict)
                     flag = self.torrent_upload(data=multipart_data)
                     if flag is not -1:
                         err = False
@@ -232,7 +233,31 @@ class NexusPHP(Base):
 
     # -*- At least Overridden function,Please overridden below when add a new site -*-
     def torrent_clone(self, tid) -> dict:
+        """
+        Get the raw information about the clone torrent's depend on given id,
+        and sort it into a dict which can be converted to the post tuple.
+        
+        :param tid: int, The clone torrent's id in this site
+        :return: dict, The information dict about this clone torrent
+        """
         pass
 
-    def data_raw2tuple(self, torrent, torrent_name_search, raw_info: dict):
-        return ()
+    def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
+        """
+        Update the raw dict due to the pre-reseed torrent's info (main from `torrent_name_search`)
+        
+        :param torrent_name_search: class '_sre.SRE_Match'
+        :param raw_info: dict, The information dict about the clone torrent
+        :return: dict, The information dict about the pre-reseed torrent
+        """
+        pass
+
+    def data_raw2tuple(self, torrent, raw_info: dict) -> tuple:
+        """
+        Sort the information dict to the post tuple.
+        
+        :param torrent: class transmissionrpc.Torrent
+        :param raw_info: dict, The information dict about the pre-reseed torrent
+        :return: tuple, The prepared tuple used to upload to the site
+        """
+        pass

@@ -60,23 +60,27 @@ class NPUBits(NexusPHP):
             logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
         return res_dic
 
-    def data_raw2tuple(self, torrent, title_search_group, raw_info):
-        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
+    def date_raw_update(self, torrent_name_search, raw_info: dict):
         # Assign raw info
         name = str(raw_info["name"])
 
         # Change some info due to the torrent's info
         if raw_info["category"] == "402":  # Series
-            name = title_search_group.group("full_name")
+            name = torrent_name_search.group("full_name")
         elif raw_info["category"] == "405":  # Anime
-            name = re.sub("\.(?P<episode>\d+)\.", ".{ep}.".format(ep=title_search_group.group("episode")), name)
+            name = re.sub("\.(?P<episode>\d+)\.", ".{ep}.".format(ep=torrent_name_search.group("episode")), name)
+
+        raw_info["name"] = name
+
+    def data_raw2tuple(self, torrent, raw_info):
+        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
 
         post_tuple = (  # Submit form
             ("transferred_url", ('', str(raw_info["transferred_url"]))),
             ("type", ('', str(raw_info["category"]))),
             ("source_sel", ('', str(raw_info["sub_category"]))),
             ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-            ("name", ('', string2base64(name))),
+            ("name", ('', string2base64(raw_info["name"]))),
             ("small_descr", ('', string2base64(raw_info["small_descr"]))),
             ("color", ('', '0')),  # Tell me those three key's function~
             ("font", ('', '0')),

@@ -41,8 +41,6 @@ class Autoseed(object):
             if autoseed_tjupt.status:
                 self.active_seed.append(autoseed_tjupt)
 
-        for site in self.active_seed:
-            self.active_seed.append(site.db_column)
         logging.info("The assign autoseed module:{lis}".format(lis=self.active_seed))
 
         self.reseed_site_online_check()
@@ -75,7 +73,7 @@ class Autoseed(object):
 
     def update(self):
         """Get the pre-reseed list from database."""
-        self.reseed_site_online_check()
+        self.reseed_site_online_check()  # TODO not check every time when update.
         result = db.get_table_seed_list_limit(tracker_list=self.active_online_tracker, operator="OR", condition="=0")
         for t in result:  # Traversal all un-reseed list
             try:
@@ -91,7 +89,7 @@ class Autoseed(object):
                     if dl_torrent.id in self.downloading_torrent_queue:
                         self.downloading_torrent_queue.pop(dl_torrent.id)
                 elif dl_torrent.id in self.downloading_torrent_queue:
-                    pass
+                    pass  # Wait until this torrent download completely.
                 else:
                     logging.warning("Torrent:\"{name}\" is still downloading,Wait......".format(name=tname))
                     self.downloading_torrent_queue.append(dl_torrent.id)

@@ -87,68 +87,19 @@ class TJUPT(NexusPHP):
 
         return res_dic
 
-    def data_raw2tuple(self, torrent, torrent_name_search, raw_info: dict):
-        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
-        post_tuple = ()
+    def date_raw_update(self, torrent_name_search, raw_info: dict):
+        # TODO Change info due to reseed torrent's name information
         if int(raw_info["type"]) == 401:  # 电影
             pass
         elif int(raw_info["type"]) == 402:  # 剧集
-            post_tuple = (  # Submit form
-                ("id", ('', str(raw_info["clone_id"]))),
-                ("quote", ('', str(raw_info["clone_id"]))),
-                ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-                ("type", ('', str(raw_info["type"]))),
-                ("cname", ('', str(raw_info["cname"]))),  # 中文名
-                ("ename", ('', torrent_name_search.group("full_name"))),  # 英文名
-                ("tvalias", ('', str(raw_info["tvalias"]))),  # 别名
-                ("tvseasoninfo", ('', str(raw_info["tvseasoninfo"]))),  # 剧集季度信息
-                ("specificcat", ('', str(raw_info["specificcat"]))),  # 剧集类型
-                ("format", ('', str(raw_info["format"]))),  # 剧集文件格式
-                ("subsinfo", ('', str(raw_info["subsinfo"]))),  # 字幕情况
-                ("language", ('', str(raw_info["language"]))),  # 剧集语言
-                ("url", ('', str(raw_info["url"]))),  # IMDb链接
-                ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-                ("color", ('', '0')),  # Tell me those three key's function~
-                ("font", ('', '0')),
-                ("size", ('', '0')),
-                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),  # 简介*
-                ("getDescByTorrentId", ('', "")),
-                ("source_sel", ('', str(raw_info["source_sel"]))),  # 质量
-                ("team_sel", ('', str(raw_info["team_sel"]))),  # 内容
-                ("visible", ('', "1")),  # 在浏览页面显示(不勾选设置成断种)
-                ("uplver", ('', self.uplver)),
-            )
+            raw_info["ename"] = torrent_name_search.group("full_name")  # 英文名
+            raw_info["tvseasoninfo"] = torrent_name_search.group("episode")  # 集数
         elif int(raw_info["type"]) == 403:  # 综艺
             pass
         elif int(raw_info["type"]) == 404:  # 资料
             pass
         elif int(raw_info["type"]) == 405:  # 动漫
-            post_tuple = (  # Submit form
-                ("id", ('', str(raw_info["clone_id"]))),
-                ("quote", ('', str(raw_info["clone_id"]))),
-                ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
-                ("type", ('', str(raw_info["type"]))),
-                ("cname", ('', str(raw_info["cname"]))),  # 中文名
-                ("ename", ('', torrent_name_search.group("full_name"))),  # 英文名
-                ("issuedate", ('', str(raw_info["issuedate"]))),  # 发行时间
-                ("animenum", ('', torrent_name_search.group("episode"))),  # 动漫集数
-                ("substeam", ('', str(raw_info["substeam"]))),  # 字幕组/漫画作者/专辑艺术家
-                ("specificcat", ('', str(raw_info["specificcat"]))),  # 动漫类别
-                ("format", ('', str(raw_info["format"]))),  # 动漫文件格式
-                ("resolution", ('', str(raw_info["resolution"]))),  # 画面分辨率
-                ("district", ('', str(raw_info["district"]))),  # 动漫国别
-                ("url", ('', str(raw_info["url"]))),  # IMDb链接
-                ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-                ("color", ('', '0')),  # Tell me those three key's function~
-                ("font", ('', '0')),
-                ("size", ('', '0')),
-                ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),  # 简介*
-                ("getDescByTorrentId", ('', "")),
-                ("source_sel", ('', str(raw_info["source_sel"]))),  # 质量
-                ("team_sel", ('', str(raw_info["team_sel"]))),  # 内容
-                ("visible", ('', "1")),  # 在浏览页面显示(不勾选设置成断种)
-                ("uplver", ('', self.uplver)),
-            )
+            raw_info["animenum"] = torrent_name_search.group("episode")  # 动漫集数
         elif int(raw_info["type"]) == 407:  # 体育
             pass
         elif int(raw_info["type"]) == 408:  # 软件
@@ -162,4 +113,32 @@ class TJUPT(NexusPHP):
         elif int(raw_info["type"]) == 412:  # 移动视频
             pass
 
-        return post_tuple
+    def data_raw2tuple(self, torrent, raw_info: dict):
+        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
+        begin_post_list = [
+            ("id", ('', str(raw_info["clone_id"]))),
+            ("quote", ('', str(raw_info["clone_id"]))),
+            ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
+            ("type", ('', str(raw_info["type"]))),
+        ]
+
+        # Make category post list
+        cat_post_list = [(cat, ('', str(raw_info[cat]))) for cat in ask_dict[raw_info["type"]]]
+
+        end_post_list = [
+            ("url", ('', str(raw_info["url"]))),  # IMDb链接
+            ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
+            ("color", ('', '0')),  # Tell me those three key's function~
+            ("font", ('', '0')),
+            ("size", ('', '0')),
+            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),  # 简介*
+            ("getDescByTorrentId", ('', "")),
+            ("source_sel", ('', str(raw_info["source_sel"]))),  # 质量
+            ("team_sel", ('', str(raw_info["team_sel"]))),  # 内容
+            ("visible", ('', "1")),  # 在浏览页面显示(不勾选设置成断种)
+            ("uplver", ('', self.uplver)),
+        ]
+
+        post_list = begin_post_list + cat_post_list + end_post_list
+
+        return tuple(post_list)
