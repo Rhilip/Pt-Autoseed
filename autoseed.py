@@ -1,9 +1,9 @@
 # ！/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+import logging
 import sys
 import time
-import logging
 
 from extractors import Autoseed
 from utils.connect import Connect
@@ -12,6 +12,8 @@ from utils.loadsetting import setting, fileHandler, consoleHandler
 # -*- Logging Model -*-
 rootLogger = logging.getLogger('')  # Logging
 rootLogger.setLevel(logging.NOTSET)
+while rootLogger.handlers:  # Remove un-format logging in Stream, or all of messages are appearing more than once.
+    rootLogger.handlers.pop()
 rootLogger.addHandler(fileHandler)
 rootLogger.addHandler(consoleHandler)
 
