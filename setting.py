@@ -1,3 +1,5 @@
+import time
+
 # -*- Main Setting about Autoseed,Transmission,Database -*-
 # Autoseed
 sleep_free_time = 600  # 空闲期脚本每次运行间隔(s)
@@ -153,21 +155,20 @@ extend_descr_raw = {
 
 
 # Other Function
-def pre_delete_judge(torrent, time_now: int) -> bool:
+def pre_delete_judge(torrent) -> bool:
     """
-    根据传入的种子信息判定是否能够删除种子,
-    预设判断流程: 发布种子无上传速度 -> 达到最小做种时间 -> 达到(最大做种时间 或者 最大分享率)
+    According to the incoming torrent's information to determine whether can be deleted or not,
+    Default process: Match Minimal time -> Match Maximum time or Maximum upload Ratio
     
     :param torrent: class transmissionrpc.Torrent
-    :param time_now: 当前时间 time.time()
-    :return: 符合判定条件 -> True
+    :return: bool, True if Meet the criteria
     """
     judge = False
-    # 判定条件
+    # Determine conditions
     if torrent.status == "seeding":
-        torrent_live_time = int(time_now - torrent.addedDate)
+        torrent_live_time = int(time.time() - torrent.addedDate)
         if torrent_live_time >= torrent_minSeedTime and \
                 (torrent.uploadRatio >= torrent_maxUploadRatio or torrent_live_time >= torrent_maxSeedTime):
-            judge = True  # 符合判定，设置返回值为真
+            judge = True  # Meet the criteria, return True
 
     return judge

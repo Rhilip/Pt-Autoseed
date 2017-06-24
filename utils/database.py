@@ -2,55 +2,17 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import time
 
 import pymysql
 
 name_table_info_list = "info_list"
 name_table_seed_list = "seed_list"
-name_table_log = "log"
-
-create_table_info_list = """
-CREATE TABLE IF NOT EXISTS `{info_list}` (
-  `sort_id`           INT(11) NOT NULL,
-  `search_name`       TEXT NOT NULL COMMENT '搜索名称'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-""".format(info_list=name_table_info_list)
-
-create_table_seed_list = """
-CREATE TABLE IF NOT EXISTS `{seed_list}` (
-  `id`                INT(11) NOT NULL,
-  `title`             TEXT    NOT NULL,
-  `download_id`       INT(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-""".format(seed_list=name_table_seed_list)
-
-create_table_log = """
-CREATE TABLE IF NOT EXISTS `log`(
-    Created TEXT,
-    Name TEXT,
-    LogLevel INT,
-    LogLevelName TEXT,
-    Message TEXT,
-    Args TEXT,
-    Module TEXT,
-    FuncName TEXT,
-    LineNo INT,
-    Exception TEXT,
-    Process INT,
-    Thread TEXT,
-    ThreadName TEXT
-    )"""
 
 
 class Database(object):
-    table_list = None
-    column_in_info_list = None
-    column_in_seed_list = None
 
     def __init__(self, host, port, user, password, db):
         self.db = pymysql.connect(host=host, port=port, user=user, password=password, db=db, charset='utf8')
-        self.check_table_presence()
 
     # Based Function
     def commit_sql(self, sql: str, log=True):
@@ -86,46 +48,6 @@ class Database(object):
         if log:
             logging.debug("Some information from db,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
         return result
-
-    # Table check
-    def check_table_presence(self):
-        log_status = False
-        sql = "SHOW TABLES"
-        result = self.get_sql(sql=sql, fetch_all=True, log=log_status)
-
-        # Check table (with create)
-        self.table_list = (cow[0] for cow in result)
-        if name_table_seed_list not in self.table_list:
-            self.commit_sql(sql=create_table_seed_list, log=log_status)
-            # del create_table_seed_list
-        if name_table_info_list not in self.table_list:
-            self.commit_sql(sql=create_table_info_list, log=log_status)
-            # del create_table_info_list
-
-        # Check cow (Get column in those table)
-        self.column_update()
-        logging.info("The table in Database check OK!")
-
-    def column_update(self):
-        seed_sql = "SHOW columns FROM `{tab}`".format(tab=name_table_seed_list)
-        self.column_in_seed_list = [i[0] for i in self.get_sql(seed_sql, r_dict=False, log=False)]
-        info_sql = "SHOW columns FROM `{tab}`".format(tab=name_table_info_list)
-        self.column_in_info_list = [i[0] for i in self.get_sql(info_sql, r_dict=False, log=False)]
-
-        logging.debug("Update the column.\"seed_list\": {seed},"
-                      "\"info_list\":{info}".format(seed=self.column_in_seed_list, info=self.column_in_info_list))
-
-    def check_reseed_cow(self, reseed_cow: str):
-        if reseed_cow not in self.column_in_seed_list:
-            sql = "ALTER TABLE `{tab}` ADD `{reseed}` TEXT DEFAULT NOT NULL AFTER " \
-                  "`{before}`;".format(tab=name_table_seed_list, reseed=reseed_cow, before=self.column_in_seed_list[-1])
-            self.commit_sql(sql=sql)
-        if reseed_cow not in self.column_in_info_list:
-            sql = "ALTER TABLE `{tab}` ADD `{reseed}` TEXT DEFAULT NULL AFTER " \
-                  "`{before}`;".format(tab=name_table_info_list, reseed=reseed_cow, before=self.column_in_info_list[-1])
-            self.commit_sql(sql=sql)
-        logging.info("Column Check OK!")
-        self.column_update()
 
     # Procedure Oriented Function
     def get_max_in_one_column(self, table, column, log=True):
@@ -183,82 +105,3 @@ class Database(object):
     def reseed_update(self, did, rid, site):
         sql = "UPDATE seed_list SET `{col}` = {rid} WHERE download_id={did}".format(col=site, rid=rid, did=did)
         self.commit_sql(sql)
-
-
-class MySQLHandler(logging.Handler):
-    """
-    Logging handler for MySQL.
-    """
-
-    insertion_sql = """INSERT INTO `log`(
-    Created,
-    Name,
-    LogLevel,
-    LogLevelName,
-    Message,
-    Args,
-    Module,
-    FuncName,
-    LineNo,
-    Exception,
-    Process,
-    Thread,
-    ThreadName
-    )
-    VALUES (
-    '%(dbtime)s',
-    '%(name)s',
-    '%(levelno)d',
-    '%(levelname)s',
-    '%(msg)s',
-    '%(args)s',
-    '%(module)s',
-    '%(funcName)s',
-    '%(lineno)d',
-    '%(exc_text)s',
-    '%(process)d',
-    '%(thread)s',
-    '%(threadName)s'
-    );
-    """
-
-    def __init__(self, db: Database):
-        """
-        Constructor
-        @param db: class utils.database.Database
-        @return: mySQLHandler
-        """
-
-        logging.Handler.__init__(self)
-
-        # Try to connect to DB
-        self.db = db
-
-        # Check if 'log' table in db already exists, else create it.
-        self.check_table_presence()
-
-    def check_table_presence(self):
-        sql = "SHOW TABLES LIKE 'log'"
-        result = self.db.get_sql(sql=sql, fetch_all=False, log=False)
-        if not result:
-            self.db.commit_sql(sql=create_table_log, log=False)
-            # del create_table_log
-
-    def emit(self, record):
-        """
-        Connect to DB, execute SQL Request, disconnect from DB
-        @param record:
-        @return: 
-        """
-        # Use default formatting:
-        self.format(record)
-        # Set the database time up:
-        record.dbtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(record.created))
-
-        if record.exc_info:
-            record.exc_text = logging._defaultFormatter.formatException(record.exc_info)
-        else:
-            record.exc_text = ""
-        # Insert log record:
-        sql = self.insertion_sql % record.__dict__
-        self.db.commit_sql(sql=sql, log=False)

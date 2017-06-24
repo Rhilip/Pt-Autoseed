@@ -5,6 +5,8 @@ import time
 
 from utils.loadsetting import tc, db, setting
 
+MIN_KEEP_TIME = 86400  # The download torrent keep time even no reseed and stopped status.
+
 
 class Connect(object):
     db_column = [fi["Field"] for fi in db.get_sql("SHOW COLUMNS FROM `seed_list`", r_dict=True)]
@@ -75,7 +77,8 @@ class Connect(object):
                 for seed_torrent in reseed_list:
                     seed_status = seed_torrent.status
                     if seed_status == "stopped":  # Mark the stopped torrent
-                        reseed_stop_list.append(seed_torrent)
+                        if int(time.time() - seed_torrent.addedDate) > MIN_KEEP_TIME:  # At least seed time
+                            reseed_stop_list.append(seed_torrent)
                     elif setting.pre_delete_judge(torrent=seed_torrent, time_now=time.time()):
                         tc.stop_torrent(seed_torrent.id)
                         logging.warning("Reach Target you set,Torrents({0}) now stop.".format(seed_torrent.name))

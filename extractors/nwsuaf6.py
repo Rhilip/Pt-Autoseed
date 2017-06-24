@@ -6,12 +6,32 @@ import re
 
 from .default import NexusPHP
 
+filetype_list = ["MKV", "RMVB", "MP4", "AVI", "MPEG", "ts", "ISO", "其他文件类型"]
+resolution_list = ["1080P", "720P", "480P", "其他"]
+quality_list = ["DVDrip", "HDRip", "BDRip", "R5", "DVDScr", "BDMV", "BDISO", "DVDISO", "其他品质"]
+country_list = ["大陆", "港台", "欧美", "日韩", "其他地区"]
+subtitle_list = ["简体中文", "繁体中文", "英文字幕", "中英字幕", "中日字幕", "中韩字幕", "无需字幕", "外挂字幕", "暂无字幕", "其他字幕"]
+
 title_split_dict = {
+    "401": {  # 电影
+        "order": ["release_time", "chinese_name", "english_name", "filetype"],
+        "limit": {
+            "filetype": filetype_list,
+        }
+    },
     "402": {  # 剧集
         "order": ["release_time", "chinese_name", "english_name", "jidu", "filetype", "serial"],
         "limit": {
-            "filetype": ["MKV", "RMVB", "MP4", "AVI", "MPEG", "ts", "ISO", "其他文件类型"],
+            "filetype": filetype_list,
             "serial": ["剧场/OVA", "完结剧集", "连载剧集"]
+        }
+    },
+    "403": {  # 综艺
+        "order": ["country", "release_time", "chinese_name", "english_name", "resolution", "filetype"],
+        "limit": {
+            "country": country_list,
+            "resolution": ["1080P", "720P", "480P", "其他"],
+            "filetype": filetype_list,
         }
     },
     "405": {  # 动漫
@@ -19,11 +39,67 @@ title_split_dict = {
                   "subtitle", "resolution", "quality", "filetype", "wanjieornot"],
         "limit": {
             "subtitle": ["简体GB", "繁体BIG5", "繁简外挂", "简体外挂", "繁体外挂", "无字幕", "其他"],
-            "resolution": ["1080P", "720P", "480P", "其他"],
-            "quality": ["DVDrip", "HDRip", "BDRip", "R5", "DVDScr", "BDMV", "BDISO", "DVDISO", "其他品质"],
-            "filetype": ["MKV", "RMVB", "MP4", "AVI", "MPEG", "ts", "ISO", "其他文件类型"],
+            "resolution": resolution_list,
+            "quality": quality_list,
+            "filetype": filetype_list,
             "wanjieornot": ["完结", "连载"]
         }
+    },
+    "414": {  # 音乐
+        "order": ["chinese_name", "wusunornot", "name", "author", "codetype", "code"],
+        "limit": {
+            "wusunornot": ["无损"],
+        }
+    },
+    "407": {  # 体育
+        "order": ["release_time", "style", "program_name", "language", "filetype", "quality", "zhuanzai"],
+        "limit": {
+            "language": ["国语", "粤语", "英语", "日语", "韩语", "法语", "德语", "西班牙语", "其他语言"],
+            "filetype": filetype_list
+        }
+    },
+    "404": {  # 纪录片
+        "order": ["source", "release_time", "chinese_name", "english_name", "resolution", "quality", "subtitle",
+                  "filetype"],
+        "limit": {
+            "resolution": resolution_list,
+            "quality": quality_list,
+            "subtitle": subtitle_list,
+            "filetype": filetype_list
+        }
+    },
+    "406": {  # MV
+        "order": ["country", "release_time", "artist", "file_name", "style", "filetype"],
+        "limit": {
+            "country": country_list,
+            "filetype": filetype_list
+        }
+    },
+    "408": {  # 软件
+        "order": ["platform", "edition", "softwareLanguage", "software_type"],
+        "limit": {
+            "platform": ["Windows", "Mac", "Linux", "Mobile", "Android", "其他平台"],
+            "softwareLanguage": ["简体中文", "繁体中文", "英语", "日语", "韩语", "其他语言"],
+        }
+    },
+    "410": {  # 游戏
+        "order": ["release_time", "chinese_name", "english_name", "game_type", "company", "format", "edition"],
+        "limit": {}
+    },
+    "411": {  # 学习
+        "order": ["xueke", "release_time", "school", "chinese_name", "english_name", "jishu", "subtitle", "filetype"],
+        "limit": {
+            "subtitle": subtitle_list,
+            "filetype": filetype_list
+        }
+    },
+    "423": {  # 原创
+        "order": [],
+        "limit": {}
+    },
+    "409": {  # 其他
+        "order": [],
+        "limit": {}
     }
 }
 
@@ -47,15 +123,14 @@ class MTPT(NexusPHP):
 
             # Remove code and quote.
             raw_descr = res_dic["descr"]
-            raw_descr = re.sub(r"\[code.+?\[/code\]", "", raw_descr, flags=re.S)
-            raw_descr = re.sub(r"\[quote.+?\[/quote\]", "", raw_descr, flags=re.S)
+            raw_descr = re.sub(r"\[(?P<bbcode>code|quote).+?\[/(?P=bbcode)\]", "", raw_descr, flags=re.S)
             raw_descr = re.sub(r"\u3000", " ", raw_descr)
             res_dic["descr"] = raw_descr
 
             logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
         return res_dic
 
-    def date_raw_update(self, torrent_name_search, raw_info: dict):
+    def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
 
         raw_title = raw_info["name"]
         cat = raw_info["category"]
@@ -65,6 +140,7 @@ class MTPT(NexusPHP):
         temporarily_dict = {}
 
         len_split = len(title_split_dict[cat]["order"])
+        # TODO if len_split == 0:
         if len_split != len(raw_title_group):
             logging.warning("The raw title \"{raw}\" may lack of tag (now: {no},ask: {co}),"
                             "The split may wrong.".format(raw=raw_title, no=len(raw_title_group), co=len_split))

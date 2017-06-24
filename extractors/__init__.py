@@ -1,14 +1,18 @@
 import logging
 import re
+import time
 
 from utils.loadsetting import tc, db, setting
 from utils.pattern import pattern_group
+
+ONLINE_CHECK_TIME = 3600
 
 
 class Autoseed(object):
     active_seed = []
     active_online_seed = []
     active_online_tracker = []
+    last_online_check_timestamp = 0
 
     downloading_torrent_queue = []
 
@@ -73,7 +77,10 @@ class Autoseed(object):
 
     def update(self):
         """Get the pre-reseed list from database."""
-        self.reseed_site_online_check()  # TODO not check every time when update.
+        if time.time() - self.last_online_check_timestamp > ONLINE_CHECK_TIME:
+            self.reseed_site_online_check()
+            self.last_online_check_timestamp = time.time()
+
         result = db.get_table_seed_list_limit(tracker_list=self.active_online_tracker, operator="OR", condition="=0")
         for t in result:  # Traversal all un-reseed list
             try:

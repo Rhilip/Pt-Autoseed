@@ -27,13 +27,9 @@ class NPUBits(NexusPHP):
         self.post_data(url="{host}/thanks.php".format(host=self.url_host), data={"id": str(tid), "value": 0})
 
     def search_list(self, key):
-        tid_list = []
         bs = self.page_search(payload={"search": key}, bs=True)
         download_tag = bs.find_all("a", href=re.compile("torrent_download"))
-        for tag in download_tag:
-            href = tag["href"]
-            tid = re.search("javascript:torrent_download\((\d+)", href).group(1)  # 找出种子id
-            tid_list.append(tid)
+        tid_list = [re.search("torrent_download\((\d+)", tag["href"]).group(1) for tag in download_tag]
         return tid_list
 
     def torrent_clone(self, tid) -> dict:
@@ -52,25 +48,21 @@ class NPUBits(NexusPHP):
 
             # Remove code and quote.
             raw_descr = res_dic["descr"]
-            raw_descr = re.sub(r"\[code.+?\[/code\]", "", raw_descr, flags=re.S)
-            raw_descr = re.sub(r"\[quote.+?\[/quote\]", "", raw_descr, flags=re.S)
+            raw_descr = re.sub(r"\[(?P<bbcode>code|quote).+?\[/(?P=bbcode)\]", "", raw_descr, flags=re.S)
             raw_descr = re.sub(r"\u3000", " ", raw_descr)
             res_dic["descr"] = raw_descr
 
             logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
         return res_dic
 
-    def date_raw_update(self, torrent_name_search, raw_info: dict):
-        # Assign raw info
-        name = str(raw_info["name"])
+    def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
+        if int(raw_info["category"]) == 402:  # Series
+            raw_info["name"] = torrent_name_search.group("full_name")
+        elif int(raw_info["category"]) == 405:  # Anime
+            raw_info["name"] = re.sub("\.(?P<episode>\d+)\.", ".{ep}.".format(ep=torrent_name_search.group("episode")),
+                                      raw_info["name"])
 
-        # Change some info due to the torrent's info
-        if raw_info["category"] == "402":  # Series
-            name = torrent_name_search.group("full_name")
-        elif raw_info["category"] == "405":  # Anime
-            name = re.sub("\.(?P<episode>\d+)\.", ".{ep}.".format(ep=torrent_name_search.group("episode")), name)
-
-        raw_info["name"] = name
+        return raw_info
 
     def data_raw2tuple(self, torrent, raw_info):
         torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)

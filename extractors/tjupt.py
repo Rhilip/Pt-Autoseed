@@ -22,6 +22,8 @@ ask_dict = {
     "410": ["specificcat", "cname", "format", "tvshowsremarks"],  # 其他
 }
 
+TORRENT_VISIBLE = "1"  # DEBUG function: Display In the browse page (Dead torrent will be set if not checked -> "0")
+
 
 class TJUPT(NexusPHP):
     url_host = "http://pt.tju.edu.cn"
@@ -56,8 +58,7 @@ class TJUPT(NexusPHP):
             type_value = type_select.find("option", selected="selected")["value"]
 
             raw_descr = page_clone.find("textarea", id="descr").text
-            raw_descr = re.sub(r"\[code.+?\[/code\]", "", raw_descr, flags=re.S)
-            raw_descr = re.sub(r"\[quote.+?\[/quote\]", "", raw_descr, flags=re.S)
+            raw_descr = re.sub(r"\[(?P<bbcode>code|quote).+?\[/(?P=bbcode)\]", "", raw_descr, flags=re.S)
             raw_descr = re.sub(r"\u3000", " ", raw_descr)
 
             url = page_clone.find("input", attrs={"name": "url"})
@@ -87,7 +88,7 @@ class TJUPT(NexusPHP):
 
         return res_dic
 
-    def date_raw_update(self, torrent_name_search, raw_info: dict):
+    def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
         # TODO Change info due to reseed torrent's name information
         if int(raw_info["type"]) == 401:  # 电影
             pass
@@ -113,6 +114,8 @@ class TJUPT(NexusPHP):
         elif int(raw_info["type"]) == 412:  # 移动视频
             pass
 
+        return raw_info
+
     def data_raw2tuple(self, torrent, raw_info: dict):
         torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
         begin_post_list = [
@@ -135,7 +138,7 @@ class TJUPT(NexusPHP):
             ("getDescByTorrentId", ('', "")),
             ("source_sel", ('', str(raw_info["source_sel"]))),  # 质量
             ("team_sel", ('', str(raw_info["team_sel"]))),  # 内容
-            ("visible", ('', "1")),  # 在浏览页面显示(不勾选设置成断种)
+            ("visible", ('', TORRENT_VISIBLE)),
             ("uplver", ('', self.uplver)),
         ]
 
