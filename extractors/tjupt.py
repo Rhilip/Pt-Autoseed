@@ -4,7 +4,7 @@
 import logging
 import re
 
-from .default import NexusPHP
+from extractors.default import NexusPHP
 
 ask_dict = {
     "401": ["cname", "ename", "issuedate", "language", "format", "subsinfo", "district"],  # 电影

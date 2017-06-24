@@ -4,7 +4,7 @@
 import logging
 import re
 
-from .default import NexusPHP
+from extractors.default import NexusPHP
 
 type_dict = {
     "电影": {
