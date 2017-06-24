@@ -50,8 +50,8 @@ class Autoseed(object):
         self.reseed_site_online_check()
 
     def reseed_site_online_check(self):
-        self.active_online_seed = (site for site in self.active_tracker if site.online_check() and site.status)
-        self.active_online_tracker = (site.db_column for site in self.active_online_seed)
+        self.active_online_seed = [site for site in self.active_tracker if site.online_check() and site.status]
+        self.active_online_tracker = [site.db_column for site in self.active_online_seed]
 
     def feed(self, dl_torrent, cow):
         reseed_status = False
