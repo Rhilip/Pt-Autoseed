@@ -79,7 +79,7 @@ class Connect(object):
                     if seed_status == "stopped":  # Mark the stopped torrent
                         if int(time.time() - seed_torrent.addedDate) > MIN_KEEP_TIME:  # At least seed time
                             reseed_stop_list.append(seed_torrent)
-                    elif setting.pre_delete_judge(torrent=seed_torrent, time_now=time.time()):
+                    elif setting.pre_delete_judge(torrent=seed_torrent):
                         tc.stop_torrent(seed_torrent.id)
                         logging.warning("Reach Target you set,Torrents({0}) now stop.".format(seed_torrent.name))
                 if len(reseed_list) == len(reseed_stop_list):

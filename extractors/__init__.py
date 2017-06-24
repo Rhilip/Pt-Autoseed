@@ -9,7 +9,7 @@ ONLINE_CHECK_TIME = 3600
 
 
 class Autoseed(object):
-    active_seed = []
+    active_tracker = []
     active_online_seed = []
     active_online_tracker = []
     last_online_check_timestamp = 0
@@ -22,35 +22,35 @@ class Autoseed(object):
             from extractors.byrbt import Byrbt
             autoseed_byrbt = Byrbt(site_setting=setting.site_byrbt)
             if autoseed_byrbt.status:
-                self.active_seed.append(autoseed_byrbt)
+                self.active_tracker.append(autoseed_byrbt)
 
         # NPUBits
         if setting.site_npubits["status"]:
             from extractors.npubits import NPUBits
             autoseed_npubits = NPUBits(site_setting=setting.site_npubits)
             if autoseed_npubits.status:
-                self.active_seed.append(autoseed_npubits)
+                self.active_tracker.append(autoseed_npubits)
 
         # nwsuaf6
         if setting.site_nwsuaf6["status"]:
             from extractors.nwsuaf6 import MTPT
             autoseed_nwsuaf6 = MTPT(site_setting=setting.site_nwsuaf6)
             if autoseed_nwsuaf6.status:
-                self.active_seed.append(autoseed_nwsuaf6)
+                self.active_tracker.append(autoseed_nwsuaf6)
 
         # TJUPT
         if setting.site_tjupt["status"]:
             from extractors.tjupt import TJUPT
             autoseed_tjupt = TJUPT(site_setting=setting.site_tjupt)
             if autoseed_tjupt.status:
-                self.active_seed.append(autoseed_tjupt)
+                self.active_tracker.append(autoseed_tjupt)
 
-        logging.info("The assign autoseed module:{lis}".format(lis=self.active_seed))
+        logging.info("The assign autoseed module:{lis}".format(lis=self.active_tracker))
 
         self.reseed_site_online_check()
 
     def reseed_site_online_check(self):
-        self.active_online_seed = (site for site in self.active_seed if site.online_check() and site.status)
+        self.active_online_seed = (site for site in self.active_tracker if site.online_check() and site.status)
         self.active_online_tracker = (site.db_column for site in self.active_online_seed)
 
     def feed(self, dl_torrent, cow):
@@ -72,7 +72,7 @@ class Autoseed(object):
 
         if not reseed_status:  # Update seed_id == -1 if no matched pattern
             logging.warning("No match pattern,Mark \"{}\" As Un-reseed torrent,Stop watching.".format(tname))
-            for tracker in self.active_seed:
+            for tracker in self.active_tracker:
                 db.reseed_update(did=dl_torrent.id, rid=-1, site=tracker)
 
     def update(self):
