@@ -19,7 +19,7 @@ rootLogger.addHandler(consoleHandler)
 
 autoseed = Autoseed()  # Autoseed
 if autoseed.active_tracker:
-    connect = Connect(tracker_list=autoseed.active_tracker)  # Connect
+    connect = Connect(seed_list=autoseed.active_tracker)  # Connect
     logging.info("Initialization settings Success~")
 else:
     sys.exit("None of autoseed is active,Exit.")

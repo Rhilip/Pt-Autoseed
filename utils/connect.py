@@ -12,9 +12,9 @@ class Connect(object):
     db_column = [fi["Field"] for fi in db.get_sql("SHOW COLUMNS FROM `seed_list`", r_dict=True)]
     tracker_list = db_column[3:]  # ['id','title','download_id',...]
 
-    def __init__(self, tracker_list):
-        self.reseed_tracker_list = tracker_list
-        self.un_reseed_tracker_list = [item for item in self.tracker_list if item not in tracker_list]
+    def __init__(self, seed_list):
+        self.reseed_tracker_list = [seed.db_column for seed in seed_list]
+        self.un_reseed_tracker_list = [item for item in self.tracker_list if item not in self.reseed_tracker_list]
 
     def update_torrent_info_from_rpc_to_db(self, last_id_check=0, last_id_db=None, force_clean_check=False):
         """
