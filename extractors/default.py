@@ -67,6 +67,8 @@ class NexusPHP(Base):
     auto_thank = True
     uplver = "yes"
 
+    DEFAULT_TORRENT_WHEN_CLONE = None  # Enhanced Features: When not find the clone torrent, use it as default clone_id
+
     def __init__(self, site_setting: dict):
         self.site_setting = site_setting
         self.status = site_setting["status"]
@@ -197,6 +199,7 @@ class NexusPHP(Base):
 
         flag = -1
         if search_tag == 0:  # Non-existent repetition torrent, prepare to reseed
+            clone_id = 0
             try:
                 clone_id = clone_db_dict[self.db_column]
                 if clone_id in [None, 0, "0"]:
@@ -204,9 +207,12 @@ class NexusPHP(Base):
                 logging.debug("Get clone id({id}) from db OK,USE key: \"{key}\"".format(id=clone_id, key=key_raw))
             except KeyError:
                 logging.warning("Not Find clone id from db of this torrent,May got incorrect info when clone.")
-                clone_id = self.first_tid_in_search_list(key=key_with_gp)  # USE introduction of the same group First
-                if clone_id == 0:  # Generic search
-                    clone_id = self.first_tid_in_search_list(key=key_raw)
+                for key in [key_with_gp, key_raw]:  # USE introduction of the same group First and Then Generic search
+                    clone_id = self.first_tid_in_search_list(key=key)
+                    if clone_id != 0:
+                        break
+                if clone_id == 0 and self.DEFAULT_TORRENT_WHEN_CLONE:  # USE Default clone id if set.
+                    clone_id = self.DEFAULT_TORRENT_WHEN_CLONE
 
             err = True
             multipart_data = None
@@ -220,7 +226,7 @@ class NexusPHP(Base):
                     flag = self.torrent_upload(data=multipart_data)
                     if flag is not -1:
                         err = False
-            if err:
+            if err:  # May clone_id in [0,-1] or upload error
                 logging.error("The torrent reseed ERROR. With: search_key: {pat}, dupe_tag: {tag}, clone_id: {cid}, "
                               "data: {da}".format(pat=key_with_gp_ep, tag=search_tag, cid=clone_id, da=multipart_data))
         elif search_tag == -1:  # 如果种子存在，但种子不一致
