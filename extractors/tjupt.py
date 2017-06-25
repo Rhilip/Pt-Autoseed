@@ -22,7 +22,8 @@ ask_dict = {
     "410": ["specificcat", "cname", "format", "tvshowsremarks"],  # 其他
 }
 
-TORRENT_VISIBLE = "1"  # DEBUG function: Display In the browse page (Dead torrent will be set if not checked -> "0")
+TORRENT_VISIBLE = "1"  # DEBUG Features: Display In the browse page (Dead torrent will be set if not checked -> "0")
+UN_FIND_TORRENT_WHEN_CLONE = None  # Enhanced Features: When not find the clone torrent, use this as default clone id
 
 
 class TJUPT(NexusPHP):
@@ -48,9 +49,19 @@ class TJUPT(NexusPHP):
         And this function will sort those pages to a pre-reseed dict.
         """
         res_dic = {}
-        page_clone = self.get_page(url="{host}/upsimilartorrent.php".format(host=self.url_host),
-                                   params={"id": tid}, bs=True)
-        if not re.search("没有找到这个种子", page_clone.text):
+
+        while True:  # TODO optimize
+            page_clone = self.get_page(url="{host}/upsimilartorrent.php".format(host=self.url_host),
+                                       params={"id": tid}, bs=True)
+            if re.search(r"<h2>错误！</h2>", str(page_clone)) and UN_FIND_TORRENT_WHEN_CLONE:
+                if tid == UN_FIND_TORRENT_WHEN_CLONE:
+                    break
+                else:
+                    tid = UN_FIND_TORRENT_WHEN_CLONE
+            else:
+                break
+
+        if not re.search(r"<h2>错误！</h2>", str(page_clone)):
             logging.info("Got clone torrent's info,id: {tid}".format(tid=tid))
             res_dic.update({"clone_id": tid})
 
