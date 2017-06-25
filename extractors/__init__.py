@@ -94,7 +94,7 @@ class Autoseed(object):
                     logging.info("New completed torrent: \"{name}\" ,Judge reseed or not.".format(name=tname))
                     self.feed(dl_torrent=dl_torrent, cow=t)
                     if dl_torrent.id in self.downloading_torrent_queue:
-                        self.downloading_torrent_queue.pop(dl_torrent.id)
+                        self.downloading_torrent_queue.remove(dl_torrent.id)
                 elif dl_torrent.id in self.downloading_torrent_queue:
                     pass  # Wait until this torrent download completely.
                 else:
