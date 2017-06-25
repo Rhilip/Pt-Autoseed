@@ -90,11 +90,10 @@ class Database(object):
         judge = "WHERE {raw} {left}".format(raw=raw_judge, left=other_decision)
         return self.get_table_seed_list(decision=judge)
 
-    def get_data_clone_id(self, key, table='info_list', column='search_name'):
+    def get_data_clone_id(self, key, table=name_table_info_list, column='search_name'):
         decision = "WHERE `{cow}` LIKE '{key}%'".format(tb=table, cow=column, key=key.replace(" ", "%"))
         try:  # Get clone id info from database
-            clone_info_dict = self.get_whole_table(table=name_table_info_list, decision=decision,
-                                                   fetch_all=False, r_dict=True)
+            clone_info_dict = self.get_whole_table(table=table, decision=decision, fetch_all=False, r_dict=True)
             if clone_info_dict is None:
                 raise ValueError("No db-record for key: \"{key}\".".format(key=key))
         except ValueError:  # The database doesn't have the search data, Return dict only with raw key.
