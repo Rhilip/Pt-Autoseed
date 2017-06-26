@@ -18,7 +18,7 @@ pattern_group = [
     ),
     re.compile(  # Anime - One_piece(Skytree)
         "(?P<full_name>\[(?P<group>Skytree)\]\[海贼王\]\[(?P<search_name>One_Piece)\]"
-        "\[(?P<episode>789)\]\[GB_JP\]\[X264_AAC\]\[720P\]\[CRRIP\]\[天空树双语字幕组\])"
+        "\[(?P<episode>\d+)\]\[GB_JP\]\[X264_AAC\]\[720P\]\[CRRIP\]\[天空树双语字幕组\])"
         "(?:\.(?P<filetype>mp4)$|$)"
     ),
     re.compile(  # Anime (Normal)

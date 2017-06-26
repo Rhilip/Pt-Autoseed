@@ -58,7 +58,7 @@ class NPUBits(NexusPHP):
     def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
         if int(raw_info["category"]) == 402:  # Series
             raw_info["name"] = torrent_name_search.group("full_name")
-            season_eposide_info_search = re.search("(?:[Ss](?P<season>\d+))?(?:[Ee](?P<eposide>\d+))?",
+            season_eposide_info_search = re.search("(?:[Ss](?P<season>\d+))?.*?(?:[Ee][Pp]?(?P<eposide>\d+))?",
                                                    torrent_name_search.group("episode"))
             season_eposide_info = ""
             if season_eposide_info_search.group("season"):
