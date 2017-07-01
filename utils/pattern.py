@@ -21,6 +21,9 @@ pattern_group = [
         "\[(?P<episode>\d+)\]\[GB_JP\]\[X264_AAC\]\[720P\]\[CRRIP\]\[天空树双语字幕组\])"
         "(?:\.(?P<filetype>mp4)$|$)"
     ),
+    re.compile(  # Anime - Doraemon(钉铛字幕组)
+        "(?P<full_name>\[(?P<group>钉铛字幕组)\]\[(P<search_name>Doraemon)\]\[(?P<episode>\d+)\])(?:\.(?P<filetype>mp4)$|$)"
+    ),
     re.compile(  # Anime (Normal)
         "(?P<full_name>\[(?P<group>.+?)\]\[?(?P<search_name>.+?)\]?\[?(?P<episode>\d+(?:\.?\(?\d+\)?)?)\]?.+)"
         "(?:\.(?P<filetype>\w+)$|$)"
