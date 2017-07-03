@@ -61,7 +61,7 @@ class Autoseed(object):
             search = re.search(pat, tname)
             if search:
                 logging.debug("The search group: {gr}".format(gr=search.groups()))
-                key_raw = re.sub(r"[_\-.]", " ", search.group("search_name"))
+                key_raw = re.sub(r"[_\-.']", " ", search.group("search_name"))
                 clone_dict = db.get_data_clone_id(key=key_raw)
                 for site in self.active_online_seed:  # Site feed
                     if int(cow[site.db_column]) is 0:
