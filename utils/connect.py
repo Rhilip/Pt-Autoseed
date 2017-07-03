@@ -36,11 +36,12 @@ class Connect(object):
                     except AttributeError:
                         to_tracker_host = "download_id"
 
+                    name = t.name.replace("'", r"\'")
                     if to_tracker_host in self.tracker_list:
                         sql = "UPDATE seed_list SET `{cow}` = {id:d} " \
-                              "WHERE title='{name}'".format(cow=to_tracker_host, name=t.name, id=t.id)
+                              "WHERE title='{name}'".format(cow=to_tracker_host, name=name, id=t.id)
                     else:
-                        sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}',{:d})".format(t.name, t.id)
+                        sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}',{:d})".format(name, t.id)
                     db.commit_sql(sql)
 
                 # Set un_reseed column into -1
