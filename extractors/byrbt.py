@@ -3,6 +3,7 @@
 
 import logging
 import re
+from urllib.parse import unquote
 
 from extractors.default import NexusPHP
 
@@ -199,8 +200,8 @@ class Byrbt(NexusPHP):
             for img_tag in descr.find_all("img"):
                 del img_tag["onload"]
                 del img_tag["data-pagespeed-url-hash"]
-                img_tag["src"] = re.sub(r"images/(?:(?:\d+x)+|x)(?P<raw>.*)\.pagespeed\.ic.*",
-                                        "images/\g<raw>", img_tag["src"])
+                img_tag["src"] = unquote(re.sub(r"images/(?:(?:\d+x)+|x)(?P<raw>.*)\.pagespeed\.ic.*",
+                                                "images/\g<raw>", img_tag["src"]))
 
             # Remove unnessary description
             for tag in descr.find_all(class_="autoseed") + descr.find_all(class_="byrbt_info_clone_ignore"):
