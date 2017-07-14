@@ -3,8 +3,8 @@
 
 import logging
 import re
-from urllib.parse import unquote
 
+# from urllib.parse import unquote
 from extractors.default import NexusPHP
 
 type_dict = {
@@ -172,6 +172,10 @@ class Byrbt(NexusPHP):
 
     encode = "html"
 
+    def page_torrent_detail(self, tid, bs=False):
+        return self.get_page(url="{host}/details.php".format(host=self.url_host),
+                             params={"id": tid, "hit": 1, "ModPagespeed": "off"}, bs=bs)
+
     def torrent_clone(self, tid) -> dict:
         """
         Reconstruction from BYRBT Info Clone by Deparsoul version 20170400,thx
@@ -196,12 +200,14 @@ class Byrbt(NexusPHP):
                 logging.debug("Found douban link:{link} for this torrent.".format(link=dburl))
             # Update description
             descr = body.find(id="kdescr")
+            """
             # Restore the image link
             for img_tag in descr.find_all("img"):
                 del img_tag["onload"]
                 del img_tag["data-pagespeed-url-hash"]
                 img_tag["src"] = unquote(re.sub(r"images/(?:(?:\d+x)+|x)(?P<raw>.*)\.pagespeed\.ic.*",
                                                 "images/\g<raw>", img_tag["src"]))
+            """
 
             # Remove unnessary description
             for tag in descr.find_all(class_="autoseed") + descr.find_all(class_="byrbt_info_clone_ignore"):
