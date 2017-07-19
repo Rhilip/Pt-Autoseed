@@ -73,7 +73,7 @@ class Autoseed(object):
         if not reseed_status:  # Update seed_id == -1 if no matched pattern
             logging.warning("No match pattern,Mark \"{}\" As Un-reseed torrent,Stop watching.".format(tname))
             for tracker in self.active_tracker:
-                db.reseed_update(did=dl_torrent.id, rid=-1, site=tracker)
+                db.reseed_update(did=dl_torrent.id, rid=-1, site=tracker.db_column)
 
     def update(self):
         """Get the pre-reseed list from database."""
