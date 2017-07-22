@@ -70,8 +70,6 @@ torrent_maxSeedTime = 691200
 # Show Site
 web_url = "http://"  # demo网站的url
 web_loc = "/var/www"  # demo网站在服务器上的地址
-web_show_status = False  # 是否生成json信息
-web_show_entries_number = 10  # 展示页面显示的做种条目数量
 
 # Logging
 logging_debug_level = False  # debug model

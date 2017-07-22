@@ -33,8 +33,6 @@ def main():
         connect.reseeders_update()  # reseed判断主函数
         if i % setting.delete_check_round == 0:
             connect.check_to_del_torrent_with_data_and_db()  # 清理种子
-        if setting.web_show_status:  # 发种机运行状态展示
-            connect.generate_web_json()
 
         sleep_time = setting.sleep_free_time
         if setting.busy_start_hour <= int(time.strftime("%H", time.localtime())) < setting.busy_end_hour:
