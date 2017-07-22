@@ -5,7 +5,7 @@ import logging
 import re
 
 # from urllib.parse import unquote
-from extractors.default import NexusPHP
+from extractors.base import NexusPHP
 
 type_dict = {
     "电影": {

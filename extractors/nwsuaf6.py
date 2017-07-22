@@ -4,7 +4,7 @@
 import logging
 import re
 
-from extractors.default import NexusPHP
+from extractors.base import NexusPHP
 
 filetype_list = ["MKV", "RMVB", "MP4", "AVI", "MPEG", "ts", "ISO", "其他文件类型"]
 resolution_list = ["1080P", "720P", "480P", "其他"]
