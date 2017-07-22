@@ -4,7 +4,7 @@
 import logging
 import re
 
-from extractors.base import NexusPHP
+from extractors.nexusphp import NexusPHP
 
 filetype_list = ["MKV", "RMVB", "MP4", "AVI", "MPEG", "ts", "ISO", "其他文件类型"]
 resolution_list = ["1080P", "720P", "480P", "其他"]
@@ -115,7 +115,7 @@ class MTPT(NexusPHP):
         """
         res_dic = {}
         try:
-            res_dic = self.get_page(url=self.url_host + "/citetorrent.php", params={"torrent_id": tid}, json=True)
+            res_dic = self.get_data(url=self.url_host + "/citetorrent.php", params={"torrent_id": tid}, json=True)
         except ValueError:
             logging.error("Error,this torrent may not exist or ConnectError")
         else:

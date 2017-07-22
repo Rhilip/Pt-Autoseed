@@ -4,7 +4,7 @@
 import logging
 import re
 
-from extractors.base import NexusPHP
+from extractors.nexusphp import NexusPHP
 
 ask_dict = {
     "401": ["cname", "ename", "issuedate", "language", "format", "subsinfo", "district"],  # 电影
@@ -49,8 +49,7 @@ class TJUPT(NexusPHP):
         """
         res_dic = {}
 
-        page_clone = self.get_page(url="{host}/upsimilartorrent.php".format(host=self.url_host), params={"id": tid},
-                                   bs=True)
+        page_clone = self.get_data(url=self.url_host + "/upsimilartorrent.php", params={"id": tid}, bs=True)
 
         if not re.search(r"<h2>错误！</h2>", str(page_clone)):
             logging.info("Got clone torrent's info,id: {tid}".format(tid=tid))
@@ -73,8 +72,8 @@ class TJUPT(NexusPHP):
                 res_dic.update({name: tag_selected["value"]})
 
             # Get torrent_info page and sort this page's information into the pre-reseed dict.
-            catdetail_page = self.get_page(url="{host}/catdetail_edittorrents.php".format(host=self.url_host),
-                                           params={"torid": tid}, bs=True)
+            catdetail_page = self.get_data(url=self.url_host + "/catdetail_edittorrents.php", params={"torid": tid},
+                                           bs=True)
 
             for ask_tag_name in ask_dict[type_value]:
                 value = ""

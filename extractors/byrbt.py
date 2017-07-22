@@ -5,7 +5,7 @@ import logging
 import re
 
 # from urllib.parse import unquote
-from extractors.base import NexusPHP
+from extractors.nexusphp import NexusPHP
 
 type_dict = {
     "电影": {
@@ -173,8 +173,7 @@ class Byrbt(NexusPHP):
     encode = "html"
 
     def page_torrent_detail(self, tid, bs=False):
-        return self.get_page(url="{host}/details.php".format(host=self.url_host),
-                             params={"id": tid, "hit": 1, "ModPagespeed": "off"}, bs=bs)
+        return self.get_data(url=self.url_host + "/details.php", params={"id": tid, "ModPagespeed": "off"}, bs=bs)
 
     def torrent_clone(self, tid) -> dict:
         """

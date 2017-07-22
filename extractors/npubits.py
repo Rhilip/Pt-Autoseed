@@ -5,7 +5,7 @@ import base64
 import logging
 import re
 
-from extractors.base import NexusPHP
+from extractors.nexusphp import NexusPHP
 
 
 def string2base64(raw):
@@ -24,7 +24,7 @@ class NPUBits(NexusPHP):
         return err_message
 
     def torrent_thank(self, tid):
-        self.post_data(url="{host}/thanks.php".format(host=self.url_host), data={"id": str(tid), "value": 0})
+        self.post_data(url=self.url_host + "/thanks.php", data={"id": str(tid), "value": 0})
 
     def search_list(self, key):
         bs = self.page_search(payload={"search": key}, bs=True)
@@ -40,7 +40,7 @@ class NPUBits(NexusPHP):
         res_dic = {}
         transferred_url = string2base64("{host}/details.php?id={tid}&hit=1".format(host=self.url_host, tid=tid))
         try:
-            res_dic = self.get_page(url=self.url_host + "/transfer.php", params={"url": transferred_url}, json=True)
+            res_dic = self.get_data(url=self.url_host + "/transfer.php", params={"url": transferred_url}, json=True)
         except ValueError:
             logging.error("Error,this torrent may not exist or ConnectError")
         else:
