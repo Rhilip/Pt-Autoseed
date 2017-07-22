@@ -15,20 +15,18 @@ class Database(object):
         self.db = pymysql.connect(host=host, port=port, user=user, password=password, db=db, charset='utf8')
 
     # Based Function
-    def commit_sql(self, sql: str, log=True):
+    def commit_sql(self, sql: str):
         """Submit SQL statement"""
         cursor = self.db.cursor()
         try:
             cursor.execute(sql)
             self.db.commit()
-            if log:
-                logging.debug("A commit to db success,DDL: \"{sql}\"".format(sql=sql))
+            logging.debug("A commit to db success,DDL: \"{sql}\"".format(sql=sql))
         except pymysql.Error as err:
-            if log:
-                logging.critical("Mysql Error: {err},DDL: {sql}".format(err=err.args, sql=sql))
+            logging.critical("Mysql Error: {err},DDL: {sql}".format(err=err.args, sql=sql))
             self.db.rollback()
 
-    def get_sql(self, sql: str, r_dict=False, fetch_all=True, log=True):
+    def get_sql(self, sql: str, r_dict=False, fetch_all=True):
         """Get data from the database"""
         # The style of info (dict or tuple)
         if r_dict:
@@ -45,15 +43,14 @@ class Database(object):
             result = cursor.fetchone()
 
         # Logging or not
-        if log:
-            logging.debug("Some information from db,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
+        logging.debug("Some information from db,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
         return result
 
     # Procedure Oriented Function
-    def get_max_in_one_column(self, table, column, log=True):
+    def get_max_in_one_column(self, table, column):
         """Find the maximum value of the table in that column from the database"""
         sql = "SELECT MAX(`" + column + "`) FROM `" + table + "`"
-        result = self.get_sql(sql, log=log, fetch_all=False)
+        result = self.get_sql(sql, fetch_all=False)
         t = result[0]
         if not t:
             t = 0
@@ -75,7 +72,7 @@ class Database(object):
         max_num = 0
         if isinstance(column_list, list):
             for column in column_list:
-                t = self.get_max_in_one_column(table=table, column=column, log=False)
+                t = self.get_max_in_one_column(table=table, column=column)
                 max_num = max(max_num, t)
         else:
             max_num = self.get_max_in_one_column(table=table, column=column_list)
