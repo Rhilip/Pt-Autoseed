@@ -1,9 +1,9 @@
 # ！/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+from utils.extend_descr.mediainfo import MediaInfo
+from utils.extend_descr.thumbnails import thumbnails
 from utils.loadsetting import setting
-from .mediainfo import MediaInfo
-from .thumbnails import thumbnails
 
 raw_dict = setting.extend_descr_raw
 

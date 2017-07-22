@@ -5,7 +5,6 @@ import logging
 import sys
 import time
 
-from extractors import Autoseed
 from utils.connect import Connect
 from utils.loadsetting import setting, fileHandler, consoleHandler
 
@@ -17,9 +16,8 @@ while rootLogger.handlers:  # Remove un-format logging in Stream, or all of mess
 rootLogger.addHandler(fileHandler)
 rootLogger.addHandler(consoleHandler)
 
-autoseed = Autoseed()  # Autoseed
-if autoseed.active_tracker:
-    connect = Connect(seed_list=autoseed.active_tracker)  # Connect
+connect = Connect()  # Connect
+if connect.reseed_tracker_list:  # TODO Check Please.
     logging.info("Initialization settings Success~")
 else:
     sys.exit("None of autoseed is active,Exit.")
@@ -32,7 +30,7 @@ def main():
     i = 0
     while True:
         last_id_check = connect.update_torrent_info_from_rpc_to_db(last_id_check=last_id_check)  # 更新表
-        autoseed.update()  # reseed判断主函数
+        connect.reseeders_update()  # reseed判断主函数
         if i % setting.delete_check_round == 0:
             connect.check_to_del_torrent_with_data_and_db()  # 清理种子
         if setting.web_show_status:  # 发种机运行状态展示
