@@ -5,6 +5,8 @@ import logging
 import re
 
 # from urllib.parse import unquote
+from html import unescape
+
 from extractors.default import NexusPHP
 
 type_dict = {
@@ -185,7 +187,7 @@ class Byrbt(NexusPHP):
         details_bs = self.page_torrent_detail(tid=tid, bs=True)
         title_search = re.search("种子详情 \"(?P<title>.*)\" - Powered", str(details_bs.title))
         if title_search:
-            title = title_search.group("title")
+            title = unescape(title_search.group("title"))
             logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=title))
             title_dict = sort_title_info(raw_title=title, raw_type=details_bs.find("span", id="type").text.strip(),
                                          raw_sec_type=details_bs.find("span", id="sec_type").text.strip())
