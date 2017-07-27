@@ -158,7 +158,7 @@ def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
 
     for i in split:
         j = raw_title_group.pop()
-        title_split = re.sub("\[(?P<in>.+)\]", "\g<in>", j)
+        title_split = re.sub("\[(?P<in>.*)\]", "\g<in>", j)
         if i in type_dict[raw_type]["limit"]:
             if title_split not in type_dict[raw_type]["limit"][i]:
                 title_split = ""  # type_dict[raw_type]["limit"][i][0]
