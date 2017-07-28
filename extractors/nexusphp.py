@@ -66,7 +66,6 @@ class NexusPHP(Base):
             seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # Read the torrent's id in reseed site
             flag = self.torrent_download(tid=seed_torrent_download_id)
             logging.info("Reseed post OK,The torrent's in transmission: {fl}".format(fl=flag))
-            # TODO USE new torrent's id to Update `info_list` in db
         else:  # Log if not reseed successfully
             flag = -1
             outer_message = self.torrent_upload_err_message(post_text=post.text)

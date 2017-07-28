@@ -31,11 +31,11 @@ class Connect(object):
     def reseeders_active(self):
         """Active the reseeder objects and append it to self.active_reseeder_list."""
         # Byrbt
-        if setting.site_byrbt["status"]:
-            from extractors.byrbt import Byrbt
-            autoseed_byrbt = Byrbt(site_setting=setting.site_byrbt)
-            if autoseed_byrbt.status:
-                self.active_reseeder_list.append(autoseed_byrbt)
+        if setting.site_byrbt["status"]:  # User want to active this reseeder
+            from extractors.byrbt import Byrbt  # Import the package
+            autoseed_byrbt = Byrbt(site_setting=setting.site_byrbt)  # Instantiation The object
+            if autoseed_byrbt.status:  # The reseeder active successfully (after session check)
+                self.active_reseeder_list.append(autoseed_byrbt)  # Append this reseeder to List
 
         # NPUBits
         if setting.site_npubits["status"]:
@@ -118,6 +118,27 @@ class Connect(object):
                     logging.warning("Torrent:\"{name}\" is still downloading,Wait......".format(name=tname))
                     self.downloading_torrent_id_queue.append(dl_torrent.id)
 
+    def _get_torrent_info(self, t) -> tuple:
+        """
+        Get torrent's information about tid, name and it's main tracker host.
+        For main tracker host,if it is not in whole_tracker_list,will be rewrite to "download_id"
+        
+        :param t: int or class 'transmissionrpc.torrent.Torrent'
+        :return: (tid, name, tracker)
+        """
+        if isinstance(t, int):
+            t = tc.get_torrent(t)
+
+        tid = t.id
+        name = t.name.replace("'", r"\'")  # for Database safety
+        try:
+            tracker = re.search(r"p[s]?://(?P<host>.+?)/", t.trackers[0]["announce"]).group("host")
+            if tracker not in self.whole_tracker_list:
+                raise AttributeError("Not reseed tracker.")
+        except AttributeError:
+            tracker = "download_id"
+        return tid, name, tracker
+
     def update_torrent_info_from_rpc_to_db(self, last_id_check=0, last_id_db=None, force_clean_check=False):
         """
         Sync torrent's id from transmission to database,
@@ -132,28 +153,31 @@ class Connect(object):
             if not force_clean_check:  # Normal Update
                 logging.info("Some new torrents were add to transmission,Sync to db~")
                 for i in torrent_id_list:
-                    t = tc.get_torrent(i)
-                    try:
-                        to_tracker_host = re.search(r"p[s]?://(?P<host>.+?)/", t.trackers[0]["announce"]).group("host")
-                    except AttributeError:
-                        to_tracker_host = "download_id"
-
-                    name = t.name.replace("'", r"\'")
-                    if to_tracker_host in self.whole_tracker_list:
+                    tid, name, tracker = self._get_torrent_info(i)
+                    if tracker in self.whole_tracker_list:  # TODO USE upsert
                         sql = "UPDATE seed_list SET `{cow}` = {id:d} " \
-                              "WHERE title='{name}'".format(cow=to_tracker_host, name=name, id=t.id)
+                              "WHERE title='{name}'".format(cow=tracker, name=name, id=tid)
                     else:
-                        sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}',{:d})".format(name, t.id)
+                        sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}',{:d})".format(name, tid)
                     db.commit_sql(sql)
 
                 # Set un_reseed column into -1
                 for tracker in self.un_reseed_tracker_list:
                     db.commit_sql(sql="UPDATE seed_list SET `{cow}` = -1 WHERE `{cow}` = 0 ".format(cow=tracker))
-            elif last_id_check != last_id_db:  # 第一次启动检查(force_clean_check)
-                logging.error(
-                    "It seems the torrent list didn't match with db-records,Clean the \"seed_list\" for safety.")
-                db.commit_sql(sql="DELETE FROM seed_list")  # Delete all line from seed_list
-                self.update_torrent_info_from_rpc_to_db(last_id_db=0)
+            else:  # 第一次启动检查(force_clean_check)
+                total_num_in_tr = len(set([t.name for t in tc.get_torrents()]))
+                total_num_in_db = db.get_sql(sql="SELECT COUNT(*) FROM `seed_list`")[0][0]
+                if int(total_num_in_db) != int(total_num_in_tr):
+                    logging.error("The torrent list didn't match with db-records,Clean the \"seed_list\" for safety.")
+                    db.commit_sql(sql="DELETE FROM seed_list")  # Delete all line from seed_list
+                    self.update_torrent_info_from_rpc_to_db(last_id_db=0)
+                else:
+                    logging.info("Update the new torrent id to database.")
+                    for t in tc.get_torrents():
+                        tid, name, tracker = self._get_torrent_info(t)
+                        sql = "UPDATE seed_list SET `{cow}` = {id:d} " \
+                              "WHERE title='{name}'".format(cow=tracker, name=name, id=tid)
+                        db.commit_sql(sql)
         else:
             logging.debug("No new torrent(s),Return with nothing to do.")
         return last_id_check
