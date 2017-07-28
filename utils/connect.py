@@ -150,6 +150,7 @@ class Connect(object):
             if last_id_db is None:
                 last_id_db = db.get_max_in_columns(table="seed_list", column_list=self.db_column[2:])
             logging.debug("Max tid, transmission: {tr},database: {db}".format(tr=last_id_check, db=last_id_db))
+
             if not force_clean_check:  # Normal Update
                 logging.info("Some new torrents were add to transmission,Sync to db~")
                 for i in torrent_id_list:
@@ -160,24 +161,28 @@ class Connect(object):
                     else:
                         sql = "INSERT INTO seed_list (title,download_id) VALUES ('{}',{:d})".format(name, tid)
                     db.commit_sql(sql)
-
-                # Set un_reseed column into -1
-                for tracker in self.un_reseed_tracker_list:
+                for tracker in self.un_reseed_tracker_list:  # Set un_reseed column into -1
                     db.commit_sql(sql="UPDATE seed_list SET `{cow}` = -1 WHERE `{cow}` = 0 ".format(cow=tracker))
-            else:  # 第一次启动检查(force_clean_check)
+
+            elif last_id_check != last_id_db:  # 第一次启动检查(force_clean_check)
                 total_num_in_tr = len(set([t.name for t in tc.get_torrents()]))
-                total_num_in_db = db.get_sql(sql="SELECT COUNT(*) FROM `seed_list`")[0][0]
-                if int(total_num_in_db) != int(total_num_in_tr):
-                    logging.error("The torrent list didn't match with db-records,Clean the \"seed_list\" for safety.")
-                    db.commit_sql(sql="DELETE FROM seed_list")  # Delete all line from seed_list
-                    self.update_torrent_info_from_rpc_to_db(last_id_db=0)
-                else:
+                total_num_in_db = db.get_sql(sql="SELECT COUNT(*) FROM `seed_list`")[0][0]  # TODO wrap this sql
+                title_in_db = [i["title"] for i in db.get_table_seed_list()]
+                if int(total_num_in_tr) >= int(total_num_in_db):
                     logging.info("Update the new torrent id to database.")
-                    for t in tc.get_torrents():
+                    for t in [t for t in tc.get_torrents() if t.name in title_in_db]:  # The exist torrent
                         tid, name, tracker = self._get_torrent_info(t)
                         sql = "UPDATE seed_list SET `{cow}` = {id:d} " \
                               "WHERE title='{name}'".format(cow=tracker, name=name, id=tid)
-                        db.commit_sql(sql)
+                        db.commit_sql(sql)  # Update it's id in database
+
+                    torrent_id_not_in_db = [t.id for t in tc.get_torrents() if t.name not in title_in_db]
+                    if torrent_id_not_in_db:  # If new torrent add between restart
+                        last_id_check = min(torrent_id_not_in_db)
+                else:  # TODO check....
+                    logging.error("The torrent list didn't match with db-records,Clean the \"seed_list\" for safety.")
+                    db.commit_sql(sql="DELETE FROM seed_list")  # Delete all line from seed_list
+                    self.update_torrent_info_from_rpc_to_db(last_id_db=0)
         else:
             logging.debug("No new torrent(s),Return with nothing to do.")
         return last_id_check
