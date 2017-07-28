@@ -30,6 +30,7 @@ class NPUBits(NexusPHP):
         bs = self.page_search(payload={"search": key}, bs=True)
         download_tag = bs.find_all("a", href=re.compile("torrent_download"))
         tid_list = [re.search("torrent_download\((\d+)", tag["href"]).group(1) for tag in download_tag]
+        logging.debug("USE key: {key} to search,and the Return tid-list: {list}".format(key=key, list=tid_list))
         return tid_list
 
     def torrent_clone(self, tid) -> dict:
