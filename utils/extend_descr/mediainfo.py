@@ -9,7 +9,7 @@ import subprocess
 baseCommand = "mediainfo {option} {FileName}"
 
 
-def show_mediainfo(file, encode):
+def show_mediainfo(file, encode="bbcode"):
     option = ""
     if encode == "html":
         option += " --Output=HTML"
@@ -23,23 +23,29 @@ def show_mediainfo(file, encode):
         output = output.decode()  # bytes -> string
 
         # Hide file path
-        short_file = re.search(r"/.+/(.+)$", file).group(1)
+        short_file = re.search(r"(?:.+/)?(.+)$", file).group(1)
         output = re.sub(file, short_file, output)
 
         if encode == "html":
+            # Raw HTML Format may like this.
             """
-            Raw HTML Format may like this:
-            
             <html>
-            <head><META http-equiv="Content-Type" content="text/html; charset=utf-8" /></head>
-            <body>
-            {foreach track}
-                <table width="100%" border="0" cellpadding="1" cellspacing="2" style="border:1px solid Navy"></table>
-                <br />
-            {/foreach}
-            <br />
-            
-            </body></html>
+                <head><META http-equiv="Content-Type" content="text/html; charset=utf-8" /></head>
+                <body>
+                    {foreach track}
+                        <table width="100%" border="0" cellpadding="1" cellspacing="2" style="border:1px solid Navy">
+                            {foreach $track -> stream}
+                                <tr>
+                                    <td><i>{$stream -> name}</i></td>
+                                    <td colspan="3">{$stream -> detail}</td>
+                                </tr>
+                            {/foreach}
+                        </table>
+                        <br />
+                    {/foreach}
+                    <br />
+                </body>
+            </html>
             """
             output = re.search(r"<body>(?P<in>.+)</body>", output, re.S).group("in")  # Move unnecessary tag
     else:
@@ -47,3 +53,8 @@ def show_mediainfo(file, encode):
         output = None
 
     return output
+
+
+if __name__ == '__main__':
+    movie = ""
+    print(show_mediainfo(file=movie, encode="html"))
