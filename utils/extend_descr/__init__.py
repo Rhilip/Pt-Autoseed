@@ -1,7 +1,9 @@
 # ！/usr/bin/python3
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
+# Licensed under the GNU General Public License v3.0
 
-from utils.extend_descr.mediainfo import MediaInfo
+from utils.extend_descr.mediainfo import show_mediainfo
 from utils.extend_descr.thumbnails import thumbnails
 from utils.loadsetting import setting
 
@@ -49,7 +51,7 @@ def build_clone_info(before_torrent_id, encode) -> str:
 def build_mediainfo(file, encode) -> str:
     str_media_info = ""
     if raw_dict["mediainfo"]["status"]:
-        media_info = MediaInfo(file=file, encode=encode).show()
+        media_info = show_mediainfo(file=file, encode=encode)
         if media_info:
             str_media_info = raw_dict["mediainfo"][encode].format(info=media_info)
     return str_media_info

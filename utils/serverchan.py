@@ -1,8 +1,11 @@
 # ！/usr/bin/python3
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
+# Licensed under the GNU General Public License v3.0
+
+import logging
 
 import requests
-import logging
 
 
 class ServerChan(object):
