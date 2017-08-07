@@ -4,8 +4,8 @@
 
 import logging
 import re
+from urllib.parse import unquote
 
-# from urllib.parse import unquote
 from html import unescape
 
 from extractors.nexusphp import NexusPHP
@@ -133,6 +133,8 @@ type_dict = {
     },
 }
 
+tag_pass_by_class_pattern = re.compile("byrbt_info_clone|autoseed")
+
 
 def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
     """
@@ -202,21 +204,17 @@ class Byrbt(NexusPHP):
                 logging.debug("Found douban link:{link} for this torrent.".format(link=dburl))
             # Update description
             descr = body.find(id="kdescr")
-            """
+
             # Restore the image link
             for img_tag in descr.find_all("img"):
                 del img_tag["onload"]
                 del img_tag["data-pagespeed-url-hash"]
                 img_tag["src"] = unquote(re.sub(r"images/(?:(?:\d+x)+|x)(?P<raw>.*)\.pagespeed\.ic.*",
                                                 "images/\g<raw>", img_tag["src"]))
-            """
 
-            # Remove unnessary description
-            for tag in descr.find_all(class_="autoseed") + descr.find_all(class_="byrbt_info_clone_ignore"):
+            # Remove unnessary description (class: autoseed, byrbt_info_clone_ignore, byrbt_info_clone)
+            for tag in descr.find_all(class_=tag_pass_by_class_pattern):
                 tag.extract()
-            # Delete Clone Info
-            if descr.find(class_="byrbt_info_clone"):
-                descr.find(class_="byrbt_info_clone").extract()
 
             descr_out = re.search(r"<div id=\"kdescr\">(?P<in>.+)</div>$", str(descr), re.S).group("in")
             return_dict.update({
