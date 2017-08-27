@@ -17,36 +17,28 @@ class Database(object):
         self.db = pymysql.connect(host=host, port=port, user=user, password=password, db=db, charset='utf8')
 
     # Based Function
+    def exec(self, sql: str, r_dict=False, fetch_all=False):
+        # The style of return info (dict or tuple)
+        cursor = self.db.cursor(pymysql.cursors.DictCursor) if r_dict else self.db.cursor()
+        row = cursor.execute(sql)
+        try:
+            self.db.commit()  # Commit after query to flush Database since `PyMySQL disable autocommit by default`
+            logging.debug("Success,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
+        except pymysql.Error as err:
+            logging.critical("Mysql Error: \"{err}\",DDL: \"{sql}\"".format(err=err.args, sql=sql))
+            self.db.rollback()
+
+        # The lines of return info (one or all)
+        result = cursor.fetchall() if fetch_all else cursor.fetchone()
+        return result
+
     def commit_sql(self, sql: str):
         """Submit SQL statement"""
-        cursor = self.db.cursor()
-        try:
-            cursor.execute(sql)
-            self.db.commit()
-            logging.debug("A commit to db success,DDL: \"{sql}\"".format(sql=sql))
-        except pymysql.Error as err:
-            logging.critical("Mysql Error: {err},DDL: {sql}".format(err=err.args, sql=sql))
-            self.db.rollback()
+        return self.exec(sql=sql)
 
     def get_sql(self, sql: str, r_dict=False, fetch_all=True):
         """Get data from the database"""
-        # The style of info (dict or tuple)
-        if r_dict:
-            cursor = self.db.cursor(pymysql.cursors.DictCursor)  # Dict Cursor
-        else:
-            cursor = self.db.cursor()
-
-        row = cursor.execute(sql)
-
-        # The return info (one or all)
-        if fetch_all:
-            result = cursor.fetchall()
-        else:
-            result = cursor.fetchone()
-
-        # Logging or not
-        logging.debug("Some information from db,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
-        return result
+        return self.exec(sql, r_dict, fetch_all)
 
     # Procedure Oriented Function
     def get_max_in_one_column(self, table, column):
