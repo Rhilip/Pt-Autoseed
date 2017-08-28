@@ -4,9 +4,8 @@
 
 import logging
 import re
-from urllib.parse import unquote
-
 from html import unescape
+from urllib.parse import unquote
 
 from extractors.nexusphp import NexusPHP
 
@@ -238,11 +237,10 @@ class Byrbt(NexusPHP):
         return raw_info
 
     def data_raw2tuple(self, torrent, raw_info: dict):
-        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
         begin_list = [
             ("type", ('', str(raw_info["type"]))),
             ("second_type", ('', str(raw_info["second_type"]))),
-            ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent'))
+            ("file", self._post_torrent_file_tuple(torrent))
         ]
 
         cat_post_list = [(cat, ('', str(raw_info[cat]))) for cat in type_dict[raw_info["raw_type"]]["split"]]
@@ -257,6 +255,4 @@ class Byrbt(NexusPHP):
             ("uplver", ('', self.uplver)),
         ]
 
-        post_list = begin_list + cat_post_list + end_post_list
-
-        return tuple(post_list)
+        return tuple(begin_list + cat_post_list + end_post_list)

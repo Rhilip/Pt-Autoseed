@@ -39,7 +39,7 @@ class NexusPHP(Base):
             self.session_check()
 
     # -*- Check login's info -*-
-    def session_check(self):
+    def session_check(self):  # TODO Reconstruction
         page_usercp_bs = self.get_data(url=self.url_host + "/usercp.php", bs=True)
         info_block = page_usercp_bs.find(id="info_block")
         if info_block:
@@ -55,7 +55,7 @@ class NexusPHP(Base):
 
     # -*- Torrent's download, upload and thank -*-
     def torrent_download(self, tid, thanks=auto_thank):
-        download_url = "{host}/download.php?id={tid}&passkey={pk}".format(host=self.url_host, tid=tid, pk=self.passkey)
+        download_url = self.url_host + "/download.php?id={tid}&passkey={pk}".format(tid=tid, pk=self.passkey)
         added_torrent = tc.add_torrent(torrent=download_url)
         # Another way is download torrent file to watch-dir(see early commits),But it will no return added_torrent.id
         logging.info("Download Torrent OK,which id: {id}.".format(id=tid))
@@ -64,7 +64,7 @@ class NexusPHP(Base):
         return added_torrent.id
 
     def torrent_upload(self, data: tuple):
-        upload_url = "{host}/takeupload.php".format(host=self.url_host)
+        upload_url = self.url_host + "/takeupload.php"
         post = self.post_data(url=upload_url, files=data)
         if post.url != upload_url:  # Check reseed status
             seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # Read the torrent's id in reseed site

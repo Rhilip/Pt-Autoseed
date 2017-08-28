@@ -120,11 +120,10 @@ class TJUPT(NexusPHP):
         return raw_info
 
     def data_raw2tuple(self, torrent, raw_info: dict):
-        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
         begin_post_list = [
             ("id", ('', str(raw_info["clone_id"]))),
             ("quote", ('', str(raw_info["clone_id"]))),
-            ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
+            ("file", self._post_torrent_file_tuple(torrent)),
             ("type", ('', str(raw_info["type"]))),
         ]
 
@@ -145,6 +144,4 @@ class TJUPT(NexusPHP):
             ("uplver", ('', self.uplver)),
         ]
 
-        post_list = begin_post_list + cat_post_list + end_post_list
-
-        return tuple(post_list)
+        return tuple(begin_post_list + cat_post_list + end_post_list)

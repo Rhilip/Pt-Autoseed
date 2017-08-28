@@ -3,6 +3,7 @@
 # Licensed under the GNU General Public License v3.0
 
 import logging
+import os
 
 import requests
 from bs4 import BeautifulSoup
@@ -45,6 +46,16 @@ class Base(object):
 
     def session_check(self):
         pass
+
+    @staticmethod
+    def _post_torrent_file_tuple(torrent):
+        """
+        Build-in function to make part of post tuple in Requests.
+
+        :param torrent: class transmissionrpc.Torrent
+        :return: part of post tuple in Requests,like ('name.torrent', <_io.BufferedReader>, 'application/x-bittorrent')
+        """
+        return os.path.basename(torrent.torrentFile), open(torrent.torrentFile, 'rb'), 'application/x-bittorrent'
 
     # -*- Encapsulation requests's method,with format-out as bs or json when use get -*-
     def get_data(self, url, params=None, bs=False, json=False):

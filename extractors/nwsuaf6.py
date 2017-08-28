@@ -178,11 +178,9 @@ class MTPT(NexusPHP):
         return raw_info
 
     def data_raw2tuple(self, torrent, raw_info):
-        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
-
-        post_tuple = (  # Submit form
+        return (  # Submit form
             ("cite_torrent", ('', str(raw_info["clone_id"]))),
-            ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
+            ("file", self._post_torrent_file_tuple(torrent)),
             ("type", ('', str(raw_info["category"]))),
             ("source_sel", ('', str(raw_info["source"]))),
             ("name", ('', raw_info["name"])),
@@ -196,5 +194,3 @@ class MTPT(NexusPHP):
             ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),
             ("uplver", ('', self.uplver)),
         )
-
-        return post_tuple

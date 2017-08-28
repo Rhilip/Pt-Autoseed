@@ -76,13 +76,11 @@ class NPUBits(NexusPHP):
         return raw_info
 
     def data_raw2tuple(self, torrent, raw_info):
-        torrent_file_name = re.search("torrents/(.+?\.torrent)", torrent.torrentFile).group(1)
-
-        post_tuple = (  # Submit form
+        return (  # Submit form
             ("transferred_url", ('', str(raw_info["transferred_url"]))),
             ("type", ('', str(raw_info["category"]))),
             ("source_sel", ('', str(raw_info["sub_category"]))),
-            ("file", (torrent_file_name, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent')),
+            ("file", self._post_torrent_file_tuple(torrent)),
             ("name", ('', string2base64(raw_info["name"]))),
             ("small_descr", ('', string2base64(raw_info["small_descr"]))),
             ("color", ('', '0')),  # Tell me those three key's function~
@@ -94,5 +92,3 @@ class NPUBits(NexusPHP):
             ("transferred_torrent_file_base64", ('', '')),
             ("transferred_torrent_file_name", ('', '')),
         )
-
-        return post_tuple
