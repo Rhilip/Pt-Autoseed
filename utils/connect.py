@@ -6,7 +6,8 @@ import logging
 import re
 import time
 
-from utils.loadsetting import tc, db, setting
+from utils.load.config import setting
+from utils.load.submodules import tc, db
 from utils.pattern import pattern_group
 
 TIME_RESEEDER_ONLINE_CHECK = 3600

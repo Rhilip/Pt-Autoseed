@@ -9,8 +9,8 @@ from bs4 import BeautifulSoup
 
 from extractors.base import Base
 from utils.cookie import cookies_raw2jar
-from utils.extend_descr import out as descr_out
-from utils.loadsetting import tc
+from utils.descr import out as descr_out
+from utils.load.submodules import tc
 
 rev_tag = re.compile("repack|proper|v2|rev")
 

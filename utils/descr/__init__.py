@@ -3,9 +3,9 @@
 # Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
 # Licensed under the GNU General Public License v3.0
 
-from utils.extend_descr.mediainfo import show_mediainfo
-from utils.extend_descr.thumbnails import thumbnails
-from utils.loadsetting import setting
+from utils.descr.mediainfo import show_mediainfo
+from utils.descr.thumbnails import thumbnails
+from utils.load.config import setting
 
 raw_dict = setting.extend_descr_raw
 
