@@ -2,9 +2,21 @@
 # Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
 # Licensed under the GNU General Public License v3.0
 
+"""
+The Enhance module to get mediainfo, and show it in torrent's description.
+
+Warning : To enable this module, You should follow those steps:
+ -  Install `mediainfo` : apt-get -y install mediainfo
+
+"""
+
 import logging
 import re
 import subprocess
+
+from utils.load.config import setting
+
+dict_mediainfo = setting.extend_descr_raw["mediainfo"]
 
 baseCommand = "mediainfo {option} {FileName}"
 
@@ -53,6 +65,15 @@ def show_mediainfo(file, encode="bbcode"):
         output = None
 
     return output
+
+
+def build_mediainfo(file, encode) -> str:
+    str_media_info = ""
+    if dict_mediainfo["status"]:
+        media_info = show_mediainfo(file=file, encode=encode)
+        if media_info:
+            str_media_info = dict_mediainfo[encode].format(info=media_info)
+    return str_media_info
 
 
 if __name__ == '__main__':
