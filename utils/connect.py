@@ -11,7 +11,7 @@ from utils.load.submodules import tc, db
 from utils.pattern import pattern_group
 
 TIME_RESEEDER_ONLINE_CHECK = 3600
-TIME_TORRENT_KEEP_MIN = 86400  # The download torrent keep time even no reseed and stopped status.
+TIME_TORRENT_KEEP_MIN = 86400  # The download torrent keep time even no reseed and in stopped status.
 
 
 class Connect(object):
@@ -38,34 +38,39 @@ class Connect(object):
         self.un_reseed_tracker_list = [item for item in self.whole_tracker_list if item not in self.reseed_tracker_list]
 
     def reseeders_active(self):
-        """Active the reseeder objects and append it to self.active_reseeder_list."""
+        """
+        Active the reseeder objects and append it to self.active_reseeder_list.
+        Each object should follow those step(s):
+            1. Import the package
+            2. Instantiation The object
+            3. The reseeder active successfully (after session check)
+            4. Append this reseeder to List
+
+        :return: None
+        """
         # Byrbt
-        if setting.site_byrbt["status"]:  # User want to active this reseeder
-            from extractors.byrbt import Byrbt  # Import the package
-            autoseed_byrbt = Byrbt(site_setting=setting.site_byrbt)  # Instantiation The object
-            if autoseed_byrbt.status:  # The reseeder active successfully (after session check)
-                self.active_reseeder_list.append(autoseed_byrbt)  # Append this reseeder to List
+        from extractors.byrbt import Byrbt
+        autoseed_byrbt = Byrbt(**setting.site_byrbt)
+        if autoseed_byrbt.status:
+            self.active_reseeder_list.append(autoseed_byrbt)
 
         # NPUBits
-        if setting.site_npubits["status"]:
-            from extractors.npubits import NPUBits
-            autoseed_npubits = NPUBits(site_setting=setting.site_npubits)
-            if autoseed_npubits.status:
-                self.active_reseeder_list.append(autoseed_npubits)
+        from extractors.npubits import NPUBits
+        autoseed_npubits = NPUBits(**setting.site_npubits)
+        if autoseed_npubits.status:
+            self.active_reseeder_list.append(autoseed_npubits)
 
         # nwsuaf6
-        if setting.site_nwsuaf6["status"]:
-            from extractors.nwsuaf6 import MTPT
-            autoseed_nwsuaf6 = MTPT(site_setting=setting.site_nwsuaf6)
-            if autoseed_nwsuaf6.status:
-                self.active_reseeder_list.append(autoseed_nwsuaf6)
+        from extractors.nwsuaf6 import MTPT
+        autoseed_nwsuaf6 = MTPT(**setting.site_nwsuaf6)
+        if autoseed_nwsuaf6.status:
+            self.active_reseeder_list.append(autoseed_nwsuaf6)
 
         # TJUPT
-        if setting.site_tjupt["status"]:
-            from extractors.tjupt import TJUPT
-            autoseed_tjupt = TJUPT(site_setting=setting.site_tjupt)
-            if autoseed_tjupt.status:
-                self.active_reseeder_list.append(autoseed_tjupt)
+        from extractors.tjupt import TJUPT
+        autoseed_tjupt = TJUPT(**setting.site_tjupt)
+        if autoseed_tjupt.status:
+            self.active_reseeder_list.append(autoseed_tjupt)
 
         logging.info("The assign reseeder objects:{lis}".format(lis=self.active_reseeder_list))
 

@@ -9,6 +9,9 @@ def cookies_raw2jar(raw: str) -> dict:
     """
     Arrange Cookies from raw using SimpleCookies
     """
+    if not raw:
+        raise ValueError("The Cookies is not allowed to be empty.")
+
     cookie = SimpleCookie(raw)
     cookies = {}
     for key, morsel in cookie.items():

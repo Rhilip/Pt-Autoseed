@@ -101,13 +101,12 @@ extend_descr_raw = {
         [*]欢迎下载、辅种、分流。保种{min_reseed_time}-{max_reseed_time}天。断种恕不补种。
         [*]如果发布档较大，请耐心等待校验。
         [*]有关更新说明请查看对应 Github :[url=https://github.com/Rhilip/Pt-Autoseed]Rhilip/Pt-Autoseed[/url]，申请搬运，请发Issues留言。
-        [/quote]
-        """.format(min_reseed_time=min_time, max_reseed_time=max_time),
+        [/quote]""".format(min_reseed_time=min_time, max_reseed_time=max_time),
         "html": """
         <fieldset class="autoseed">
             <legend><b>Quote:</b></legend>
             <ul>
-                <li>这是一个远程发种的文件，所有信息以主标题或者文件名为准，简介信息采用本站之前剧集信息，若发现有误请以"举报"或"留言"的形式通知工作人员审查和编辑。</li>
+                <li>这是一个远程发种的文件，所有信息以主标题或者文件名为准，简介信息采用本站之前信息，若发现有误请以"举报"或"留言"的形式通知工作人员审查和编辑。</li>
                 <li>欢迎下载、辅种、分流。保种{min_reseed_time}-{max_reseed_time}天。断种恕不补种。</li>
                 <li>如果发布档较大，请耐心等待校验。</li>
                 <li>请勿上传机翻字幕，如有发现请"举报"。</li>
@@ -116,13 +115,12 @@ extend_descr_raw = {
         </fieldset>
         """.format(min_reseed_time=min_time, max_reseed_time=max_time)
     },
-    "shot": {  # Key : img_url
+    "thumbnails": {  # Key : img_url
         "status": False,
         "bbcode": """
         [quote][color=Red]以下是Autoseed自动完成的截图，不喜勿看 [/color]
         [img]{img_url}[/img]
-        [/quote]
-        """,
+        [/quote]""",
         "html": """
         <fieldset class="autoseed">
             <legend><b>自动截图</b></legend>

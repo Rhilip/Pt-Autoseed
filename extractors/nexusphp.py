@@ -7,59 +7,44 @@ import re
 
 from bs4 import BeautifulSoup
 
-from extractors.base import Base
-from utils.cookie import cookies_raw2jar
+from extractors.site import Site
 from utils.descr import out as descr_out
 from utils.load.submodules import tc
 
 rev_tag = re.compile("repack|proper|v2|rev")
 
 
-class NexusPHP(Base):
-    auto_thank = True
-    uplver = "yes"
-
+class NexusPHP(Site):
     DEFAULT_TORRENT_WHEN_CLONE = None  # Enhanced Features: When not find the clone torrent, use it as default clone_id
 
-    def __init__(self, site_setting: dict):
-        self.site_setting = site_setting  # Load setting from user
+    def __init__(self, status, cookies, passkey, **kwargs):
+        super().__init__(status, cookies)
 
         # Assign the key information
-        self.status = site_setting["status"]
-        self.passkey = site_setting["passkey"]
-        self.cookies = cookies_raw2jar(site_setting["cookies"])
-        try:
-            self.auto_thank = site_setting["auto_thank"]
-            if not site_setting["anonymous_release"]:
-                self.uplver = "no"
-        except KeyError:
-            pass
+        self.passkey = passkey
+        self.auto_thank = kwargs.setdefault("auto_thank", True)  # Enable to Automatically thanks for additional Bones.
+        self.uplver = "yes" if kwargs.setdefault("anonymous_release", True) else "no"  # Enable to Release anonymously.
 
         if self.online_check():
             self.session_check()
 
     # -*- Check login's info -*-
-    def session_check(self):  # TODO Reconstruction
+    def session_check(self):
         page_usercp_bs = self.get_data(url=self.url_host + "/usercp.php", bs=True)
-        info_block = page_usercp_bs.find(id="info_block")
-        if info_block:
-            user_tag = info_block.find("a", href=re.compile("userdetails.php"), class_=re.compile("Name"))
-            up_name = user_tag.get_text()
-            logging.debug("Model \"{mo}\" is activation now.You are assign as \"{up}\" in this site."
-                          "Anonymous release: {ar},auto_thank: {at}".format(mo=self.model_name(), up=up_name,
-                                                                            ar=self.uplver, at=self.auto_thank))
+        self.status = True if page_usercp_bs.find(id="info_block") else False
+        if self.status:
+            logging.debug("Through authentication in Site: {}".format(self.model_name()))
         else:
-            self.status = False  # When can not confirm identity,Forced Turn off the status
-            logging.error("Can not verify identity.If you want to use \"{mo}\","
-                          "please Check your Cookies".format(mo=self.model_name()))
+            logging.error("Can not verify identity.Please Check your Cookies".format(mo=self.model_name()))
+        return self.status
 
     # -*- Torrent's download, upload and thank -*-
-    def torrent_download(self, tid, thanks=auto_thank):
+    def torrent_download(self, tid, **kwargs):
         download_url = self.url_host + "/download.php?id={tid}&passkey={pk}".format(tid=tid, pk=self.passkey)
         added_torrent = tc.add_torrent(torrent=download_url)
         # Another way is download torrent file to watch-dir(see early commits),But it will no return added_torrent.id
         logging.info("Download Torrent OK,which id: {id}.".format(id=tid))
-        if thanks:  # Automatically thanks for additional Bones.
+        if kwargs.setdefault("thanks", self.auto_thank):
             self.torrent_thank(tid)
         return added_torrent.id
 
@@ -102,19 +87,21 @@ class NexusPHP(Base):
     def search_list(self, key) -> list:
         bs = self.page_search(payload={"search": key}, bs=True)
         download_tag = bs.find_all("a", href=re.compile("download.php"))
-        tid_list = [re.search("id=(\d+)", tag["href"]).group(1) for tag in download_tag]
+        tid_list = [int(re.search("id=(\d+)", tag["href"]).group(1)) for tag in download_tag]
         logging.debug("USE key: {key} to search,and the Return tid-list: {list}".format(key=key, list=tid_list))
         return tid_list
 
-    def first_tid_in_search_list(self, key) -> int:
-        tid_list = self.search_list(key=key)
-        try:
-            tid = int(tid_list[0])
-        except IndexError:
-            tid = 0
+    def first_tid_in_search_list(self, key, **kwargs) -> int:
+        tid_list = self.search_list(key=key) + [0]
+
+        if kwargs.setdefault("max", False):
+            tid = max(tid_list)
+        else:
+            tid = tid_list[0]
+
         return tid
 
-    def extend_descr(self, torrent, info_dict) -> str:
+    def extend_descr(self, torrent, info_dict) -> str:  # TODO
         return descr_out(raw=info_dict["descr"], torrent=torrent, encode=self.encode, clone_id=info_dict["clone_id"])
 
     def exist_torrent_title(self, tag):
@@ -128,6 +115,7 @@ class NexusPHP(Base):
         If exist in this site ,return the exist torrent's id,else return 0.
         (Warning:if the exist torrent is not same as the pre-reseed torrent ,will return -1)
         """
+        # TODO may wrong
         tag = self.first_tid_in_search_list(key=search_title)
         if tag is not 0:
             torrent_title = self.exist_torrent_title(tag=tag)
@@ -136,7 +124,7 @@ class NexusPHP(Base):
         return tag
 
     # -*- The feeding function -*-
-    def torrent_feed(self, torrent, name_pattern, clone_db_dict):
+    def torrent_feed(self, torrent, name_pattern, clone_db_dict: dict):
         logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
         key_raw = clone_db_dict["search_name"]  # maximum 10 keywords (NexusPHP: torrents.php,line 696),so gp ep first
         key_with_gp = "{gr} {search_key}".format(search_key=key_raw, gr=name_pattern.group("group"))
@@ -150,7 +138,7 @@ class NexusPHP(Base):
         if search_tag == 0:  # Non-existent repetition torrent, prepare to reseed
             clone_id = 0
             try:
-                clone_id = clone_db_dict[self.db_column]
+                clone_id = clone_db_dict.setdefault(self.db_column, None)
                 if clone_id in [None, 0, "0"]:
                     raise KeyError("The db-record is not return the clone id.")
                 logging.debug("Get clone id({id}) from db OK,USE key: \"{key}\"".format(id=clone_id, key=key_raw))
