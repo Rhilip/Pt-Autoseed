@@ -66,7 +66,7 @@ apt-get -y install ffmpeg
 
 ```sh
 apt-get -y install python3-pip python3-lxml
-pip3 install pymysql transmissionrpc requests bs4 pymediainfo
+pip3 install pymysql transmissionrpc requests bs4
 ```
 
 * Supervisor (Suggest)
