@@ -1,8 +1,9 @@
 # PT-Autoseed
 
-An Autoseed used to reseed TV-series and Anime in Some PT sites. \
-The Reseed List: Saw Gist [Rhilip/Reseed List](https://gist.github.com/Rhilip/34ad82070d71bb3fa75f293d24101588) please.\
-\
+An Autoseed used to reseed TV-series and Anime in Some PT sites. 
+
+The Reseed List: Saw Gist [Rhilip/Reseed List](https://gist.github.com/Rhilip/34ad82070d71bb3fa75f293d24101588) please.
+
 [![GitHub license](https://img.shields.io/badge/license-AGPL-blue.svg)](https://raw.githubusercontent.com/Rhilip/Pt-Autoseed/master/LICENSE)
 
 ## Support Site
@@ -34,11 +35,11 @@ apt-get -y install python-pip
 pip install flexget transmissionrpc
 ```
 
-* rtorrent + irssi-autodl
+* rtorrent + irssi-autodl (see [arakasi72/rtinst](https://github.com/arakasi72/rtinst))
 
 ```sh
-wget --no-check-certificate https://raw.githubusercontent.com/arakasi72/rtinst/master/rtinst.sh
-bash rtinst.sh -t
+bash -c "$(wget --no-check-certificate -qO - https://raw.githubusercontent.com/arakasi72/rtinst/master/rtsetup)"
+rtinst
 ```
 
 * MySQL (Use a remote mysqld alternative is feasible)
@@ -71,11 +72,8 @@ pip3 install pymysql transmissionrpc requests bs4
 * Supervisor (Suggest)
 
 ```sh
-pip install supervisor
+apt-get install supervisor
 ```
-
-### Or Use script
-
 
 ## How to Use
 
@@ -95,6 +93,6 @@ if no problem or error, You can use `screen` or other software like `supervisor`
 * Help to fix and update the reseed torrent's description.
 * If the funds permit, please donate to help me update this repo and the autoseed server.
 
-| WeChat | Alipay |
-|:---:|:---:|
-| <img src="https://blog.rhilip.info/wp-content/uploads/2017/05/wechat-e1494641989576.png" width = "300" > | <img src="https://blog.rhilip.info/wp-content/uploads/2017/04/alipay-e1494642034126.jpg" width = "300" > |
+| WeChat | Alipay | QQ |
+|:---:|:---:|:---:|
+| <img src="https://blog.rhilip.info/usr/uploads/my/wechat.jpg" width = "260" > | <img src="https://blog.rhilip.info/usr/uploads/my/alipay.jpg" width = "260" > | <img src="https://blog.rhilip.info/usr/uploads/my/qq.jpg" width = "260" > |
