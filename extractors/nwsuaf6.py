@@ -191,6 +191,6 @@ class MTPT(NexusPHP):
             ("color", ('', '0')),  # Tell me those three key's function~
             ("font", ('', '0')),
             ("size", ('', '0')),
-            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),
-            ("uplver", ('', self.uplver)),
+            ("descr", ('', self.enhance_descr(torrent=torrent, info_dict=raw_info))),
+            ("uplver", ('', self._UPLVER)),
         )

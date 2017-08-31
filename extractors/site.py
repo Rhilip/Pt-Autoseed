@@ -8,7 +8,9 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
+import utils.descr as descr
 from utils.cookie import cookies_raw2jar
+from utils.load.config import setting
 
 # Disable log messages from the Requests library
 logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -22,9 +24,10 @@ class Site(object):
     db_column = "tracker.pt_domain.com"  # The column in table,should be as same as the first tracker's host
     encode = "bbcode"  # bbcode or html
 
-    online_check_count = 0
+    suspended = 0  # 0 -> site Online, any number bigger than 0 -> Offline
 
-    def __init__(self, status: bool, cookies: dict or str):
+    def __init__(self, status: bool, cookies: dict or str, **kwargs):
+        # -*- Assign the based information -*-
         self.status = status
         try:
             self.cookies = cookies_raw2jar(cookies) if isinstance(cookies, str) else cookies
@@ -33,6 +36,24 @@ class Site(object):
             self.status = False
         else:
             logging.debug("Model \"{}\" is activation now.".format(self.model_name()))
+
+        # -*- Assign Enhanced Features : Site -*-
+        """
+        Enhance Feature for `base` Reseeder.
+        Those key-values will be set as default value unless you change it in your user-settings.
+        The name of those key should be start with "_" and upper.
+        
+        Included:
+        1. _EXTEND_DESCR_* : default True, Enable to Enhanced the description of the reseed torrent, And its priority is
+           higher than usersetting.extend_descr_raw[key]["status"].
+        """
+        self._EXTEND_DESCR_BEFORE = kwargs.setdefault("extend_descr_before", True)
+        self._EXTEND_DESCR_THUMBNAILS = kwargs.setdefault("extend_descr_thumbnails", True)
+        self._EXTEND_DESCR_MEDIAINFO = kwargs.setdefault("extend_descr_mediainfo", True)
+        self._EXTEND_DESCR_CLONEINFO = kwargs.setdefault("extend_descr_cloneinfo", True)
+
+        # Check if Site is online~
+        self.online_check()
 
     def model_name(self):
         return type(self).__name__
@@ -44,21 +65,21 @@ class Site(object):
         :return: bool , True if online
         """
         try:
-            # requests.head() is a little Quicker than requests.get(),
+            # requests.head() is a little Quicker than requests.get(),( Because only ask head without body)
             #                    but Slower than socket.create_connection(address[, timeout[, source_address]])
             requests.head(self.url_host, timeout=REQUESTS_TIMEOUT)
         except OSError:  # requests.exceptions.RequestException
             online = False
-            if self.online_check_count == 0:
+            if self.suspended == 0:
                 logging.warning("Site: {si} is Offline now.".format(si=self.url_host))
-            self.online_check_count += 1
+            self.suspended += 1
         else:
             online = True
-            if self.online_check_count != 0:
+            if self.suspended != 0:
                 logging.info("The Site: {si} is Online now,after {count} times tries."
-                             "Will check the session soon.".format(si=self.url_host, count=self.online_check_count))
+                             "Will check the session soon.".format(si=self.url_host, count=self.suspended))
                 self.session_check()
-                self.online_check_count = 0
+                self.suspended = 0
         return online
 
     @staticmethod
@@ -84,6 +105,19 @@ class Site(object):
     def post_data(self, url, params=None, **kwargs):
         """Encapsulation requests's method - POST"""
         return requests.post(url=url, params=params, cookies=self.cookies, **kwargs)
+
+    def enhance_descr(self, torrent, info_dict):
+        file = setting.trans_downloaddir + "/" + torrent.files()[0]["name"]
+
+        before = descr.build_before(self.encode) if self._EXTEND_DESCR_BEFORE else ""
+        shot = descr.build_shot(file=file, encode=self.encode) if self._EXTEND_DESCR_THUMBNAILS else ""
+        media_info = descr.build_mediainfo(file=file, encode=self.encode) if self._EXTEND_DESCR_MEDIAINFO else ""
+        if self._EXTEND_DESCR_CLONEINFO:
+            clone_info = descr.build_clone_info(before_torrent_id=info_dict["clone_id"], encode=self.encode)
+        else:
+            clone_info = ""
+
+        return before + info_dict["descr"] + shot + media_info + clone_info
 
     # -*- At least Overridden function,Please overridden below when add a new site -*-
     def session_check(self) -> bool:

@@ -132,7 +132,7 @@ type_dict = {
     },
 }
 
-tag_pass_by_class_pattern = re.compile("byrbt_info_clone|autoseed")
+pat_tag_pass_by_class = re.compile("byrbt_info_clone|autoseed")
 
 
 def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
@@ -176,6 +176,12 @@ class Byrbt(NexusPHP):
 
     encode = "html"
 
+    def __init__(self, status, cookies, passkey, **kwargs):
+        # Site Features: POST without subtitle, change in data_raw_update()
+        self._NO_SUBTITLE = kwargs.setdefault("no_subtitle", False)
+
+        super().__init__(status, cookies, passkey, **kwargs)
+
     def page_torrent_detail(self, tid, bs=False):
         return self.get_data(url=self.url_host + "/details.php", params={"id": tid, "ModPagespeed": "off"}, bs=bs)
 
@@ -211,13 +217,13 @@ class Byrbt(NexusPHP):
                 img_tag["src"] = unquote(re.sub(r"images/(?:(?:\d+x)+|x)(?P<raw>.*)\.pagespeed\.ic.*",
                                                 "images/\g<raw>", img_tag["src"]))
 
-            # Remove unnessary description (class: autoseed, byrbt_info_clone_ignore, byrbt_info_clone)
-            for tag in descr.find_all(class_=tag_pass_by_class_pattern):
+            # Remove unnecessary description (class: autoseed, byrbt_info_clone_ignore, byrbt_info_clone)
+            for tag in descr.find_all(class_=pat_tag_pass_by_class):
                 tag.extract()
 
             descr_out = re.search(r"<div id=\"kdescr\">(?P<in>.+)</div>$", str(descr), re.S).group("in")
             return_dict.update({
-                "small_descr": "",  # body.find(id="subtitle").find("li").text
+                "small_descr": body.find(id="subtitle").find("li").text,
                 "url": imdb_url,
                 "dburl": dburl,
                 "descr": descr_out,
@@ -233,6 +239,9 @@ class Byrbt(NexusPHP):
             raw_info["tv_season"] = torrent_name_search.group("episode")
         elif raw_info["type"] == 404:  # Anime
             raw_info["comic_episode"] = torrent_name_search.group("episode")
+
+        if self._NO_SUBTITLE:
+            raw_info["small_dscr"] = ""
 
         return raw_info
 
@@ -251,8 +260,8 @@ class Byrbt(NexusPHP):
             ("url", ('', raw_info["url"])),
             ("dburl", ('', raw_info["dburl"])),
             ("nfo", ('', '')),
-            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),
-            ("uplver", ('', self.uplver)),
+            ("descr", ('', self.enhance_descr(torrent=torrent, info_dict=raw_info))),
+            ("uplver", ('', self._UPLVER)),
         ]
 
         return tuple(begin_list + cat_post_list + end_post_list)

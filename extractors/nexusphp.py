@@ -8,25 +8,39 @@ import re
 from bs4 import BeautifulSoup
 
 from extractors.site import Site
-from utils.descr import out as descr_out
 from utils.load.submodules import tc
 
-rev_tag = re.compile("repack|proper|v2|rev")
+pat_rev_tag = re.compile("repack|proper|v2|rev")
 
 
 class NexusPHP(Site):
-    DEFAULT_TORRENT_WHEN_CLONE = None  # Enhanced Features: When not find the clone torrent, use it as default clone_id
+    _pat_search_torrent_id = re.compile("download.php\?id=(\d+)")
 
     def __init__(self, status, cookies, passkey, **kwargs):
-        super().__init__(status, cookies)
+        super().__init__(status, cookies, **kwargs)
 
-        # Assign the key information
+        # -*- Assign the based information -*-
         self.passkey = passkey
-        self.auto_thank = kwargs.setdefault("auto_thank", True)  # Enable to Automatically thanks for additional Bones.
-        self.uplver = "yes" if kwargs.setdefault("anonymous_release", True) else "no"  # Enable to Release anonymously.
 
-        if self.online_check():
-            self.session_check()
+        # -*- Assign Enhanced Features -*-
+        """
+        Enhance Feature for `NexusPHP` Reseeder.
+        Those key-values will be set as default value unless you change it in your user-settings.
+        The name of those key should be start with "_" and upper.
+        
+        Included:
+        1. _UPLVER: default "no", Enable to Release anonymously.
+        2. _AUTO_THANK: default True, Enable to Automatically thanks for additional Bones.
+        3. _DEFAULT_CLONE_TORRENT: default None, When not find the clone torrent, use it as default clone_id
+        4. _JUDGE_DUPE_LOC: default True, Judge torrent is dupe or not in location before post it to PT-site.
+        """
+        self._UPLVER = "yes" if kwargs.setdefault("anonymous_release", True) else "no"
+        self._AUTO_THANK = kwargs.setdefault("auto_thank", True)
+        self._DEFAULT_CLONE_TORRENT = kwargs.setdefault("default_clone_torrent", None)
+        self._JUDGE_DUPE_LOC = kwargs.setdefault("judge_dupe_loc", True)
+
+        # Check if Site session~
+        self.session_check()
 
     # -*- Check login's info -*-
     def session_check(self):
@@ -44,7 +58,7 @@ class NexusPHP(Site):
         added_torrent = tc.add_torrent(torrent=download_url)
         # Another way is download torrent file to watch-dir(see early commits),But it will no return added_torrent.id
         logging.info("Download Torrent OK,which id: {id}.".format(id=tid))
-        if kwargs.setdefault("thanks", self.auto_thank):
+        if kwargs.setdefault("thanks", self._AUTO_THANK):
             self.torrent_thank(tid)
         return added_torrent.id
 
@@ -86,23 +100,14 @@ class NexusPHP(Site):
 
     def search_list(self, key) -> list:
         bs = self.page_search(payload={"search": key}, bs=True)
-        download_tag = bs.find_all("a", href=re.compile("download.php"))
-        tid_list = [int(re.search("id=(\d+)", tag["href"]).group(1)) for tag in download_tag]
+        download_tag = bs.find_all("a", href=self._pat_search_torrent_id)
+        tid_list = [int(re.search(self._pat_search_torrent_id, tag["href"]).group(1)) for tag in download_tag]
         logging.debug("USE key: {key} to search,and the Return tid-list: {list}".format(key=key, list=tid_list))
         return tid_list
 
     def first_tid_in_search_list(self, key, **kwargs) -> int:
         tid_list = self.search_list(key=key) + [0]
-
-        if kwargs.setdefault("max", False):
-            tid = max(tid_list)
-        else:
-            tid = tid_list[0]
-
-        return tid
-
-    def extend_descr(self, torrent, info_dict) -> str:  # TODO
-        return descr_out(raw=info_dict["descr"], torrent=torrent, encode=self.encode, clone_id=info_dict["clone_id"])
+        return max(tid_list) if kwargs.setdefault("max", False) else tid_list[0]
 
     def exist_torrent_title(self, tag):
         torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
@@ -115,9 +120,8 @@ class NexusPHP(Site):
         If exist in this site ,return the exist torrent's id,else return 0.
         (Warning:if the exist torrent is not same as the pre-reseed torrent ,will return -1)
         """
-        # TODO may wrong
         tag = self.first_tid_in_search_list(key=search_title)
-        if tag is not 0:
+        if self._JUDGE_DUPE_LOC and tag is not 0:
             torrent_title = self.exist_torrent_title(tag=tag)
             if torrent_file_name != torrent_title:  # Use pre-reseed torrent's name match the exist torrent's name
                 tag = -1
@@ -131,7 +135,7 @@ class NexusPHP(Site):
         key_with_gp_ep = "{ep} {gp_key}".format(gp_key=key_with_gp, ep=name_pattern.group("episode"))
 
         search_tag = self.exist_judge(key_with_gp_ep, torrent.name)
-        if search_tag == -1 and re.search(rev_tag, str(torrent.name).lower()):
+        if search_tag == -1 and re.search(pat_rev_tag, str(torrent.name).lower()):
             search_tag = 0  # For REPACK may let search_tag == -1 when use function exits_judge.
 
         flag = -1
@@ -148,8 +152,8 @@ class NexusPHP(Site):
                     clone_id = self.first_tid_in_search_list(key=key)
                     if clone_id != 0:
                         break
-                if clone_id == 0 and self.DEFAULT_TORRENT_WHEN_CLONE:  # USE Default clone id if set.
-                    clone_id = self.DEFAULT_TORRENT_WHEN_CLONE
+                if clone_id == 0 and self._DEFAULT_CLONE_TORRENT:  # USE Default clone id if set.
+                    clone_id = self._DEFAULT_CLONE_TORRENT
 
             err = True
             multipart_data = None

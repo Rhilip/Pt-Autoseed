@@ -18,6 +18,8 @@ class NPUBits(NexusPHP):
     url_host = "https://npupt.com"
     db_column = "npupt.com"
 
+    _pat_search_torrent_id = re.compile("torrent_download\((\d+)")
+
     @staticmethod
     def torrent_upload_err_message(post_text) -> str:
         """Use Internal hack for NBPub"""
@@ -27,13 +29,6 @@ class NPUBits(NexusPHP):
 
     def torrent_thank(self, tid):
         self.post_data(url=self.url_host + "/thanks.php", data={"id": str(tid), "value": 0})
-
-    def search_list(self, key):
-        bs = self.page_search(payload={"search": key}, bs=True)
-        download_tag = bs.find_all("a", href=re.compile("torrent_download"))
-        tid_list = [int(re.search("torrent_download\((\d+)", tag["href"]).group(1)) for tag in download_tag]
-        logging.debug("USE key: {key} to search,and the Return tid-list: {list}".format(key=key, list=tid_list))
-        return tid_list
 
     def torrent_clone(self, tid) -> dict:
         """
@@ -86,9 +81,9 @@ class NPUBits(NexusPHP):
             ("color", ('', '0')),  # Tell me those three key's function~
             ("font", ('', '0')),
             ("size", ('', '0')),
-            ("descr", ('', string2base64(self.extend_descr(torrent=torrent, info_dict=raw_info)))),
+            ("descr", ('', string2base64(self.enhance_descr(torrent=torrent, info_dict=raw_info)))),
             ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-            ("uplver", ('', self.uplver)),
+            ("uplver", ('', self._UPLVER)),
             ("transferred_torrent_file_base64", ('', '')),
             ("transferred_torrent_file_name", ('', '')),
         )

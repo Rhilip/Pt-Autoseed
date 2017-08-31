@@ -24,12 +24,16 @@ ask_dict = {
     "410": ["specificcat", "cname", "format", "tvshowsremarks"],  # 其他
 }
 
-TORRENT_VISIBLE = "1"  # DEBUG Features: Display In the browse page (Dead torrent will be set if not checked -> "0")
-
 
 class TJUPT(NexusPHP):
     url_host = "http://pt.tju.edu.cn"
     db_column = "pttracker6.tju.edu.cn"
+
+    def __init__(self, status, cookies, passkey, **kwargs):
+        # Site Features: Display In the browse page (Dead torrent will be set if not checked -> "0")
+        self._TORRENT_VISIBLE = "1" if kwargs.setdefault("torrent_visible", True) else "0"
+
+        super().__init__(status, cookies, passkey, **kwargs)
 
     def exist_torrent_title(self, tag):
         torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
@@ -136,12 +140,12 @@ class TJUPT(NexusPHP):
             ("color", ('', '0')),  # Tell me those three key's function~
             ("font", ('', '0')),
             ("size", ('', '0')),
-            ("descr", ('', self.extend_descr(torrent=torrent, info_dict=raw_info))),  # 简介*
+            ("descr", ('', self.enhance_descr(torrent=torrent, info_dict=raw_info))),  # 简介*
             ("getDescByTorrentId", ('', "")),
             ("source_sel", ('', str(raw_info["source_sel"]))),  # 质量
             ("team_sel", ('', str(raw_info["team_sel"]))),  # 内容
-            ("visible", ('', TORRENT_VISIBLE)),
-            ("uplver", ('', self.uplver)),
+            ("visible", ('', self._TORRENT_VISIBLE)),
+            ("uplver", ('', self._UPLVER)),
         ]
 
         return tuple(begin_post_list + cat_post_list + end_post_list)

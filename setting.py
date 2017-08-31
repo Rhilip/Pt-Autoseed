@@ -34,32 +34,24 @@ site_byrbt = {
     "status": True,  # default: False
     "cookies": "",  # raw_cookies
     "passkey": "",
-    "anonymous_release": True,  # default: True
-    "auto_thank": True  # default: True
 }
 # """NPUBits"""
 site_npubits = {
     "status": True,
     "cookies": "",
     "passkey": "",
-    "anonymous_release": True,
-    "auto_thank": True
 }
 # """MTPT(nwsuaf6)"""
 site_nwsuaf6 = {
     "status": True,
     "cookies": "",
     "passkey": "",
-    "anonymous_release": True,
-    "auto_thank": True
 }
 # """TJUPT"""
 site_tjupt = {
     "status": True,
     "cookies": "",
     "passkey": "",
-    "anonymous_release": True,
-    "auto_thank": True
 }
 # -*- End of Reseed Site Setting -*-
 
