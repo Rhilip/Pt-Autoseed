@@ -20,3 +20,10 @@ fileHandler.setLevel(logging_level)
 
 consoleHandler = logging.StreamHandler()
 consoleHandler.setFormatter(logFormatter)
+
+rootLogger = logging.getLogger('')  # Logging
+rootLogger.setLevel(logging.NOTSET)
+while rootLogger.handlers:  # Remove un-format logging in Stream, or all of messages are appearing more than once.
+    rootLogger.handlers.pop()
+rootLogger.addHandler(fileHandler)
+rootLogger.addHandler(consoleHandler)

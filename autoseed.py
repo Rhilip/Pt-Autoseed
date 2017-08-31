@@ -3,33 +3,23 @@
 # Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
 # Licensed under the GNU General Public License v3.0
 
-
-import logging
 import sys
 import time
 
 from utils.connect import Connect
 from utils.load.config import setting
-from utils.load.handler import fileHandler, consoleHandler
-
-# -*- Logging Model -*-
-rootLogger = logging.getLogger('')  # Logging
-rootLogger.setLevel(logging.NOTSET)
-while rootLogger.handlers:  # Remove un-format logging in Stream, or all of messages are appearing more than once.
-    rootLogger.handlers.pop()
-rootLogger.addHandler(fileHandler)
-rootLogger.addHandler(consoleHandler)
+from utils.load.handler import rootLogger
 
 connect = Connect()  # Connect
 if connect.reseed_tracker_list:  # TODO Check Please.
-    logging.info("Initialization settings Success~")
+    rootLogger.info("Initialization settings Success~")
 else:
     sys.exit("None of autoseed is active,Exit.")
 # -*- End of Loading Model -*-
 
 
 def main():
-    logging.info("Autoseed start~,will check database record at the First time.")
+    rootLogger.info("Autoseed start~,will check database record at the First time.")
     last_id_check = connect.update_torrent_info_from_rpc_to_db(force_clean_check=True)
     i = 0
     while True:
@@ -42,8 +32,8 @@ def main():
         if setting.busy_start_hour <= int(time.strftime("%H", time.localtime())) < setting.busy_end_hour:
             sleep_time = setting.sleep_busy_time
 
-        logging.debug("Check time {ti} OK, Reach check id {cid},"
-                      " Will Sleep for {slt} seconds.".format(ti=i, cid=last_id_check, slt=sleep_time))
+        rootLogger.debug("Check time {ti} OK, Reach check id {cid},"
+                         " Will Sleep for {slt} seconds.".format(ti=i, cid=last_id_check, slt=sleep_time))
 
         i += 1
         time.sleep(sleep_time)
