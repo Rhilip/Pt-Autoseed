@@ -9,7 +9,8 @@ import sys
 import time
 
 from utils.connect import Connect
-from utils.load.config import setting, fileHandler, consoleHandler
+from utils.load.config import setting
+from utils.load.handler import fileHandler, consoleHandler
 
 # -*- Logging Model -*-
 rootLogger = logging.getLogger('')  # Logging
