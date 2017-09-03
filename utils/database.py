@@ -4,23 +4,38 @@
 # Licensed under the GNU General Public License v3.0
 
 import logging
+import re
 
 import pymysql
 
-name_table_info_list = "info_list"
-name_table_seed_list = "seed_list"
+from utils.constants import TABLE_INFO_LIST, TABLE_SEED_LIST
 
 
 class Database(object):
+    cache_torrent_name = []
 
     def __init__(self, host, port, user, password, db):
         self.db = pymysql.connect(host=host, port=port, user=user, password=password, db=db, charset='utf8')
 
+        self.col_seed_list = [i[0] for i in self.exec("SHOW COLUMNS FROM `seed_list`", fetch_all=True)]
+
+    @staticmethod
+    def _safety_key(key: str):
+        return key.replace("'", r"\'")
+
+    @staticmethod
+    def _safety_table(sql: str) -> str:
+        # TODO It's not good, but it is useful.
+        sql = re.sub("`?seed_list`?", "`{}`".format(TABLE_SEED_LIST), sql)
+        sql = re.sub("`?info_list`?", "`{}`".format(TABLE_INFO_LIST), sql)
+        return sql
+
     # Based Function
-    def exec(self, sql: str, r_dict=False, fetch_all=False):
+    def exec(self, sql: str, r_dict: bool = False, fetch_all: bool = False):
         # The style of return info (dict or tuple)
         cursor = self.db.cursor(pymysql.cursors.DictCursor) if r_dict else self.db.cursor()
-        row = cursor.execute(sql)
+
+        row = cursor.execute(self._safety_table(sql))
         try:
             self.db.commit()  # Commit after query to flush Database since `PyMySQL disable autocommit by default`
             logging.debug("Success,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
@@ -29,62 +44,26 @@ class Database(object):
             self.db.rollback()
 
         # The lines of return info (one or all)
-        result = cursor.fetchall() if fetch_all else cursor.fetchone()
-        return result
+        return cursor.fetchall() if fetch_all else cursor.fetchone()
 
-    def commit_sql(self, sql: str):
-        """Submit SQL statement"""
-        return self.exec(sql=sql)
-
-    def get_sql(self, sql: str, r_dict=False, fetch_all=True):
-        """Get data from the database"""
-        return self.exec(sql, r_dict, fetch_all)
+    def cache_torrent_list(self):
+        self.cache_torrent_name = [i[0] for i in self.exec(sql="SELECT `title` FROM `seed_list`", fetch_all=True)]
 
     # Procedure Oriented Function
-    def get_max_in_one_column(self, table, column):
-        """Find the maximum value of the table in that column from the database"""
-        sql = "SELECT MAX(`" + column + "`) FROM `" + table + "`"
-        result = self.get_sql(sql, fetch_all=False)
-        t = result[0]
-        if not t:
-            t = 0
-        return t
-
-    def get_whole_table(self, table, decision: str = None, fetch_all=True, r_dict=True):
-        sql = "SELECT * FROM `{tb}`".format(tb=table)
-        if decision:
-            sql = "{sql} {decision}".format(sql=sql, decision=decision)
-        return self.get_sql(sql, r_dict=r_dict, fetch_all=fetch_all)
-
-    # Object Oriented Function
-    def get_table_seed_list(self, decision: str = None):
-        """Get table `seed_list` from database"""
-        return self.get_whole_table(table=name_table_seed_list, decision=decision)
-
     def get_max_in_columns(self, table, column_list: list or str):
         """Find the maximum value of the table in a list of column from the database"""
-        max_num = 0
-        if isinstance(column_list, list):
-            for column in column_list:
-                t = self.get_max_in_one_column(table=table, column=column)
-                max_num = max(max_num, t)
-        else:
-            max_num = self.get_max_in_one_column(table=table, column=column_list)
+        if isinstance(column_list, str):
+            column_list = [column_list]
+        field = ",".join(["MAX(`{col}`)".format(col=c) for c in column_list])
+        raw_result = self.exec(sql="SELECT {fi} FROM `{tb}`".format(fi=field, tb=table))
+        max_num = max([i for i in raw_result if i is not None] + [0])
         logging.debug("Max number in column:{co} is {mn}".format(mn=max_num, co=column_list))
         return max_num
 
-    def get_table_seed_list_limit(self, tracker_list, operator, condition, other_decision=""):
-        tracker_list_judge = []
-        for i in tracker_list:
-            tracker_list_judge.append("`{j}` {con}".format(j=i, con=condition))
-        raw_judge = ' {oper} '.format(oper=operator).join(tracker_list_judge)
-        judge = "WHERE {raw} {left}".format(raw=raw_judge, left=other_decision)
-        return self.get_table_seed_list(decision=judge)
-
-    def get_data_clone_id(self, key, table=name_table_info_list, column='search_name'):
-        decision = "WHERE `{cow}` LIKE '{key}%'".format(tb=table, cow=column, key=key.replace(" ", "%"))
+    def get_data_clone_id(self, key):
+        sql = "SELECT * FROM `info_list` WHERE `search_name` LIKE '{key}%'".format(key=key.replace(" ", "%"))
         try:  # Get clone id info from database
-            clone_info_dict = self.get_whole_table(table=table, decision=decision, fetch_all=False, r_dict=True)
+            clone_info_dict = self.exec(sql=sql, r_dict=True)
             if clone_info_dict is None:
                 raise ValueError("No db-record for key: \"{key}\".".format(key=key))
         except ValueError:  # The database doesn't have the search data, Return dict only with raw key.
@@ -94,4 +73,21 @@ class Database(object):
 
     def reseed_update(self, did, rid, site):
         sql = "UPDATE seed_list SET `{col}` = {rid} WHERE download_id={did}".format(col=site, rid=rid, did=did)
-        self.commit_sql(sql)
+        return self.exec(sql)
+
+    def upsert_seed_list(self, torrent_info):
+        tid, name, tracker = torrent_info
+
+        while True:
+            if name in self.cache_torrent_name:
+                raw_sql = "UPDATE `{tb}` SET `{cow}` = {id:d} WHERE title='{name}'"
+                break
+            else:
+                if self.exec(sql="SELECT COUNT(*) FROM `seed_list` WHERE `title`='{name}'".format(name=name))[0] == 0:
+                    raw_sql = "INSERT INTO `{tb}` (`title`,`{cow}`) VALUES ('{name}',{id:d})"
+                    break
+                else:
+                    self.cache_torrent_list()
+
+        sql = raw_sql.format(tb=TABLE_SEED_LIST, cow=tracker, name=self._safety_key(name), id=tid)
+        return self.exec(sql=sql)

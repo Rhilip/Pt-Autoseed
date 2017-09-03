@@ -31,6 +31,8 @@ def main():
         sleep_time = setting.sleep_free_time
         if setting.busy_start_hour <= int(time.strftime("%H", time.localtime())) < setting.busy_end_hour:
             sleep_time = setting.sleep_busy_time
+        if connect.downloading_torrent_id_queue:
+            sleep_time = sleep_time / 2
 
         rootLogger.debug("Check time {ti} OK, Reach check id {cid},"
                          " Will Sleep for {slt} seconds.".format(ti=i, cid=last_id_check, slt=sleep_time))

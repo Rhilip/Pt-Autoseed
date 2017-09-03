@@ -11,6 +11,7 @@ Warning : To enable this module, You should follow those steps:
 """
 
 import logging
+import os
 import re
 import subprocess
 
@@ -27,16 +28,13 @@ def show_mediainfo(file, encode="bbcode"):
         option += " --Output=HTML"
     command = baseCommand.format(option=option, FileName=file)
 
-    logging.debug("Run Command: {command}.".format(command=command))
+    logging.debug("Run Command: \"{command}\" to get Mediainfo.".format(command=command))
     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
 
     if not error:
         output = output.decode()  # bytes -> string
-
-        # Hide file path
-        short_file = re.search(r"(?:.+/)?(.+)$", file).group(1)
-        output = re.sub(file, short_file, output)
+        output = re.sub(file, os.path.basename(file), output)  # Hide file path
 
         if encode == "html":
             # Raw HTML Format may like this.
