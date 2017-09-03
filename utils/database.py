@@ -50,12 +50,12 @@ class Database(object):
         self.cache_torrent_name = [i[0] for i in self.exec(sql="SELECT `title` FROM `seed_list`", fetch_all=True)]
 
     # Procedure Oriented Function
-    def get_max_in_columns(self, table, column_list: list or str):
+    def get_max_in_seed_list(self, column_list: list or str):
         """Find the maximum value of the table in a list of column from the database"""
         if isinstance(column_list, str):
             column_list = [column_list]
         field = ",".join(["MAX(`{col}`)".format(col=c) for c in column_list])
-        raw_result = self.exec(sql="SELECT {fi} FROM `{tb}`".format(fi=field, tb=table))
+        raw_result = self.exec(sql="SELECT {fi} FROM `seed_list`".format(fi=field))
         max_num = max([i for i in raw_result if i is not None] + [0])
         logging.debug("Max number in column:{co} is {mn}".format(mn=max_num, co=column_list))
         return max_num
@@ -72,22 +72,21 @@ class Database(object):
         return clone_info_dict
 
     def reseed_update(self, did, rid, site):
-        sql = "UPDATE seed_list SET `{col}` = {rid} WHERE download_id={did}".format(col=site, rid=rid, did=did)
-        return self.exec(sql)
+        self.exec("UPDATE `seed_list` SET `{col}` = {rid} WHERE download_id={did}".format(col=site, rid=rid, did=did))
 
     def upsert_seed_list(self, torrent_info):
         tid, name, tracker = torrent_info
 
         while True:
             if name in self.cache_torrent_name:
-                raw_sql = "UPDATE `{tb}` SET `{cow}` = {id:d} WHERE title='{name}'"
+                raw_sql = "UPDATE `seed_list` SET `{cow}` = {id:d} WHERE `title`='{name}'"
                 break
             else:
                 if self.exec(sql="SELECT COUNT(*) FROM `seed_list` WHERE `title`='{name}'".format(name=name))[0] == 0:
-                    raw_sql = "INSERT INTO `{tb}` (`title`,`{cow}`) VALUES ('{name}',{id:d})"
+                    raw_sql = "INSERT INTO `seed_list` (`title`,`{cow}`) VALUES ('{name}',{id:d})"
                     break
                 else:
                     self.cache_torrent_list()
 
-        sql = raw_sql.format(tb=TABLE_SEED_LIST, cow=tracker, name=self._safety_key(name), id=tid)
+        sql = raw_sql.format(cow=tracker, name=self._safety_key(name), id=tid)
         return self.exec(sql=sql)

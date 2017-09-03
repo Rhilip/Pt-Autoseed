@@ -4,15 +4,16 @@
 
 import time
 
-from utils.constants import NexusConfig
-
 # -*- Main Setting about Autoseed,Transmission,Database -*-
 # Autoseed
 sleep_free_time = 600  # The script runs every time interval when Free
 sleep_busy_time = 120  # The script runs every time interval when Busy
 busy_start_hour = 8  # Busy time start at [0,24)
 busy_end_hour = 14  # Busy time end at (busy_start_hour,24)
-delete_check_round = 5  # Check to remove torrents every time interval
+
+CYCLE_CHECK_RESEEDER_ONLINE = 60 * 10
+CYCLE_SHUT_UNRESEEDER_DB = 60 * 60 * 2
+CYCLE_DEL_TORRENT_CHECK = 60 * 60
 
 # Transmission
 trans_address = "localhost"
@@ -32,21 +33,29 @@ db_name = ""
 
 # -*- Reseed Site Setting -*-
 # """Byrbt"""
-site_byrbt = NexusConfig(status=True,
-                         cookies="",
-                         passkey="")
+site_byrbt = {
+    "status": True,  # default: False
+    "cookies": "",  # raw_cookies
+    "passkey": "",
+}
 # """NPUBits"""
-site_npubits = NexusConfig(status=True,
-                           cookies="",
-                           passkey="")
+site_npubits = {
+    "status": True,
+    "cookies": "",
+    "passkey": "",
+}
 # """MTPT(nwsuaf6)"""
-site_nwsuaf6 = NexusConfig(status=True,
-                           cookies="",
-                           passkey="")
+site_nwsuaf6 = {
+    "status": True,
+    "cookies": "",
+    "passkey": "",
+}
 # """TJUPT"""
-site_tjupt = NexusConfig(status=True,
-                         cookies="",
-                         passkey="")
+site_tjupt = {
+    "status": True,
+    "cookies": "",
+    "passkey": "",
+}
 # -*- End of Reseed Site Setting -*-
 
 # -*- Feeding Torrent Setting -*-
@@ -137,8 +146,6 @@ extend_descr_raw = {
         """
     }
 }
-
-
 # -*- End of Extended description Setting -*-
 
 

@@ -12,22 +12,3 @@ def period_f(func, sleep_time):
     while True:
         func()
         time.sleep(sleep_time)
-
-
-class SiteConfig(object):
-    def __init__(self, status, cookies, **kwargs):
-        self._config = kwargs.update({
-            "status": status,
-            "cookies": cookies
-        })
-
-    def config(self):
-        return self._config
-
-
-class NexusConfig(SiteConfig):
-    def __init__(self, status, cookies, passkey, **kwargs):
-        kwargs.update({
-            "passkey": passkey
-        })
-        super().__init__(status, cookies, **kwargs)

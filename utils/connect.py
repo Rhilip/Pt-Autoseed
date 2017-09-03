@@ -7,13 +7,10 @@ import re
 import time
 from threading import Thread
 
-from utils.constants import TABLE_SEED_LIST, period_f
+from utils.constants import period_f
 from utils.load.config import setting
 from utils.load.submodules import tc, db
 from utils.pattern import pattern_group
-
-CYCLE_CHECK_RESEEDER_ONLINE = 60 * 10
-CYCLE_SHUT_UNRESEEDER_DB = 60 * 60 * 6
 
 TIME_TORRENT_KEEP_MIN = 86400  # The download torrent keep time even no reseed and in stopped status.
 
@@ -28,8 +25,9 @@ class Connect(object):
     def __init__(self):
         self._active()
 
-        Thread(target=period_f(func=self._online_check, sleep_time=CYCLE_CHECK_RESEEDER_ONLINE), daemon=True).start()
-        Thread(target=period_f(func=self._shut_unreseeder_db, sleep_time=CYCLE_SHUT_UNRESEEDER_DB), daemon=True).start()
+        Thread(target=period_f, args=(self._online_check, setting.CYCLE_CHECK_RESEEDER_ONLINE), daemon=True).start()
+        Thread(target=period_f, args=(self._shut_unreseeder_db, setting.CYCLE_SHUT_UNRESEEDER_DB), daemon=True).start()
+        Thread(target=period_f, args=(self._del_torrent_with_db, setting.CYCLE_DEL_TORRENT_CHECK), daemon=True).start()
 
     # Add Reseeder
     def _active(self):
@@ -45,7 +43,7 @@ class Connect(object):
         """
         # Byrbt
         from extractors.byrbt import Byrbt
-        autoseed_byrbt = Byrbt(**setting.site_byrbt.config())
+        autoseed_byrbt = Byrbt(**setting.site_byrbt)
         if autoseed_byrbt.status:
             self.active_obj_list.append(autoseed_byrbt)
         else:
@@ -53,7 +51,7 @@ class Connect(object):
 
         # NPUBits
         from extractors.npubits import NPUBits
-        autoseed_npubits = NPUBits(**setting.site_npubits.config())
+        autoseed_npubits = NPUBits(**setting.site_npubits)
         if autoseed_npubits.status:
             self.active_obj_list.append(autoseed_npubits)
         else:
@@ -61,7 +59,7 @@ class Connect(object):
 
         # nwsuaf6
         from extractors.nwsuaf6 import MTPT
-        autoseed_nwsuaf6 = MTPT(**setting.site_nwsuaf6.config())
+        autoseed_nwsuaf6 = MTPT(**setting.site_nwsuaf6)
         if autoseed_nwsuaf6.status:
             self.active_obj_list.append(autoseed_nwsuaf6)
         else:
@@ -69,7 +67,7 @@ class Connect(object):
 
         # TJUPT
         from extractors.tjupt import TJUPT
-        autoseed_tjupt = TJUPT(**setting.site_tjupt.config())
+        autoseed_tjupt = TJUPT(**setting.site_tjupt)
         if autoseed_tjupt.status:
             self.active_obj_list.append(autoseed_tjupt)
         else:
@@ -85,6 +83,47 @@ class Connect(object):
     def _shut_unreseeder_db(self):
         for tracker in self.unactive_tracker_list:  # Set un_reseed column into -1
             db.exec(sql="UPDATE seed_list SET `{cow}` = -1 WHERE `{cow}` = 0 ".format(cow=tracker))
+
+    @staticmethod
+    def _del_torrent_with_db():
+        """Delete torrent(both download and reseed) with data from transmission and database"""
+        logging.debug("Begin torrent's status check.If reach condition you set,You will get a warning.")
+        time_now = time.time()
+        for cow in db.exec(sql="SELECT * FROM `seed_list`", r_dict=True, fetch_all=True):
+            sid = cow.pop("id")
+            s_title = cow.pop("title")
+            err = 0
+            reseed_list = []
+            torrent_id_list = [tid for tracker, tid in cow.items() if tid > 0]
+            for tid in torrent_id_list:
+                try:  # Ensure torrent exist
+                    reseed_list.append(tc.get_torrent(torrent_id=tid))
+                except KeyError:  # Mark err when the torrent is not exist.
+                    err += 1
+
+            delete = False
+            if err is 0:  # It means all torrents in this cow are exist,then check these torrent's status.
+                reseed_stop_list = []
+                for seed_torrent in reseed_list:
+                    seed_status = seed_torrent.status
+                    if seed_status == "stopped":  # Mark the stopped torrent
+                        if int(time_now - seed_torrent.addedDate) > TIME_TORRENT_KEEP_MIN:  # At least seed time
+                            reseed_stop_list.append(seed_torrent)
+                    elif setting.pre_delete_judge(torrent=seed_torrent):
+                        tc.stop_torrent(seed_torrent.id)
+                        logging.warning("Reach Target you set,Torrent \"{0}\" now stop.".format(seed_torrent.name))
+                if len(reseed_list) == len(reseed_stop_list):
+                    delete = True
+                    logging.info("All torrents of \"{0}\" reach target,Will DELETE them soon.".format(s_title))
+            else:
+                delete = True
+                logging.error("some Torrents (\"{name}\",{er} of {co}) may not found,"
+                              "Delete all records from db".format(name=s_title, er=err, co=len(torrent_id_list)))
+
+            if delete:  # Delete torrents with it's data and db-records
+                for tid in torrent_id_list:
+                    tc.remove_torrent(tid, delete_data=True)
+                db.exec(sql="DELETE FROM `seed_list` WHERE `id` = {0}".format(sid))
 
     @staticmethod
     def _get_torrent_info(t) -> tuple:
@@ -106,11 +145,11 @@ class Connect(object):
             tracker = "download_id"
         return t.id, t.name, tracker
 
-    def feed(self, dl_torrent):
+    def reseeder_feed(self, dl_torrent):
         pre_reseeder_list = [s for s in self.active_obj_list if s.suspended == 0]
 
         tname = dl_torrent.name
-        cow = db.exec("SELECT * FROM `seed_list` WHERE download_id='{did}'".format(did=dl_torrent.id), r_dict=True)
+        cow = db.exec("SELECT * FROM `seed_list` WHERE `download_id`='{did}'".format(did=dl_torrent.id), r_dict=True)
 
         reseed_status = False
         for pat in pattern_group:
@@ -152,7 +191,7 @@ class Connect(object):
                 tname = dl_torrent.name
                 if int(dl_torrent.progress) is 100:  # Get the download progress in percent.
                     logging.info("New completed torrent: \"{name}\" ,Judge reseed or not.".format(name=tname))
-                    self.feed(dl_torrent=dl_torrent)
+                    self.reseeder_feed(dl_torrent=dl_torrent)
                     if dl_torrent.id in self.downloading_torrent_id_queue:
                         self.downloading_torrent_id_queue.remove(dl_torrent.id)
                 elif dl_torrent.id in self.downloading_torrent_id_queue:
@@ -171,7 +210,7 @@ class Connect(object):
             last_id_check = max(torrent_id_list)
             if last_id_db is None:
                 col_dl_reseeder = db.col_seed_list[2:]
-                last_id_db = db.get_max_in_columns(table=TABLE_SEED_LIST, column_list=col_dl_reseeder)
+                last_id_db = db.get_max_in_seed_list(column_list=col_dl_reseeder)
             logging.debug("Max tid, transmission: {tr},database: {db}".format(tr=last_id_check, db=last_id_db))
 
             if not force_clean_check:  # Normal Update
@@ -198,44 +237,3 @@ class Connect(object):
         else:
             logging.debug("No new torrent(s),Return with nothing to do.")
         return last_id_check
-
-    @staticmethod
-    def check_to_del_torrent_with_data_and_db():
-        """Delete torrent(both download and reseed) with data from transmission and database"""
-        logging.debug("Begin torrent's status check.If reach condition you set,You will get a warning.")
-        time_now = time.time()
-        for cow in db.get_table_seed_list():
-            sid = cow.pop("id")
-            s_title = cow.pop("title")
-            err = 0
-            reseed_list = []
-            torrent_id_list = [tid for tracker, tid in cow.items() if tid > 0]
-            for tid in torrent_id_list:
-                try:  # Ensure torrent exist
-                    reseed_list.append(tc.get_torrent(torrent_id=tid))
-                except KeyError:  # Mark err when the torrent is not exist.
-                    err += 1
-
-            delete = False
-            if err is 0:  # It means all torrents in this cow are exist,then check these torrent's status.
-                reseed_stop_list = []
-                for seed_torrent in reseed_list:
-                    seed_status = seed_torrent.status
-                    if seed_status == "stopped":  # Mark the stopped torrent
-                        if int(time_now - seed_torrent.addedDate) > TIME_TORRENT_KEEP_MIN:  # At least seed time
-                            reseed_stop_list.append(seed_torrent)
-                    elif setting.pre_delete_judge(torrent=seed_torrent):
-                        tc.stop_torrent(seed_torrent.id)
-                        logging.warning("Reach Target you set,Torrent \"{0}\" now stop.".format(seed_torrent.name))
-                if len(reseed_list) == len(reseed_stop_list):
-                    delete = True
-                    logging.info("All torrents of \"{0}\" reach target,Will DELETE them soon.".format(s_title))
-            else:
-                delete = True
-                logging.error("some Torrents (\"{name}\",{er} of {co}) may not found,"
-                              "Delete all records from db".format(name=s_title, er=err, co=len(torrent_id_list)))
-
-            if delete:  # Delete torrents with it's data and db-records
-                for tid in torrent_id_list:
-                    tc.remove_torrent(tid, delete_data=True)
-                db.exec(sql="DELETE FROM seed_list WHERE id = {0}".format(sid))

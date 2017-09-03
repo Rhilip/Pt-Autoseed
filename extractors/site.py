@@ -35,7 +35,10 @@ class Site(object):
             logging.critical("Empty cookies, Not allowed to active Model \"{}\"".format(self.model_name()))
             self.status = False
         else:
-            logging.debug("Model \"{}\" is activation now.".format(self.model_name()))
+            if self.status:
+                logging.debug("Model \"{}\" is activation now.".format(self.model_name()))
+            else:
+                logging.info("Model \"{}\" isn't active due to your settings.".format(self.model_name()))
 
         # -*- Assign Enhanced Features : Site -*-
         """
@@ -53,7 +56,8 @@ class Site(object):
         self._EXTEND_DESCR_CLONEINFO = kwargs.setdefault("extend_descr_cloneinfo", True)
 
         # Check if Site is online~
-        self.online_check()
+        if self.status:
+            self.online_check()
 
     def model_name(self):
         return type(self).__name__

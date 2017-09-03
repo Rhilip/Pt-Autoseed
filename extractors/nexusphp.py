@@ -40,16 +40,18 @@ class NexusPHP(Site):
         self._JUDGE_DUPE_LOC = kwargs.setdefault("judge_dupe_loc", True)
 
         # Check if Site session~
-        self.session_check()
+        if self.status:
+            self.session_check()
 
     # -*- Check login's info -*-
     def session_check(self):
-        page_usercp_bs = self.get_data(url=self.url_host + "/usercp.php", bs=True)
-        self.status = True if page_usercp_bs.find(id="info_block") else False
-        if self.status:
-            logging.debug("Through authentication in Site: {}".format(self.model_name()))
-        else:
-            logging.error("Can not verify identity.Please Check your Cookies".format(mo=self.model_name()))
+        if self.online_check():
+            page_usercp_bs = self.get_data(url=self.url_host + "/usercp.php", bs=True)
+            self.status = True if page_usercp_bs.find(id="info_block") else False
+            if self.status:
+                logging.debug("Through authentication in Site: {}".format(self.model_name()))
+            else:
+                logging.error("Can not verify identity.Please Check your Cookies".format(mo=self.model_name()))
         return self.status
 
     # -*- Torrent's download, upload and thank -*-
