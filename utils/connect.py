@@ -25,9 +25,11 @@ class Connect(object):
     def __init__(self):
         self._active()
 
-        Thread(target=period_f, args=(self._online_check, setting.CYCLE_CHECK_RESEEDER_ONLINE), daemon=True).start()
-        Thread(target=period_f, args=(self._shut_unreseeder_db, setting.CYCLE_SHUT_UNRESEEDER_DB), daemon=True).start()
-        Thread(target=period_f, args=(self._del_torrent_with_db, setting.CYCLE_DEL_TORRENT_CHECK), daemon=True).start()
+        thread_args = [(self._online_check, setting.CYCLE_CHECK_RESEEDER_ONLINE),
+                       (self._shut_unreseeder_db, setting.CYCLE_SHUT_UNRESEEDER_DB),
+                       (self._del_torrent_with_db, setting.CYCLE_DEL_TORRENT_CHECK)]
+        for args in thread_args:
+            Thread(target=period_f, args=args, daemon=True).start()
 
     # Add Reseeder
     def _active(self):
@@ -82,7 +84,7 @@ class Connect(object):
 
     def _shut_unreseeder_db(self):
         for tracker in self.unactive_tracker_list:  # Set un_reseed column into -1
-            db.exec(sql="UPDATE seed_list SET `{cow}` = -1 WHERE `{cow}` = 0 ".format(cow=tracker))
+            db.exec(sql="UPDATE `seed_list` SET `{cow}` = -1 WHERE `{cow}` = 0 ".format(cow=tracker))
 
     @staticmethod
     def _del_torrent_with_db():
@@ -163,7 +165,8 @@ class Connect(object):
                         try:
                             tag = reseeder.torrent_feed(torrent=dl_torrent, name_pattern=search,
                                                         clone_db_dict=clone_dict)
-                        except OSError:
+                        except OSError as e:
+                            logging.critical(e.args)
                             self._online_check()
                             pass
                         else:
@@ -180,7 +183,8 @@ class Connect(object):
         """Get the pre-reseed list from database."""
         pre_reseeder_list = [i for i in self.active_obj_list if i.suspended == 0]
         pre_cond = " OR ".join(["`{}`=0".format(i.db_column) for i in pre_reseeder_list])
-        result = db.exec("SELECT * FROM `seed_list` WHERE `download_id` != 0 AND ({})".format(pre_cond), r_dict=True)
+        result = db.exec("SELECT * FROM `seed_list` WHERE `download_id` != 0 AND ({})".format(pre_cond),
+                         r_dict=True, fetch_all=True)
         for t in result:  # Traversal all un-reseed list
             try:
                 dl_torrent = tc.get_torrent(t["download_id"])
