@@ -19,7 +19,7 @@ def main():
     last_id_check = connect.update_torrent_info_from_rpc_to_db(force_clean_check=True)
     i = 0
     while True:
-        last_id_check = connect.update_torrent_info_from_rpc_to_db(last_id_check=last_id_check)  # 更新表
+        connect.update_torrent_info_from_rpc_to_db()  # 更新表
         connect.reseeders_update()  # reseed判断主函数
 
         sleep_time = setting.sleep_free_time

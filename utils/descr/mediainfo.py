@@ -34,7 +34,7 @@ def show_mediainfo(file, encode="bbcode"):
 
     if not error:
         output = output.decode()  # bytes -> string
-        output = re.sub(file, os.path.basename(file), output)  # Hide file path
+        output = re.sub(re.escape(file), os.path.basename(file), output)  # Hide file path
 
         if encode == "html":
             # Raw HTML Format may like this.

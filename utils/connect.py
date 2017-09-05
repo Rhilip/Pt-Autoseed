@@ -22,6 +22,8 @@ class Connect(object):
     active_obj_list = []
     unactive_tracker_list = []
 
+    last_id_check = 0
+
     def __init__(self):
         self._active()
 
@@ -30,6 +32,8 @@ class Connect(object):
                        (self._del_torrent_with_db, setting.CYCLE_DEL_TORRENT_CHECK)]
         for args in thread_args:
             Thread(target=period_f, args=args, daemon=True).start()
+
+        self.update_torrent_info_from_rpc_to_db(force_clean_check=True)
 
     # Add Reseeder
     def _active(self):
@@ -106,14 +110,19 @@ class Connect(object):
             delete = False
             if err is 0:  # It means all torrents in this cow are exist,then check these torrent's status.
                 reseed_stop_list = []
-                for seed_torrent in reseed_list:
-                    seed_status = seed_torrent.status
-                    if seed_status == "stopped":  # Mark the stopped torrent
-                        if int(time_now - seed_torrent.addedDate) > TIME_TORRENT_KEEP_MIN:  # At least seed time
-                            reseed_stop_list.append(seed_torrent)
-                    elif setting.pre_delete_judge(torrent=seed_torrent):
-                        tc.stop_torrent(seed_torrent.id)
-                        logging.warning("Reach Target you set,Torrent \"{0}\" now stop.".format(seed_torrent.name))
+                for t in reseed_list:
+                    if t.status == "stopped":  # Mark the stopped torrent
+                        if int(time_now - t.addedDate) > TIME_TORRENT_KEEP_MIN:  # At least seed time
+                            reseed_stop_list.append(t)
+                    elif setting.pre_delete_judge(torrent=t):
+                        tc.stop_torrent(t.id)
+                        logging.warning(
+                            "Reach Target you set,Torrent \"{name}\" now stop, "
+                            "With Uploaded {si:.2f} MiB, Ratio {ro:.2f} , "
+                            "Keep time {ho:.2f} h".format(name=t.name, si=t.uploadedEver / 1024 / 1024,
+                                                          ro=t.uploadRatio,
+                                                          ho=(time.time() - t.startDate) / 60 / 60)
+                        )
                 if len(reseed_list) == len(reseed_stop_list):
                     delete = True
                     logging.info("All torrents of \"{0}\" reach target,Will DELETE them soon.".format(s_title))
@@ -204,40 +213,39 @@ class Connect(object):
                     logging.warning("Torrent:\"{name}\" is still downloading,Wait......".format(name=tname))
                     self.downloading_torrent_id_queue.append(dl_torrent.id)
 
-    def update_torrent_info_from_rpc_to_db(self, last_id_check=0, last_id_db=None, force_clean_check=False):
+    def update_torrent_info_from_rpc_to_db(self, last_id_db=None, force_clean_check=False):
         """
         Sync torrent's id from transmission to database,
         List Start on last check id,and will return the max id as the last check id.
         """
-        torrent_id_list = [t.id for t in tc.get_torrents() if t.id > last_id_check]
-        if torrent_id_list:
-            last_id_check = max(torrent_id_list)
+        torrent_list = tc.get_torrents()  # Cache the torrent list
+        new_torrent_list = [t for t in torrent_list if t.id > self.last_id_check]
+        if new_torrent_list:
+            last_id_now = max([t.id for t in new_torrent_list])
             if last_id_db is None:
                 col_dl_reseeder = db.col_seed_list[2:]
                 last_id_db = db.get_max_in_seed_list(column_list=col_dl_reseeder)
-            logging.debug("Max tid, transmission: {tr},database: {db}".format(tr=last_id_check, db=last_id_db))
+            logging.debug("Max tid, transmission: {tr},database: {db}".format(tr=last_id_now, db=last_id_db))
 
             if not force_clean_check:  # Normal Update
                 logging.info("Some new torrents were add to transmission,Sync to db~")
-                for i in torrent_id_list:
+                for i in new_torrent_list:  # Upsert the new torrent
                     db.upsert_seed_list(self._get_torrent_info(i))
 
-            elif last_id_check != last_id_db:  # 第一次启动检查(force_clean_check)
-                total_num_in_tr = len(set([t.name for t in tc.get_torrents()]))
+            elif last_id_now != last_id_db:  # Check the torrent 's record between tr and db
+                total_num_in_tr = len(set([t.name for t in torrent_list]))
                 total_num_in_db = db.exec(sql="SELECT COUNT(*) FROM `seed_list`")[0]
                 if int(total_num_in_tr) >= int(total_num_in_db):
                     db.cache_torrent_list()
-                    logging.info("Update the new torrent id to database.")
-                    for t in [t for t in tc.get_torrents() if t.name in db.cache_torrent_name]:  # The exist torrent
+                    logging.info("Upsert the whole torrent id to database.")
+                    for t in torrent_list:  # Upsert the whole torrent
                         db.upsert_seed_list(self._get_torrent_info(t))
 
-                    torrent_id_not_in_db = [t.id for t in tc.get_torrents() if t.name not in db.cache_torrent_name]
-                    if torrent_id_not_in_db:  # If new torrent add between restart
-                        last_id_check = min(torrent_id_not_in_db)
                 else:  # TODO check....
                     logging.error("The torrent list didn't match with db-records,Clean the \"seed_list\" for safety.")
                     db.exec(sql="DELETE FROM `seed_list` WHERE 1")  # Delete all line from seed_list
                     self.update_torrent_info_from_rpc_to_db(last_id_db=0)
+            self.last_id_check = last_id_now
         else:
             logging.debug("No new torrent(s),Return with nothing to do.")
-        return last_id_check
+        return self.last_id_check

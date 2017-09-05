@@ -85,8 +85,8 @@ class Database(object):
                 raw_sql = "UPDATE `seed_list` SET `{cow}` = {id:d} WHERE `title`='{name}'"
                 break
             else:
-                if self.exec(sql="SELECT COUNT(*) FROM `seed_list` WHERE `title`='{name}'".format(
-                        name=self._safety_key(name)))[0] == 0:
+                exist = "SELECT COUNT(*) FROM `seed_list` WHERE `title`='{name}'".format(name=self._safety_key(name))
+                if self.exec(sql=exist)[0] == 0:
                     raw_sql = "INSERT INTO `seed_list` (`title`,`{cow}`) VALUES ('{name}',{id:d})"
                     break
                 else:

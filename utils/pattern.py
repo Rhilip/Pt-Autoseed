@@ -29,7 +29,7 @@ pattern_group = [
         "(?P<full_name>\[(?P<group>钉铛字幕组)\]\[(P<search_name>Doraemon)\]\[(?P<episode>\d+)\])(?:\.(?P<filetype>mp4)$|$)"
     ),
     re.compile(  # Anime (Normal)
-        "(?P<full_name>\[(?P<group>.+?)\]\[?(?P<search_name>.+?)\]?\[?(?P<episode>\d+(?:\.?\(?\d+\)?)?)\]?.+)"
+        "(?P<full_name>\[(?P<group>.+?)\]\[?(?P<search_name>.+?)\]?\[(?P<episode>\d+(?:\.?\(?\d+\)?)?)\].+)"
         "(?:\.(?P<filetype>\w+)$|$)"
     )
 ]
