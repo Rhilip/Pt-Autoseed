@@ -5,9 +5,26 @@
 """
 The Enhance module to get mediainfo, and show it in torrent's description.
 
-Warning : To enable this module, You should follow those steps:
- -  Install `mediainfo` : apt-get -y install mediainfo
+ 1.Use mediainfo-cli, You should install firstly, for example: `apt-get -y install mediainfo`
 
+ 2. when add `--Output=HTML` as option, Raw HTML Format may like this.
+<html>
+    <head><META http-equiv="Content-Type" content="text/html; charset=utf-8" /></head>
+    <body>
+        {foreach track}
+            <table width="100%" border="0" cellpadding="1" cellspacing="2" style="border:1px solid Navy">
+                {foreach $track -> stream}
+                    <tr>
+                        <td><i>{$stream -> name}</i></td>
+                        <td colspan="3">{$stream -> detail}</td>
+                    </tr>
+                {/foreach}
+            </table>
+            <br />
+        {/foreach}
+        <br />
+    </body>
+</html>
 """
 
 import logging
@@ -19,45 +36,22 @@ from utils.load.config import setting
 
 dict_mediainfo = setting.extend_descr_raw["mediainfo"]
 
-baseCommand = "mediainfo {option} {FileName}"
+baseCommand = "mediainfo '{FileName}'"
 
 
 def show_mediainfo(file, encode="bbcode"):
-    option = ""
-    if encode == "html":
-        option += " --Output=HTML"
-    command = baseCommand.format(option=option, FileName=file)
+    command = baseCommand.format(FileName=file)
 
     logging.debug("Run Command: \"{command}\" to get Mediainfo.".format(command=command))
     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
 
-    if not error:
+    if not error and output != "\n":
         output = output.decode()  # bytes -> string
         output = re.sub(re.escape(file), os.path.basename(file), output)  # Hide file path
 
         if encode == "html":
-            # Raw HTML Format may like this.
-            """
-            <html>
-                <head><META http-equiv="Content-Type" content="text/html; charset=utf-8" /></head>
-                <body>
-                    {foreach track}
-                        <table width="100%" border="0" cellpadding="1" cellspacing="2" style="border:1px solid Navy">
-                            {foreach $track -> stream}
-                                <tr>
-                                    <td><i>{$stream -> name}</i></td>
-                                    <td colspan="3">{$stream -> detail}</td>
-                                </tr>
-                            {/foreach}
-                        </table>
-                        <br />
-                    {/foreach}
-                    <br />
-                </body>
-            </html>
-            """
-            output = re.search(r"<body>(?P<in>.+)</body>", output, re.S).group("in")  # Move unnecessary tag
+            output.replace("\n", "<br>")
     else:
         logging.error("Something ERROR when get mediainfo,With Return: {err}".format(err=error))
         output = None
@@ -65,7 +59,7 @@ def show_mediainfo(file, encode="bbcode"):
     return output
 
 
-def build_mediainfo(file, encode) -> str:
+def build_mediainfo(file, encode="bbcode") -> str:
     str_media_info = ""
     if dict_mediainfo["status"]:
         media_info = show_mediainfo(file=file, encode=encode)

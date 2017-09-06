@@ -180,6 +180,7 @@ class Connect(object):
                             pass
                         else:
                             db.reseed_update(did=dl_torrent.id, rid=tag, site=reseeder.db_column)
+                            # self.last_id_check = tag
                 reseed_status = True
                 break
 
