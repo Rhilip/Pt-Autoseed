@@ -7,6 +7,12 @@ import time
 TABLE_INFO_LIST = "info_list"
 TABLE_SEED_LIST = "seed_list"
 
+Video_Containers = [
+    # From: https://mediaarea.net/en/MediaInfo/Support/Formats
+    ".mkv",  # Matroska
+    ".mp4",  # Mpeg 4 container
+]
+
 
 def period_f(func, sleep_time):
     while True:

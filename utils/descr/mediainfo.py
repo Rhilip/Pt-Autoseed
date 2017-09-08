@@ -46,7 +46,7 @@ def show_mediainfo(file, encode="bbcode"):
     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()
 
-    if not error and output != "\n":
+    if not error and output != b"\n":
         output = output.decode()  # bytes -> string
         output = re.sub(re.escape(file), os.path.basename(file), output)  # Hide file path
 

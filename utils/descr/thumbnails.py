@@ -35,7 +35,7 @@ web_url_pat = setting.web_url + "/" + thumbnails_pattern
 if not os.path.exists(web_loc_pat):
     os.makedirs(web_loc_pat)
 
-baseCommand = "ffmpeg -ss 00:10:10 -y -i \"{file}\" -vframes 1 {thu_loc} >> /dev/null 2>&1"
+baseCommand = "ffmpeg -ss 00:10:10 -y -i '{file}' -vframes 1 '{thu_loc}' >> /dev/null 2>&1"
 
 
 def thumbnails(file, img_url=None, img_file_loc=None) -> str:

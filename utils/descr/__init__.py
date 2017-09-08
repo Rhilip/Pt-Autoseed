@@ -14,8 +14,8 @@ def build_before(encode) -> str:
     return dict_setting["before"][encode] if dict_setting["before"]["status"] else ""
 
 
-def build_clone_info(before_torrent_id, encode) -> str:
+def build_clone_info(clone_id, encode) -> str:
     str_clone_info = ""
     if dict_setting["clone_info"]["status"]:
-        str_clone_info = dict_setting["clone_info"][encode].format(torrent_id=before_torrent_id)
+        str_clone_info = dict_setting["clone_info"][encode].format(torrent_id=clone_id)
     return str_clone_info

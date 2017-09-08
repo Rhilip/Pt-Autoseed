@@ -9,6 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 
 import utils.descr as descr
+from utils.constants import Video_Containers
 from utils.cookie import cookies_raw2jar
 from utils.load.config import setting
 
@@ -111,17 +112,19 @@ class Site(object):
         return requests.post(url=url, params=params, cookies=self.cookies, **kwargs)
 
     def enhance_descr(self, torrent, info_dict):
-        file = setting.trans_downloaddir + "/" + torrent.files()[0]["name"]
+        video_file = ""
+        for k, v in torrent.files().items():  # To get first video file
+            if (os.path.splitext(v["name"])[1]).lower() in Video_Containers:
+                video_file = setting.trans_downloaddir + "/" + v["name"]
+                break
 
         before = descr.build_before(self.encode) if self._EXTEND_DESCR_BEFORE else ""
-        shot = descr.build_shot(file=file, encode=self.encode) if self._EXTEND_DESCR_THUMBNAILS else ""
-        media_info = descr.build_mediainfo(file=file, encode=self.encode) if self._EXTEND_DESCR_MEDIAINFO else ""
-        if self._EXTEND_DESCR_CLONEINFO:
-            clone_info = descr.build_clone_info(before_torrent_id=info_dict["clone_id"], encode=self.encode)
-        else:
-            clone_info = ""
+        shot = descr.build_shot(file=video_file, encode=self.encode) if self._EXTEND_DESCR_THUMBNAILS else ""
+        mediainfo = descr.build_mediainfo(file=video_file, encode=self.encode) if self._EXTEND_DESCR_MEDIAINFO else ""
+        clone_info = descr.build_clone_info(clone_id=info_dict["clone_id"],
+                                            encode=self.encode) if self._EXTEND_DESCR_CLONEINFO else ""
 
-        return before + info_dict["descr"] + shot + media_info + clone_info
+        return before + info_dict["descr"] + shot + mediainfo + clone_info
 
     # -*- At least Overridden function,Please overridden below when add a new site -*-
     def session_check(self) -> bool:
