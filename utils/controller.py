@@ -15,7 +15,7 @@ from utils.pattern import pattern_group
 TIME_TORRENT_KEEP_MIN = 86400  # The download torrent keep time even no reseed and in stopped status.
 
 
-class Connect(object):
+class Controller(object):
     # List of Tracker String
     downloading_torrent_id_queue = []
 
@@ -157,7 +157,7 @@ class Connect(object):
         return t.id, t.name, tracker
 
     def reseeder_feed(self, dl_torrent):
-        pre_reseeder_list = [s for s in self.active_obj_list if s.suspended == 0]
+        pre_reseeder_list = [s for s in self.active_obj_list if s.suspended == 0]  # Get active and online reseeder
 
         tname = dl_torrent.name
         cow = db.exec("SELECT * FROM `seed_list` WHERE `download_id`='{did}'".format(did=dl_torrent.id), r_dict=True)
