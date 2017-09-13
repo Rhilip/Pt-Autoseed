@@ -45,7 +45,7 @@ def thumbnails(file, img_url=None, img_file_loc=None) -> str:
 
     stderr = 0
     if not os.path.isfile(img_file_loc):
-        # TODO Automatically generated Screenshot time.
+        # TODO Automatically generated thumbnails time.
         ffmpeg_sh = baseCommand.format(file=file, thu_loc=img_file_loc)
         logging.debug("Run Command: \"{command}\" to get Thumbnails.".format(command=ffmpeg_sh))
         stderr = os.system(ffmpeg_sh)

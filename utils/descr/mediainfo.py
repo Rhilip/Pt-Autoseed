@@ -36,14 +36,10 @@ from utils.load.config import setting
 
 dict_mediainfo = setting.extend_descr_raw["mediainfo"]
 
-baseCommand = "mediainfo '{FileName}'"
-
 
 def show_mediainfo(file, encode="bbcode"):
-    command = baseCommand.format(FileName=file)
-
-    logging.debug("Run Command: \"{command}\" to get Mediainfo.".format(command=command))
-    process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+    logging.debug("Run Command: \"mediainfo '{file}'\" to get Mediainfo.".format(file=file))
+    process = subprocess.Popen(["mediainfo", file], stdout=subprocess.PIPE)
     output, error = process.communicate()
 
     if not error and output != b"\n":

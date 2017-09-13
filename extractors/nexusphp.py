@@ -107,9 +107,9 @@ class NexusPHP(Site):
         logging.debug("USE key: {key} to search,and the Return tid-list: {list}".format(key=key, list=tid_list))
         return tid_list
 
-    def first_tid_in_search_list(self, key, **kwargs) -> int:
+    def first_tid_in_search_list(self, key, _max=False) -> int:
         tid_list = self.search_list(key=key) + [0]
-        return max(tid_list) if kwargs.setdefault("max", False) else tid_list[0]
+        return max(tid_list) if _max else tid_list[0]
 
     def exist_torrent_title(self, tag):
         torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
