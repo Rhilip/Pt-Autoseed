@@ -35,6 +35,7 @@ import subprocess
 from utils.load.config import setting
 
 dict_mediainfo = setting.extend_descr_raw["mediainfo"]
+track_tag = ["General", "Video", "Audio"]
 
 
 def show_mediainfo(file, encode="bbcode"):
@@ -46,8 +47,12 @@ def show_mediainfo(file, encode="bbcode"):
         output = output.decode()  # bytes -> string
         output = re.sub(re.escape(file), os.path.basename(file), output)  # Hide file path
 
+        strong_tag = r"[b]\1[/b]"
         if encode == "html":
-            output.replace("\n", "<br>")
+            strong_tag = r"<strong>\1</strong>"
+            output = re.sub("\n", "<br>", output)
+
+        output = re.sub(re.compile("(" + "|".join(track_tag) + ")"), strong_tag, output)
     else:
         logging.error("Something ERROR when get mediainfo,With Return: {err}".format(err=error))
         output = None
