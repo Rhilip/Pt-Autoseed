@@ -47,12 +47,12 @@ def show_mediainfo(file, encode="bbcode"):
         output = output.decode()  # bytes -> string
         output = re.sub(re.escape(file), os.path.basename(file), output)  # Hide file path
 
-        strong_tag = r"[b]\1[/b]"
+        strong_tag = r"[b]\1[/b]\2"
         if encode == "html":
-            strong_tag = r"<strong>\1</strong>"
-            output = re.sub("\n", "<br>", output)
+            strong_tag = r"<strong>\1</strong>\2"
+            output = re.sub("\n", "<br>", output)  # Change \n -> <br>
 
-        output = re.sub(re.compile("(" + "|".join(track_tag) + ")"), strong_tag, output)
+        output = re.sub("(" + "|".join(track_tag) + ")(\n|<br>)", strong_tag, output)  # Strong Track menu
     else:
         logging.error("Something ERROR when get mediainfo,With Return: {err}".format(err=error))
         output = None
