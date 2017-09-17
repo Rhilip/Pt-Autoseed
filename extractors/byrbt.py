@@ -241,7 +241,7 @@ class Byrbt(NexusPHP):
             raw_info["comic_episode"] = torrent_name_search.group("episode")
 
         if self._NO_SUBTITLE:
-            raw_info["small_dscr"] = ""
+            raw_info["small_descr"] = ""
 
         return raw_info
 
