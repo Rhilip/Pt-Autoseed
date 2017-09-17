@@ -83,8 +83,8 @@ class Site(object):
             if self.suspended != 0:
                 logging.info("The Site: {si} is Online now,after {count} times tries."
                              "Will check the session soon.".format(si=self.url_host, count=self.suspended))
-                self.session_check()
                 self.suspended = 0
+                self.session_check()
         return online
 
     @staticmethod

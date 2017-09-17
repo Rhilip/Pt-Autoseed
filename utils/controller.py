@@ -52,33 +52,27 @@ class Controller(object):
         autoseed_byrbt = Byrbt(**setting.site_byrbt)
         if autoseed_byrbt.status:
             self.active_obj_list.append(autoseed_byrbt)
-        else:
-            self.unactive_tracker_list.append(autoseed_byrbt.db_column)
 
         # NPUBits
         from extractors.npubits import NPUBits
         autoseed_npubits = NPUBits(**setting.site_npubits)
         if autoseed_npubits.status:
             self.active_obj_list.append(autoseed_npubits)
-        else:
-            self.unactive_tracker_list.append(autoseed_npubits.db_column)
 
         # nwsuaf6
         from extractors.nwsuaf6 import MTPT
         autoseed_nwsuaf6 = MTPT(**setting.site_nwsuaf6)
         if autoseed_nwsuaf6.status:
             self.active_obj_list.append(autoseed_nwsuaf6)
-        else:
-            self.unactive_tracker_list.append(autoseed_nwsuaf6.db_column)
 
         # TJUPT
         from extractors.tjupt import TJUPT
         autoseed_tjupt = TJUPT(**setting.site_tjupt)
         if autoseed_tjupt.status:
             self.active_obj_list.append(autoseed_tjupt)
-        else:
-            self.unactive_tracker_list.append(autoseed_tjupt.db_column)
 
+        self.unactive_tracker_list = [i for i in db.col_seed_list[3:]
+                                      if i not in [i.db_column for i in self.active_obj_list]]
         logging.info("The assign reseeder objects:{lis}".format(lis=self.active_obj_list))
 
     # Internal cycle function

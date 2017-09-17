@@ -7,7 +7,8 @@ The Enhance module to get mediainfo, and show it in torrent's description.
 
  1.Use mediainfo-cli, You should install firstly, for example: `apt-get -y install mediainfo`
 
- 2. when add `--Output=HTML` as option, Raw HTML Format may like this.
+ 2. when add `--Output=HTML` as option, Raw HTML Format may like this. It is not beautify
+    (although you can use another format), So I choose change "\n" to HTML line-break tag "<br>"
 <html>
     <head><META http-equiv="Content-Type" content="text/html; charset=utf-8" /></head>
     <body>

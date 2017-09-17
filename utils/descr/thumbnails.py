@@ -28,7 +28,7 @@ from utils.load.config import setting
 
 dict_thumbnails = setting.extend_descr_raw["thumbnails"]
 
-thumbnails_pattern = "thumbnails"  # Notes: Change with `pic.php` together
+thumbnails_pattern = "thumbnails"
 web_loc_pat = os.path.join(setting.web_loc, thumbnails_pattern)
 web_url_pat = setting.web_url + "/" + thumbnails_pattern
 
