@@ -20,7 +20,6 @@ Warning : To enable this module, You should follow those steps:
     `0 23 * * 6 find dir/to/thumbnails/ -mtime +30 -name "*.jpg" -exec rm -rf {} \;`
 """
 
-import base64
 import logging
 import os
 
@@ -39,8 +38,7 @@ baseCommand = "ffmpeg -ss 00:10:10 -y -i '{file}' -vframes 1 '{thu_loc}' >> /dev
 
 
 def thumbnails(file, img_url=None, img_file_loc=None) -> str:
-    img_hash = base64.b64encode(bytes(file, "utf-8")).decode()[-32:]
-    img_file_name = "{}.jpg".format(img_hash)
+    img_file_name = "{}.jpg".format(os.path.basename(file))
     img_file_loc = img_file_loc or os.path.join(web_loc_pat, img_file_name)
 
     stderr = 0
