@@ -3,8 +3,8 @@
 # Licensed under the GNU General Public License v3.0
 
 import logging
-import os
 
+import os
 import requests
 from bs4 import BeautifulSoup
 
@@ -49,7 +49,7 @@ class Site(object):
         
         Included:
         1. _EXTEND_DESCR_* : default True, Enable to Enhanced the description of the reseed torrent, And its priority is
-           higher than usersetting.extend_descr_raw[key]["status"].
+           higher than setting.extend_descr_raw[key]["status"].
         """
         self._EXTEND_DESCR_BEFORE = kwargs.setdefault("extend_descr_before", True)
         self._EXTEND_DESCR_THUMBNAILS = kwargs.setdefault("extend_descr_thumbnails", True)
@@ -112,15 +112,19 @@ class Site(object):
         return requests.post(url=url, params=params, cookies=self.cookies, **kwargs)
 
     def enhance_descr(self, torrent, info_dict):
-        video_file = ""
-        for k, v in torrent.files().items():  # To get first video file
-            if (os.path.splitext(v["name"])[1]).lower() in Video_Containers:
-                video_file = setting.trans_downloaddir + "/" + v["name"]
-                break
+        video_file = None
+        for test_file in [v["name"] for k, v in torrent.files().items()]:  # To get video file
+            if (os.path.splitext(test_file)[1]).lower() in Video_Containers:
+                if test_file.lower().find("sample") is not -1:  # Pass sample video file
+                    video_file = setting.trans_downloaddir + "/" + test_file
+                    break
 
         before = descr.build_before(self.encode) if self._EXTEND_DESCR_BEFORE else ""
-        shot = descr.build_shot(file=video_file, encode=self.encode) if self._EXTEND_DESCR_THUMBNAILS else ""
-        mediainfo = descr.build_mediainfo(file=video_file, encode=self.encode) if self._EXTEND_DESCR_MEDIAINFO else ""
+        shot = mediainfo = ""
+        if video_file:
+            shot = descr.build_shot(file=video_file, encode=self.encode) if self._EXTEND_DESCR_THUMBNAILS else ""
+            mediainfo = descr.build_mediainfo(file=video_file,
+                                              encode=self.encode) if self._EXTEND_DESCR_MEDIAINFO else ""
         clone_info = descr.build_clone_info(clone_id=info_dict["clone_id"],
                                             encode=self.encode) if self._EXTEND_DESCR_CLONEINFO else ""
 
