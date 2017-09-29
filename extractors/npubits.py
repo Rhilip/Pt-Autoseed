@@ -65,8 +65,9 @@ class NPUBits(NexusPHP):
                 season_eposide_info += "第{e}集".format(e=season_eposide_info_search.group("eposide"))
             raw_info["small_descr"] = re.sub(r"第.+([集季])", season_eposide_info, raw_info["small_descr"])
         elif int(raw_info["category"]) == 405:  # Anime
-            raw_info["name"] = re.sub("\.(?P<episode>\d+)\.", ".{ep}.".format(ep=torrent_name_search.group("episode")),
-                                      raw_info["name"])
+            episode = torrent_name_search.group("episode")
+            raw_info["name"] = re.sub("^(.+?)\.[.v\d]+\.(TVRip|BDRip|WEB|BDMV|BDISO|DVDRip|DVD)",
+                                      "\g<1>.{ep}.\g<2>".format(ep=episode), raw_info["name"])
 
         return raw_info
 
