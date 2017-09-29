@@ -56,14 +56,14 @@ class NPUBits(NexusPHP):
     def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
         if int(raw_info["category"]) == 402:  # Series
             raw_info["name"] = torrent_name_search.group("full_name")
-            season_eposide_info_search = re.search("(?:[Ss](?P<season>\d+))?.*?(?:[Ee][Pp]?(?P<eposide>\d+))?",
+            season_episode_info_search = re.search("(?:[Ss](?P<season>\d+))?.*?(?:[Ee][Pp]?(?P<episode>\d+))?",
                                                    torrent_name_search.group("episode"))
-            season_eposide_info = ""
-            if season_eposide_info_search.group("season"):
-                season_eposide_info += "第{s}季".format(s=season_eposide_info_search.group("season"))
-            if season_eposide_info_search.group("eposide"):
-                season_eposide_info += "第{e}集".format(e=season_eposide_info_search.group("eposide"))
-            raw_info["small_descr"] = re.sub(r"第.+([集季])", season_eposide_info, raw_info["small_descr"])
+            season_episode_info = ""
+            if season_episode_info_search.group("season"):
+                season_episode_info += "第{s}季".format(s=season_episode_info_search.group("season"))
+            if season_episode_info_search.group("episode"):
+                season_episode_info += "第{e}集".format(e=season_episode_info_search.group("episode"))
+            raw_info["small_descr"] = re.sub(r"第.+([集季])", season_episode_info, raw_info["small_descr"])
         elif int(raw_info["category"]) == 405:  # Anime
             episode = torrent_name_search.group("episode")
             raw_info["name"] = re.sub("^(.+?)\.[.v\d]+\.(TVRip|BDRip|WEB|BDMV|BDISO|DVDRip|DVD)",
