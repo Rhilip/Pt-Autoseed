@@ -160,7 +160,7 @@ class Controller(object):
         for pat in pattern_group:
             search = re.search(pat, tname)
             if search:
-                logging.debug("The search group: {gr}".format(gr=search.groups()))
+                logging.debug("The search group dict: {gr}".format(gr=search.groupdict()))
                 key_raw = re.sub(r"[_\-.']", " ", search.group("search_name"))
                 clone_dict = db.get_data_clone_id(key=key_raw)
                 for reseeder in pre_reseeder_list:  # Site feed

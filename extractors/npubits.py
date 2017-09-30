@@ -30,6 +30,10 @@ class NPUBits(NexusPHP):
     def torrent_thank(self, tid):
         self.post_data(url=self.url_host + "/thanks.php", data={"id": str(tid), "value": 0})
 
+    def page_search(self, payload: dict, bs=False):
+        payload.update({"incldead": 1})  # Include dead torrent in search list
+        return self.get_data(url=self.url_host + "/torrents.php", params=payload, bs=bs)
+
     def torrent_clone(self, tid) -> dict:
         """
         Use Internal API: https://npupt.com/transfer.php?url={url} ,Request Method: GET

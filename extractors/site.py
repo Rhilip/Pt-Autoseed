@@ -3,8 +3,8 @@
 # Licensed under the GNU General Public License v3.0
 
 import logging
-
 import os
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -115,7 +115,7 @@ class Site(object):
         video_file = None
         for test_file in [v["name"] for k, v in torrent.files().items()]:  # To get video file
             if (os.path.splitext(test_file)[1]).lower() in Video_Containers:
-                if test_file.lower().find("sample") is not -1:  # Pass sample video file
+                if test_file.lower().find("sample") is -1:  # Pass sample video file
                     video_file = setting.trans_downloaddir + "/" + test_file
                     break
 
