@@ -150,9 +150,11 @@ class Controller(object):
             tracker = "download_id"
         return t.id, t.name, tracker
 
-    def reseeder_feed(self, dl_torrent):
-        pre_reseeder_list = [s for s in self.active_obj_list if s.suspended == 0]  # Get active and online reseeder
+    def get_pre_reseeder_list(self):
+        return [s for s in self.active_obj_list if s.suspended == 0]  # Get active and online reseeder
 
+    def reseeder_feed(self, dl_torrent):
+        pre_reseeder_list = self.get_pre_reseeder_list()
         tname = dl_torrent.name
         cow = db.exec("SELECT * FROM `seed_list` WHERE `download_id`='{did}'".format(did=dl_torrent.id), r_dict=True)
 
@@ -163,18 +165,16 @@ class Controller(object):
                 logging.debug("The search group dict: {gr}".format(gr=search.groupdict()))
                 key_raw = re.sub(r"[_\-.']", " ", search.group("search_name"))
                 clone_dict = db.get_data_clone_id(key=key_raw)
-                for reseeder in pre_reseeder_list:  # Site feed
-                    if int(cow[reseeder.db_column]) is 0:
-                        try:
-                            tag = reseeder.torrent_feed(torrent=dl_torrent, name_pattern=search,
-                                                        clone_db_dict=clone_dict)
-                        except OSError as e:
-                            logging.critical(e.args)
-                            self._online_check()
-                            pass
-                        else:
-                            db.reseed_update(did=dl_torrent.id, rid=tag, site=reseeder.db_column)
-                            # self.last_id_check = tag
+                for reseeder in [r for r in pre_reseeder_list if int(cow[r.db_column]) == 0]:  # Site feed
+                    try:
+                        tag = reseeder.torrent_feed(torrent=dl_torrent, name_pattern=search, clone_db_dict=clone_dict)
+                    except Exception as e:
+                        logging.critical(e.args)
+                        self._online_check()
+                        pass
+                    else:
+                        db.reseed_update(did=dl_torrent.id, rid=tag, site=reseeder.db_column)
+                        # self.last_id_check = tag
                 reseed_status = True
                 break
 
@@ -185,8 +185,7 @@ class Controller(object):
 
     def reseeders_update(self):
         """Get the pre-reseed list from database."""
-        pre_reseeder_list = [i for i in self.active_obj_list if i.suspended == 0]
-        pre_cond = " OR ".join(["`{}`=0".format(i.db_column) for i in pre_reseeder_list])
+        pre_cond = " OR ".join(["`{}`=0".format(i.db_column) for i in self.get_pre_reseeder_list()])
         result = db.exec("SELECT * FROM `seed_list` WHERE `download_id` != 0 AND ({})".format(pre_cond),
                          r_dict=True, fetch_all=True)
         for t in result:  # Traversal all un-reseed list

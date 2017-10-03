@@ -10,8 +10,6 @@ from bs4 import BeautifulSoup
 from extractors.site import Site
 from utils.load.submodules import tc
 
-pat_rev_tag = re.compile("repack|proper|v2|rev")
-
 
 class NexusPHP(Site):
     _pat_search_torrent_id = re.compile("download.php\?id=(\d+)")
@@ -32,12 +30,12 @@ class NexusPHP(Site):
         1. _UPLVER: default "no", Enable to Release anonymously.
         2. _AUTO_THANK: default True, Enable to Automatically thanks for additional Bones.
         3. _DEFAULT_CLONE_TORRENT: default None, When not find the clone torrent, use it as default clone_id
-        4. _JUDGE_DUPE_LOC: default True, Judge torrent is dupe or not in location before post it to PT-site.
+        4. _FORCE_JUDGE_DUPE_LOC: default False, Judge torrent is dupe or not in location before post it to PT-site.
         """
         self._UPLVER = "yes" if kwargs.setdefault("anonymous_release", True) else "no"
         self._AUTO_THANK = kwargs.setdefault("auto_thank", True)
         self._DEFAULT_CLONE_TORRENT = kwargs.setdefault("default_clone_torrent", None)
-        self._JUDGE_DUPE_LOC = kwargs.setdefault("judge_dupe_loc", True)
+        self._FORCE_JUDGE_DUPE_LOC = kwargs.setdefault("force_judge_dupe_loc", False)
 
         # Check if Site session~
         if self.status:
@@ -117,15 +115,18 @@ class NexusPHP(Site):
         torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
         return torrent_title
 
-    def exist_judge(self, search_title, torrent_file_name) -> int:
+    def exist_judge(self, search_title: str, torrent_file_name: str) -> int:
         """
         If exist in this site ,return the exist torrent's id,else return 0.
         (Warning:if the exist torrent is not same as the pre-reseed torrent ,will return -1)
         """
-        tag = self.first_tid_in_search_list(key=search_title)
-        if self._JUDGE_DUPE_LOC and tag is not 0:
-            torrent_title = self.exist_torrent_title(tag=tag)
-            if torrent_file_name != torrent_title:  # Use pre-reseed torrent's name match the exist torrent's name
+        tag = 0
+        for test_id in sorted(self.search_list(key=search_title), reverse=True)[
+                       :8]:  # Try to get current dupe torrent's id
+            if torrent_file_name == self.exist_torrent_title(tag=test_id):
+                tag = test_id
+                break
+            elif self._FORCE_JUDGE_DUPE_LOC:
                 tag = -1
         return tag
 
@@ -136,11 +137,8 @@ class NexusPHP(Site):
         key_with_gp = "{gr} {search_key}".format(search_key=key_raw, gr=name_pattern.group("group"))
         key_with_gp_ep = "{ep} {gp_key}".format(gp_key=key_with_gp, ep=name_pattern.group("episode"))
 
-        search_tag = self.exist_judge(key_with_gp_ep, torrent.name)
-        if search_tag == -1 and re.search(pat_rev_tag, str(torrent.name).lower()):
-            search_tag = 0  # For REPACK may let search_tag == -1 when use function exits_judge.
-
         flag = -1
+        search_tag = self.exist_judge(key_with_gp_ep, torrent.name)
         if search_tag == 0:  # Non-existent repetition torrent, prepare to reseed
             clone_id = 0
             try:
