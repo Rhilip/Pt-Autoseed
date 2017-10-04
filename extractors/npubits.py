@@ -30,9 +30,8 @@ class NPUBits(NexusPHP):
     def torrent_thank(self, tid):
         self.post_data(url=self.url_host + "/thanks.php", data={"id": str(tid), "value": 0})
 
-    def page_search(self, payload: dict, bs=False):
-        payload.update({"incldead": 1})  # Include dead torrent in search list
-        return self.get_data(url=self.url_host + "/torrents.php", params=payload, bs=bs)
+    def page_search(self, key: str, bs=False):
+        return self.get_data(url=self.url_host + "/torrents.php", params={"search": key, "incldead": 1}, bs=bs)
 
     def torrent_clone(self, tid) -> dict:
         """

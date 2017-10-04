@@ -95,11 +95,11 @@ class NexusPHP(Site):
     def page_torrent_info(self, tid, bs=False):
         return self.get_data(url=self.url_host + "/torrent_info.php", params={"id": tid}, bs=bs)
 
-    def page_search(self, payload: dict, bs=False):
-        return self.get_data(url=self.url_host + "/torrents.php", params=payload, bs=bs)
+    def page_search(self, key: str, bs=False):
+        return self.get_data(url=self.url_host + "/torrents.php", params={"search": key}, bs=bs)
 
     def search_list(self, key) -> list:
-        bs = self.page_search(payload={"search": key}, bs=True)
+        bs = self.page_search(key=key, bs=True)
         download_tag = bs.find_all("a", href=self._pat_search_torrent_id)
         tid_list = [int(re.search(self._pat_search_torrent_id, tag["href"]).group(1)) for tag in download_tag]
         logging.debug("USE key: {key} to search,and the Return tid-list: {list}".format(key=key, list=tid_list))
