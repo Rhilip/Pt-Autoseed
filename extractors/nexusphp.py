@@ -140,29 +140,27 @@ class NexusPHP(Site):
         flag = -1
         search_tag = self.exist_judge(key_with_gp_ep, torrent.name)
         if search_tag == 0:  # Non-existent repetition torrent (by local judge plugins), prepare to reseed
-            clone_id = 0
             torrent_raw_info_dict = None
+
             try:
                 clone_id = clone_db_dict.setdefault(self.db_column, None)
                 if clone_id in [None, 0, "0"]:
                     raise KeyError("The db-record is not return the clone id.")
-                else:
+                elif clone_id not in [-1, "-1"]:  # Set to no re-seed for this site in database.
                     torrent_raw_info_dict = self.torrent_clone(clone_id)
                     if not torrent_raw_info_dict:
                         raise ValueError("The clone torrent for tid in db-record is not exist.")
                     logging.debug("Get clone torrent info from \"DataBase\" OK, Which id: {cid}".format(cid=clone_id))
             except (KeyError, ValueError) as e:
-                logging.warning(
-                    "{r}, Try to search probably clone torrent, it may got incorrect info".format(r=e.args[0]))
-                for key in [key_with_gp, key_raw]:  # USE introduction of the same group First and Then Generic search
-                    clone_id = self.first_tid_in_search_list(key=key)
-                    if clone_id != 0:
+                logging.warning("{r}, Try to search the clone info in site, it may not correct".format(r=e.args[0]))
+                clone_id = self._DEFAULT_CLONE_TORRENT if self._DEFAULT_CLONE_TORRENT else 0  # USE Default clone id
+                for key in [key_with_gp, key_raw]:  # USE The same group to search firstly and Then non-group tag
+                    search_id = self.first_tid_in_search_list(key=key)
+                    if search_id is not 0:
+                        clone_id = search_id  # The search result will cover the default setting.
                         break
-                if clone_id == 0 and self._DEFAULT_CLONE_TORRENT:  # USE Default clone id if set.
-                    clone_id = self._DEFAULT_CLONE_TORRENT
 
-                if int(clone_id) not in [0,
-                                         -1]:  # -1 -> (This search name) Set to no re-seed for this site in database.
+                if clone_id is not 0:
                     torrent_raw_info_dict = self.torrent_clone(clone_id)
                     logging.info("Get clone torrent info from \"Reseed-Site\" OK, Which id: {cid}".format(cid=clone_id))
 
@@ -177,9 +175,9 @@ class NexusPHP(Site):
             if err:  # May clone_id in [0,-1] or upload error
                 logging.error("The torrent isn't successfully reseed. With: search_key: {pat}, dupe_tag: {tag}, "
                               "clone_id: {cid}, ".format(pat=key_with_gp_ep, tag=search_tag, cid=clone_id))
-        elif search_tag == -1:  # 如果种子存在，但种子不一致
+        elif search_tag == -1:  # IF the torrents are present, but not consistent (When FORCE_JUDGE_DUPE_LOC is True)
             logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent.Stop Posting~")
-        else:  # 如果种子存在（已经有人发布）  -> 辅种
+        else:  # IF the torrent is already released and can be assist
             flag = self.torrent_download(tid=search_tag, thanks=False)
             logging.warning("Find dupe torrent,which id: {0},Automatically assist it~".format(search_tag))
 
