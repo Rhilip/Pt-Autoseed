@@ -25,8 +25,18 @@ pattern_group = [
         "\[(?P<episode>\d+)\]\[GB_JP\]\[X264_AAC\]\[720P\]\[CRRIP\]\[天空树双语字幕组\])"
         "(\.(?P<filetype>mp4)$|$)"
     ),
-    re.compile(  # Anime (Normal)
-        "(?P<full_name>\[(?P<group>.+?)\](?P<n_s>\[)?(?P<search_name>.+?)(?(n_s)\])\[?(?P<episode>\d+(\.?\d+|-\d+|[ _]?[Vv]2)?)\]?.+?)"
+    re.compile(  # Anime - Group: 八重樱字幕组
+        "(?P<full_name>\[(?P<group>八重[樱櫻]字幕[组組])\]\[.+?\]\[(?P<search_name>[^\[\]]+?)\]"
+        "\[?(?P<episode>\d+(\.?\d+|-\d+|[ _]?[Vv]2)?)\]?.+?)"
+        "(\.(?P<filetype>\w+)$|$)"
+    ),
+    # re.compile(  # Anime - Foreign Group
+    #     "(?P<full_name>\[(?P<group>[^\[\]]+?)\] (?P<search_name>.+?) - (?P<episode>\d+(\.?\d+|-\d+|[ _]?[Vv]2)?) \[\d+?[Pp]\])"
+    #     "(\.(?P<filetype>\w+)$|$)"
+    # ),
+    re.compile(  # Anime - Normal Pattern
+        "(?P<full_name>\[(?P<group>[^\[\]]+?)\](?P<n_s>\[)?(?P<search_name>[^\[\]]+?)(?(n_s)\])"
+        "\[?(?P<episode>\d+(\.?\d+|-\d+|[ _]?[Vv]2)?)\]?.+?)"
         "(\.(?P<filetype>\w+)$|$)"
     )
 ]
