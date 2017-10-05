@@ -113,6 +113,7 @@ class NexusPHP(Site):
         torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
         torrent_file_info_table = torrent_file_page.find("ul", id="colapse")
         torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
+        logging.info("The torrent name for id({id}) is \"{name}\"".format(id=tag, name=torrent_title))
         return torrent_title
 
     def exist_judge(self, search_title: str, torrent_file_name: str) -> int:
@@ -121,9 +122,8 @@ class NexusPHP(Site):
         (Warning:if the exist torrent is not same as the pre-reseed torrent ,will return -1)
         """
         tag = 0
-        for test_id in sorted(self.search_list(key=search_title), reverse=True)[
-                       :8]:  # Try to get current dupe torrent's id
-            if torrent_file_name == self.exist_torrent_title(tag=test_id):
+        for test_id in sorted(self.search_list(key=search_title), reverse=True)[:8]:  # Travel All Search list
+            if torrent_file_name == self.exist_torrent_title(tag=test_id):  # Try to get current dupe torrent's id
                 tag = test_id
                 break
             elif self._FORCE_JUDGE_DUPE_LOC:
@@ -139,15 +139,21 @@ class NexusPHP(Site):
 
         flag = -1
         search_tag = self.exist_judge(key_with_gp_ep, torrent.name)
-        if search_tag == 0:  # Non-existent repetition torrent, prepare to reseed
+        if search_tag == 0:  # Non-existent repetition torrent (by local judge plugins), prepare to reseed
             clone_id = 0
+            torrent_raw_info_dict = None
             try:
                 clone_id = clone_db_dict.setdefault(self.db_column, None)
                 if clone_id in [None, 0, "0"]:
                     raise KeyError("The db-record is not return the clone id.")
-                logging.debug("Get clone id({id}) from db OK,USE key: \"{key}\"".format(id=clone_id, key=key_raw))
-            except KeyError:
-                logging.warning("Not Find clone id from db of this torrent,May got incorrect info when clone.")
+                else:
+                    torrent_raw_info_dict = self.torrent_clone(clone_id)
+                    if not torrent_raw_info_dict:
+                        raise ValueError("The clone torrent for tid in db-record is not exist.")
+                    logging.debug("Get clone torrent info from \"DataBase\" OK, Which id: {cid}".format(cid=clone_id))
+            except (KeyError, ValueError) as e:
+                logging.warning(
+                    "{r}, Try to search probably clone torrent, it may got incorrect info".format(r=e.args[0]))
                 for key in [key_with_gp, key_raw]:  # USE introduction of the same group First and Then Generic search
                     clone_id = self.first_tid_in_search_list(key=key)
                     if clone_id != 0:
@@ -155,21 +161,22 @@ class NexusPHP(Site):
                 if clone_id == 0 and self._DEFAULT_CLONE_TORRENT:  # USE Default clone id if set.
                     clone_id = self._DEFAULT_CLONE_TORRENT
 
+                if int(clone_id) not in [0,
+                                         -1]:  # -1 -> (This search name) Set to no re-seed for this site in database.
+                    torrent_raw_info_dict = self.torrent_clone(clone_id)
+                    logging.info("Get clone torrent info from \"Reseed-Site\" OK, Which id: {cid}".format(cid=clone_id))
+
             err = True
-            multipart_data = None
-            if int(clone_id) not in [0, -1]:  # -1 -> (This search name) Set to no re-seed for this site in database.
-                logging.info("The clone id for \"{title}\" is {cid}.".format(title=torrent.name, cid=clone_id))
-                torrent_raw_info_dict = self.torrent_clone(clone_id)
-                if torrent_raw_info_dict:
-                    logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
-                    new_dict = self.date_raw_update(torrent_name_search=name_pattern, raw_info=torrent_raw_info_dict)
-                    multipart_data = self.data_raw2tuple(torrent, raw_info=new_dict)
-                    flag = self.torrent_upload(data=multipart_data)
-                    if flag is not -1:
-                        err = False
+            if torrent_raw_info_dict:
+                logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
+                new_dict = self.date_raw_update(torrent_name_search=name_pattern, raw_info=torrent_raw_info_dict)
+                multipart_data = self.data_raw2tuple(torrent, raw_info=new_dict)
+                flag = self.torrent_upload(data=multipart_data)
+                if flag is not -1:
+                    err = False
             if err:  # May clone_id in [0,-1] or upload error
-                logging.error("The torrent reseed ERROR. With: search_key: {pat}, dupe_tag: {tag}, clone_id: {cid}, "
-                              "data: {da}".format(pat=key_with_gp_ep, tag=search_tag, cid=clone_id, da=multipart_data))
+                logging.error("The torrent isn't successfully reseed. With: search_key: {pat}, dupe_tag: {tag}, "
+                              "clone_id: {cid}, ".format(pat=key_with_gp_ep, tag=search_tag, cid=clone_id))
         elif search_tag == -1:  # 如果种子存在，但种子不一致
             logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent.Stop Posting~")
         else:  # 如果种子存在（已经有人发布）  -> 辅种

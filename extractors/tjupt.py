@@ -44,6 +44,7 @@ class TJUPT(NexusPHP):
             # TODO not test....
             torrent_file_info_table = torrent_file_page.find("ul", id="colapse")
             torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
+        logging.info("The torrent name for id({id}) is \"{name}\"".format(id=tag, name=torrent_title))
         return torrent_title
 
     def torrent_clone(self, tid):
