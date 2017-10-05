@@ -70,7 +70,7 @@ class NPUBits(NexusPHP):
             raw_info["small_descr"] = re.sub(r"第.+([集季])", season_episode_info, raw_info["small_descr"])
         elif int(raw_info["category"]) == 405:  # Anime
             episode = torrent_name_search.group("episode")
-            raw_info["name"] = re.sub("^(.+?)\.[.v\d]+\.(TVRip|BDRip|WEB|BDMV|BDISO|DVDRip|DVD)",
+            raw_info["name"] = re.sub("^(.+?)\.\d{2,3}(?:\.5)?\.(TVRip|BDRip|WEB|BDMV|BDISO|DVDRip|DVD)",
                                       "\g<1>.{ep}.\g<2>".format(ep=episode), raw_info["name"])
 
         return raw_info
