@@ -173,15 +173,14 @@ class Controller(object):
                         self._online_check()
                         pass
                     else:
-                        db.reseed_update(did=dl_torrent.id, rid=tag, site=reseeder.db_column)
-                        # self.last_id_check = tag
+                        db.upsert_seed_list(self._get_torrent_info(tag))
                 reseed_status = True
                 break
 
         if not reseed_status:  # Update seed_id == -1 if no matched pattern
             logging.warning("No match pattern,Mark \"{}\" As Un-reseed torrent,Stop watching.".format(tname))
             for reseeder in pre_reseeder_list:
-                db.reseed_update(did=dl_torrent.id, rid=-1, site=reseeder.db_column)
+                db.upsert_seed_list((-1, tname, reseeder.db_column))
 
     def reseeders_update(self):
         """Get the pre-reseed list from database."""

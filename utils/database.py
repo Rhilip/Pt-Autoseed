@@ -21,10 +21,7 @@ class Database(object):
         self.db = pymysql.connect(host=host, port=port, user=user, password=password, db=db, charset='utf8')
 
         self.col_seed_list = [i[0] for i in self.exec("SHOW COLUMNS FROM `seed_list`", fetch_all=True)]
-
-    @staticmethod
-    def _safety_key(key):
-        return key.replace("'", "''")
+        self.cache_torrent_list()
 
     @staticmethod
     def _safety_table(sql: str) -> str:
@@ -74,9 +71,6 @@ class Database(object):
 
         return clone_info_dict
 
-    def reseed_update(self, did, rid, site):
-        self.exec("UPDATE `seed_list` SET `{col}` = {rid} WHERE `download_id`={did}".format(col=site, rid=rid, did=did))
-
     def upsert_seed_list(self, torrent_info):
         tid, name, tracker = torrent_info
 
@@ -85,12 +79,12 @@ class Database(object):
                 raw_sql = "UPDATE `seed_list` SET `{cow}` = {id:d} WHERE `title`='{name}'"
                 break
             else:
-                exist = "SELECT COUNT(*) FROM `seed_list` WHERE `title`='{name}'".format(name=self._safety_key(name))
+                exist = "SELECT COUNT(*) FROM `seed_list` WHERE `title`='{}'".format(pymysql.escape_string(name))
                 if self.exec(sql=exist)[0] == 0:
                     raw_sql = "INSERT INTO `seed_list` (`title`,`{cow}`) VALUES ('{name}',{id:d})"
                     break
                 else:
                     self.cache_torrent_list()
 
-        sql = raw_sql.format(cow=tracker, name=self._safety_key(name), id=tid)
+        sql = raw_sql.format(cow=tracker, name=pymysql.escape_string(name), id=tid)
         return self.exec(sql=sql)
