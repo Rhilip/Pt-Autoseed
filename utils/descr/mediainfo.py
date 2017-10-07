@@ -36,7 +36,7 @@ import subprocess
 from utils.load.config import setting
 
 dict_mediainfo = setting.extend_descr_raw["mediainfo"]
-track_tag = ["General", "Video", "Audio"]
+track_tag = ["General", "Video", "Audio", "Text", "Other"]
 
 
 def show_mediainfo(file, encode="bbcode"):
