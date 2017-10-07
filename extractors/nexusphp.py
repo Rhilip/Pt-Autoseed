@@ -8,7 +8,7 @@ import re
 from bs4 import BeautifulSoup
 
 from extractors.site import Site
-from utils.load.submodules import tc
+from utils.load.submodules import tc, db
 
 
 class NexusPHP(Site):
@@ -36,6 +36,7 @@ class NexusPHP(Site):
         self._AUTO_THANK = kwargs.setdefault("auto_thank", True)
         self._DEFAULT_CLONE_TORRENT = kwargs.setdefault("default_clone_torrent", None)
         self._FORCE_JUDGE_DUPE_LOC = kwargs.setdefault("force_judge_dupe_loc", False)
+        self._GET_CLONE_ID_FROM_DB = kwargs.setdefault("get_clone_id_from_db", True)
 
         # Check if Site session~
         if self.status:
@@ -131,9 +132,9 @@ class NexusPHP(Site):
         return tag
 
     # -*- The feeding function -*-
-    def torrent_feed(self, torrent, name_pattern, clone_db_dict: dict):
+    def torrent_feed(self, torrent, name_pattern):
         logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
-        key_raw = clone_db_dict["search_name"]  # maximum 10 keywords (NexusPHP: torrents.php,line 696),so gp ep first
+        key_raw = re.sub(r"[_\-.']", " ", name_pattern.group("search_name"))
         key_with_gp = "{gr} {search_key}".format(search_key=key_raw, gr=name_pattern.group("group"))
         key_with_gp_ep = "{ep} {gp_key}".format(gp_key=key_with_gp, ep=name_pattern.group("episode"))
 
@@ -143,16 +144,19 @@ class NexusPHP(Site):
             torrent_raw_info_dict = None
 
             try:
-                clone_id = clone_db_dict.setdefault(self.db_column, None)
-                if clone_id in [None, 0, "0"]:
-                    raise KeyError("The db-record is not return the clone id.")
-                elif clone_id not in [-1, "-1"]:  # Set to no re-seed for this site in database.
-                    torrent_raw_info_dict = self.torrent_clone(clone_id)
-                    if not torrent_raw_info_dict:
-                        raise ValueError("The clone torrent for tid in db-record is not exist.")
-                    logging.debug("Get clone torrent info from \"DataBase\" OK, Which id: {cid}".format(cid=clone_id))
+                if self._GET_CLONE_ID_FROM_DB:
+                    clone_id = db.get_data_clone_id(key=key_raw, site=self.db_column)
+                    if clone_id in [None, 0]:
+                        raise KeyError("The db-record is not return the correct clone id.")
+                    elif clone_id is not -1:  # Set to no re-seed for this site in database.
+                        torrent_raw_info_dict = self.torrent_clone(clone_id)
+                        if not torrent_raw_info_dict:
+                            raise ValueError("The clone torrent for tid in db-record is not exist.")
+                        logging.debug("Get clone torrent info from \"DataBase\" OK, Which id: {}".format(clone_id))
+                else:
+                    raise KeyError("Set not get clone torrent id from \"Database.\"")
             except (KeyError, ValueError) as e:
-                logging.warning("{r}, Try to search the clone info in site, it may not correct".format(r=e.args[0]))
+                logging.warning("{}, Try to search the clone info from site, it may not correct".format(e.args[0]))
                 clone_id = self._DEFAULT_CLONE_TORRENT if self._DEFAULT_CLONE_TORRENT else 0  # USE Default clone id
                 for key in [key_with_gp, key_raw]:  # USE The same group to search firstly and Then non-group tag
                     search_id = self.first_tid_in_search_list(key=key)

@@ -136,20 +136,13 @@ class Site(object):
         # Session check code Here.
         return self.status
 
-    def torrent_feed(self, torrent, name_pattern, clone_db_dict):
+    def torrent_feed(self, torrent, name_pattern):
         # TODO merge name_pattern and clone_db_dict into one dict
         """
         Main entry of Reseeder.....
 
         :param torrent: class transmissionrpc.Torrent
         :param name_pattern: _sre.SRE_Match
-        :param clone_db_dict: dict, Information dict about clone with `search_name` and clone_id in different sites.
-                May like {
-                             "search_name": "<name>",
-                             "<site1>": <clone_id1>,
-                             "<site2>": <clone_id2>,
-                             ......
-                          }
         :return: int, The flag of reseed status. any number which is bigger than 0 means success.
         """
         pass

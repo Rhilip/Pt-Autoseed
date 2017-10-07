@@ -25,9 +25,9 @@ class Database(object):
 
     @staticmethod
     def _safety_table(sql: str) -> str:
-        # TODO It's not good, but it is useful.
-        sql = re.sub("`?seed_list`?", "`{}`".format(TABLE_SEED_LIST), sql)
-        sql = re.sub("`?info_list`?", "`{}`".format(TABLE_INFO_LIST), sql)
+        # TODO It's not good, but it is useful when add or change table `seed_list
+        sql = re.sub("`seed_list`", "`{}`".format(TABLE_SEED_LIST), sql)
+        sql = re.sub("`info_list`", "`{}`".format(TABLE_INFO_LIST), sql)
         return sql
 
     # Based Function
@@ -60,16 +60,18 @@ class Database(object):
         logging.debug("Max number in column: {co} is {mn}".format(mn=max_num, co=column_list))
         return max_num
 
-    def get_data_clone_id(self, key):
-        sql = "SELECT * FROM `info_list` WHERE `search_name` LIKE '{key}%'".format(key=key.replace(" ", "%"))
-        try:  # Get clone id info from database
-            clone_info_dict = self.exec(sql=sql, r_dict=True)
-            if clone_info_dict is None:
-                raise ValueError("No db-record for key: \"{key}\".".format(key=key))
-        except ValueError:  # The database doesn't have the search data, Return dict only with raw key.
-            clone_info_dict = {"search_name": key}
+    def get_data_clone_id(self, key, site) -> None or int:
+        clone_id = None
 
-        return clone_info_dict
+        key = pymysql.escape_string(re.sub(r"[_\-. ]", "%", key))
+        sql = "SELECT `{site}` FROM `info_list` WHERE `search_name` LIKE '{key}%'".format(site=site, key=key)
+        try:  # Get clone id info from database
+            clone_id = int(self.exec(sql=sql)[0])
+        except TypeError:  # The database doesn't have the search data, Return dict only with raw key.
+            logging.warning(
+                "No record for key: \"{key}\" in \"{site}\". Or may set as `None`".format(key=key, site=site))
+
+        return clone_id
 
     def upsert_seed_list(self, torrent_info):
         tid, name, tracker = torrent_info

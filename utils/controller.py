@@ -163,11 +163,9 @@ class Controller(object):
             search = re.search(pat, tname)
             if search:
                 logging.debug("The search group dict: {gr}".format(gr=search.groupdict()))
-                key_raw = re.sub(r"[_\-.']", " ", search.group("search_name"))
-                clone_dict = db.get_data_clone_id(key=key_raw)
                 for reseeder in [r for r in pre_reseeder_list if int(cow[r.db_column]) == 0]:  # Site feed
                     try:
-                        tag = reseeder.torrent_feed(torrent=dl_torrent, name_pattern=search, clone_db_dict=clone_dict)
+                        tag = reseeder.torrent_feed(torrent=dl_torrent, name_pattern=search)
                     except Exception as e:
                         logging.critical(e.args)
                         self._online_check()
