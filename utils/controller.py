@@ -2,11 +2,13 @@
 # Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
 # Licensed under the GNU General Public License v3.0
 
+import importlib
 import logging
 import re
 import time
 from threading import Thread
 
+from utils.constants import Support_Site
 from utils.constants import period_f
 from utils.load.config import setting
 from utils.load.submodules import tc, db
@@ -47,29 +49,14 @@ class Controller(object):
 
         :return: None
         """
-        # Byrbt
-        from extractors.byrbt import Byrbt
-        autoseed_byrbt = Byrbt(**setting.site_byrbt)
-        if autoseed_byrbt.status:
-            self.active_obj_list.append(autoseed_byrbt)
-
-        # NPUBits
-        from extractors.npubits import NPUBits
-        autoseed_npubits = NPUBits(**setting.site_npubits)
-        if autoseed_npubits.status:
-            self.active_obj_list.append(autoseed_npubits)
-
-        # nwsuaf6
-        from extractors.nwsuaf6 import MTPT
-        autoseed_nwsuaf6 = MTPT(**setting.site_nwsuaf6)
-        if autoseed_nwsuaf6.status:
-            self.active_obj_list.append(autoseed_nwsuaf6)
-
-        # TJUPT
-        from extractors.tjupt import TJUPT
-        autoseed_tjupt = TJUPT(**setting.site_tjupt)
-        if autoseed_tjupt.status:
-            self.active_obj_list.append(autoseed_tjupt)
+        for config_name, package_name, class_name in Support_Site:
+            if hasattr(setting, config_name):
+                config = getattr(setting, config_name)
+                if config.setdefault("status", False):
+                    package = importlib.import_module(package_name)
+                    autoseed_prototype = getattr(package, class_name)(**config)
+                    if autoseed_prototype.status:
+                        self.active_obj_list.append(autoseed_prototype)
 
         self.unactive_tracker_list = [i for i in db.col_seed_list[3:]
                                       if i not in [i.db_column for i in self.active_obj_list]]
@@ -168,7 +155,7 @@ class Controller(object):
                         tag = reseeder.torrent_feed(torrent=dl_torrent, name_pattern=search)
                     except Exception as e:
                         logging.critical(e.args)
-                        self._online_check()
+                        Thread(target=self._online_check, daemon=True).start()
                         pass
                     else:
                         db.upsert_seed_list(self._get_torrent_info(tag))
@@ -191,6 +178,7 @@ class Controller(object):
             except KeyError:  # Un-exist pre-reseed torrent
                 logging.error("The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
                               "It will be deleted from db in next delete-check time".format(t["title"]))
+                # TODO Thread(target=self._del_torrent_with_db, args=(t["download_id"],), daemon=True).start()
             else:
                 tname = dl_torrent.name
                 if int(dl_torrent.progress) is 100:  # Get the download progress in percent.
