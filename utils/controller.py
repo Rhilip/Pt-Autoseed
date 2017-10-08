@@ -8,8 +8,7 @@ import re
 import time
 from threading import Thread
 
-from utils.constants import Support_Site
-from utils.constants import period_f
+from utils.constants import period_f, Support_Site
 from utils.load.config import setting
 from utils.load.submodules import tc, db
 from utils.pattern import pattern_group
@@ -72,11 +71,17 @@ class Controller(object):
             db.exec(sql="UPDATE `seed_list` SET `{cow}` = -1 WHERE `{cow}` = 0 ".format(cow=tracker))
 
     @staticmethod
-    def _del_torrent_with_db():
+    def _del_torrent_with_db(rid=None, count=20):
         """Delete torrent(both download and reseed) with data from transmission and database"""
         logging.debug("Begin torrent's status check.If reach condition you set,You will get a warning.")
+
+        if not rid:
+            sql = "SELECT * FROM `seed_list` ORDER BY `id` ASC LIMIT {}".format(count)
+        else:
+            sql = "SELECT * FROM `seed_list` WHERE `id`={}".format(rid)
+
         time_now = time.time()
-        for cow in db.exec(sql="SELECT * FROM `seed_list`", r_dict=True, fetch_all=True):
+        for cow in db.exec(sql=sql, r_dict=True, fetch_all=True):
             sid = cow.pop("id")
             s_title = cow.pop("title")
             err = 0
@@ -84,6 +89,8 @@ class Controller(object):
             torrent_id_list = [tid for tracker, tid in cow.items() if tid > 0]
             for tid in torrent_id_list:
                 try:  # Ensure torrent exist
+                    if rid:
+                        raise KeyError("Force Delete, Which db-record id: {}".format(rid))
                     reseed_list.append(tc.get_torrent(torrent_id=tid))
                 except KeyError:  # Mark err when the torrent is not exist.
                     err += 1
@@ -154,7 +161,7 @@ class Controller(object):
                     try:
                         tag = reseeder.torrent_feed(torrent=dl_torrent, name_pattern=search)
                     except Exception as e:
-                        logging.critical(e.args)
+                        logging.critical("{}, Will start A reseeder online check soon.".format(e.args[0]))
                         Thread(target=self._online_check, daemon=True).start()
                         pass
                     else:
@@ -176,9 +183,9 @@ class Controller(object):
             try:
                 dl_torrent = tc.get_torrent(t["download_id"])
             except KeyError:  # Un-exist pre-reseed torrent
-                logging.error("The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
-                              "It will be deleted from db in next delete-check time".format(t["title"]))
-                # TODO Thread(target=self._del_torrent_with_db, args=(t["download_id"],), daemon=True).start()
+                logging.error("The pre-reseed Torrent: \"{0}\" isn't found in result,"
+                              " It's db-record will be deleted soon".format(t["title"]))
+                Thread(target=self._del_torrent_with_db, args={"rid": t["id"]}, daemon=True).start()
             else:
                 tname = dl_torrent.name
                 if int(dl_torrent.progress) is 100:  # Get the download progress in percent.

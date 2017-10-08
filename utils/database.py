@@ -64,7 +64,8 @@ class Database(object):
             clone_id = int(self.exec(sql=sql)[0])
         except TypeError:  # The database doesn't have the search data, Return dict only with raw key.
             logging.warning(
-                "No record for key: \"{key}\" in \"{site}\". Or may set as `None`".format(key=key, site=site))
+                "No record for key: \"{key}\" in \"{site}\". Or may set as `None`".format(key=key, site=site)
+            )
 
         return clone_id
 
