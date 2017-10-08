@@ -18,7 +18,8 @@ class Database(object):
     def __init__(self, host, port, user, password, db):
         self._commit_lock = Lock()
 
-        self.db = pymysql.connect(host=host, port=port, user=user, password=password, db=db, charset='utf8')
+        self.db = pymysql.connect(host=host, port=port, user=user, password=password, db=db,
+                                  charset='utf8', autocommit=True)
 
         self.col_seed_list = [i[0] for i in self.exec("SHOW COLUMNS FROM `seed_list`", fetch_all=True)]
         self.cache_torrent_list()
@@ -31,20 +32,14 @@ class Database(object):
         return sql
 
     # Based Function
-    def exec(self, sql: str, r_dict: bool = False, fetch_all: bool = False):
+    def exec(self, sql: str, r_dict: bool = False, fetch_all: bool = False, ret_rows: bool = False):
         with self._commit_lock:
-            # The style of return info (dict or tuple)
-            cursor = self.db.cursor(pymysql.cursors.DictCursor) if r_dict else self.db.cursor()
+            cursor = self.db.cursor(pymysql.cursors.DictCursor) if r_dict else self.db.cursor()  # Cursor type
             row = cursor.execute(self._safety_table(sql))
-            try:
-                self.db.commit()
-                logging.debug("Success,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
-            except pymysql.Error as err:
-                logging.critical("Mysql Error: \"{err}\",DDL: \"{sql}\"".format(err=err.args, sql=sql))
-                self.db.rollback()
+            data = cursor.fetchall() if fetch_all else cursor.fetchone()  # The lines of return info (one or all)
+            logging.debug("Success,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
 
-            # The lines of return info (one or all)
-            return cursor.fetchall() if fetch_all else cursor.fetchone()
+        return (row, data) if ret_rows else data
 
     def cache_torrent_list(self):
         self.cache_torrent_name = [i[0] for i in self.exec(sql="SELECT `title` FROM `seed_list`", fetch_all=True)]
