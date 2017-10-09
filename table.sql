@@ -1,13 +1,15 @@
 -- phpMyAdmin SQL Dump
--- version 4.4.15.6
--- http://www.phpmyadmin.net
+-- version 4.7.4
+-- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: 2017-05-26 15:31:41
--- 服务器版本： 5.5.48-log
+-- Generation Time: 2017-10-09 12:25:13
+-- 服务器版本： 5.6.37-log
 -- PHP Version: 7.0.7
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET AUTOCOMMIT = 0;
+START TRANSACTION;
 SET time_zone = "+00:00";
 
 --
@@ -21,17 +23,17 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE IF NOT EXISTS `info_list` (
-  `sort_id`               INT(11) NOT NULL,
+  `sort_id`               INT(11) NOT NULL AUTO_INCREMENT,
   `search_name`           TEXT    NOT NULL
   COMMENT '搜索名称',
-  `tracker.byr.cn`        INT(11) DEFAULT NULL
+  `tracker.byr.cn`        INT(11)          DEFAULT NULL
   COMMENT 'byr克隆种子号',
-  `npupt.com`             INT(11) DEFAULT NULL
-  COMMENT 'npu克隆种子号',
-  `pt.nwsuaf6.edu.cn`     INT(11) DEFAULT NULL
-  COMMENT 'mtpt克隆种子号',
-  `pttracker6.tju.edu.cn` INT(11) DEFAULT NULL
-  COMMENT 'tju克隆种子号'
+  `npupt.com`             INT(11)          DEFAULT NULL
+  COMMENT 'npubits克隆种子号',
+  `pt.nwsuaf6.edu.cn`     INT(11)          DEFAULT NULL
+  COMMENT 'nwsuaf6克隆种子号',
+  `pttracker6.tju.edu.cn` INT(11)          DEFAULT NULL,
+  PRIMARY KEY (`sort_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -41,43 +43,14 @@ CREATE TABLE IF NOT EXISTS `info_list` (
 --
 
 CREATE TABLE IF NOT EXISTS `seed_list` (
-  `id`                    INT(11) NOT NULL,
+  `id`                    INT(11) NOT NULL AUTO_INCREMENT,
   `title`                 TEXT    NOT NULL,
   `download_id`           INT(11) NOT NULL,
-  `tracker.byr.cn`        INT(11) NOT NULL,
-  `npupt.com`             INT(11) NOT NULL,
-  `pt.nwsuaf6.edu.cn`     INT(11) NOT NULL,
-  `pttracker6.tju.edu.cn` INT(11) NOT NULL
+  `tracker.byr.cn`        INT(11) NOT NULL DEFAULT '0',
+  `npupt.com`             INT(11) NOT NULL DEFAULT '0',
+  `pt.nwsuaf6.edu.cn`     INT(11)          DEFAULT '0',
+  `pttracker6.tju.edu.cn` INT(11) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `download_id` (`download_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- Indexes for dumped tables
---
-
---
--- Indexes for table `info_list`
---
-ALTER TABLE `info_list`
-  ADD PRIMARY KEY (`sort_id`);
-
---
--- Indexes for table `seed_list`
---
-ALTER TABLE `seed_list`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `download_id` (`download_id`);
-
---
--- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `info_list`
---
-ALTER TABLE `info_list`
-  MODIFY `sort_id` int(11) NOT NULL AUTO_INCREMENT;
---
--- AUTO_INCREMENT for table `seed_list`
---
-ALTER TABLE `seed_list`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+COMMIT;

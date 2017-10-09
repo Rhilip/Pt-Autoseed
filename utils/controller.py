@@ -40,11 +40,10 @@ class Controller(object):
     def _active(self):
         """
         Active the reseeder objects and append it to self.active_reseeder_list.
-        Each object should follow those step(s):
-            1. Import the package
-            2. Instantiation The object
+        Each object will follow those step(s):
+            1. Check if config is exist in user setting
+            2. Import the package and Instantiation The object if set status as `True` is site config
             3. If The reseeder active successfully (after session check), Append this reseeder to List
-            4. Else, Send it tracker url to another List
 
         :return: None
         """

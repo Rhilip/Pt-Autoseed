@@ -14,10 +14,9 @@ from utils.constants import TABLE_INFO_LIST, TABLE_SEED_LIST
 
 class Database(object):
     cache_torrent_name = []
+    _commit_lock = Lock()
 
     def __init__(self, host, port, user, password, db):
-        self._commit_lock = Lock()
-
         self.db = pymysql.connect(host=host, port=port, user=user, password=password, db=db,
                                   charset='utf8', autocommit=True)
 
