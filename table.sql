@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS `info_list` (
   COMMENT 'npubits克隆种子号',
   `pt.nwsuaf6.edu.cn`     INT(11)          DEFAULT NULL
   COMMENT 'nwsuaf6克隆种子号',
-  `pttracker6.tju.edu.cn` INT(11)          DEFAULT NULL,
+  `pttracker6.tju.edu.cn` INT(11)          DEFAULT NULL
+  COMMENT 'tju克隆种子号',
   PRIMARY KEY (`sort_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -48,7 +49,7 @@ CREATE TABLE IF NOT EXISTS `seed_list` (
   `download_id`           INT(11) NOT NULL,
   `tracker.byr.cn`        INT(11) NOT NULL DEFAULT '0',
   `npupt.com`             INT(11) NOT NULL DEFAULT '0',
-  `pt.nwsuaf6.edu.cn`     INT(11)          DEFAULT '0',
+  `pt.nwsuaf6.edu.cn`     INT(11) NOT NULL DEFAULT '0',
   `pttracker6.tju.edu.cn` INT(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `download_id` (`download_id`)

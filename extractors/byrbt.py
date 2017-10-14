@@ -234,11 +234,16 @@ class Byrbt(NexusPHP):
         return return_dict
 
     def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
+        filetype = torrent_name_search.group("filetype")
         if raw_info["type"] == 401:  # Series
             raw_info["tv_ename"] = torrent_name_search.group("full_name")
             raw_info["tv_season"] = torrent_name_search.group("episode")
+            if filetype:
+                raw_info["tv_filetype"] = filetype.upper()
         elif raw_info["type"] == 404:  # Anime
             raw_info["comic_episode"] = torrent_name_search.group("episode")
+            if filetype:
+                raw_info["comic_filetype"] = filetype.upper()
 
         if self._NO_SUBTITLE:
             raw_info["small_descr"] = ""
