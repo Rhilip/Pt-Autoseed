@@ -74,18 +74,16 @@ class Site(object):
             #                    but Slower than socket.create_connection(address[, timeout[, source_address]])
             requests.head(self.url_host, timeout=REQUESTS_TIMEOUT)
         except OSError:  # requests.exceptions.RequestException
-            online = False
             if self.suspended == 0:
                 logging.warning("Site: {si} is Offline now.".format(si=self.url_host))
             self.suspended += 1
         else:
-            online = True
             if self.suspended != 0:
                 logging.info("The Site: {si} is Online now,after {count} times tries."
                              "Will check the session soon.".format(si=self.url_host, count=self.suspended))
                 self.suspended = 0
                 self.session_check()
-        return online
+        return True if self.suspended == 0 else False
 
     @staticmethod
     def _post_torrent_file_tuple(torrent):
@@ -100,12 +98,7 @@ class Site(object):
     def get_data(self, url, params=None, bs=False, json=False, **kwargs):
         """Encapsulation requests's method - GET, with format-out as bs or json"""
         page = requests.get(url=url, params=params, cookies=self.cookies, **kwargs)
-        return_info = page.text
-        if bs:
-            return_info = BeautifulSoup(return_info, "lxml")
-        elif json:
-            return_info = page.json()
-        return return_info
+        return page.json() if json else (BeautifulSoup(page.text, "lxml") if bs else page.text)
 
     def post_data(self, url, params=None, **kwargs):
         """Encapsulation requests's method - POST"""
@@ -143,20 +136,13 @@ class Site(object):
         # Session check code Here.
         return self.status
 
-    def torrent_feed(self, torrent, name_pattern, clone_db_dict):
+    def torrent_feed(self, torrent, name_pattern):
         # TODO merge name_pattern and clone_db_dict into one dict
         """
         Main entry of Reseeder.....
 
         :param torrent: class transmissionrpc.Torrent
         :param name_pattern: _sre.SRE_Match
-        :param clone_db_dict: dict, Information dict about clone with `search_name` and clone_id in different sites.
-                May like {
-                             "search_name": "<name>",
-                             "<site1>": <clone_id1>,
-                             "<site2>": <clone_id2>,
-                             ......
-                          }
         :return: int, The flag of reseed status. any number which is bigger than 0 means success.
         """
         pass

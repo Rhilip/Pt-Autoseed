@@ -44,7 +44,7 @@ pattern_group = [
 if __name__ == '__main__':
     import requests
 
-    test_txt_url = ""
+    test_txt_url = "https://gist.github.com/Rhilip/34ad82070d71bb3fa75f293d24101588/raw/9%2520-%2520RegExp%2520Test%2520set.txt"
     r = requests.get(test_txt_url)
     test_list = r.text.split("\n")
     for test_item in test_list:

@@ -2,12 +2,13 @@
 # Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
 # Licensed under the GNU General Public License v3.0
 
+import importlib
 import logging
 import re
 import time
 from threading import Thread
 
-from utils.constants import period_f
+from utils.constants import period_f, Support_Site
 from utils.load.config import setting
 from utils.load.submodules import tc, db
 from utils.pattern import pattern_group
@@ -39,37 +40,21 @@ class Controller(object):
     def _active(self):
         """
         Active the reseeder objects and append it to self.active_reseeder_list.
-        Each object should follow those step(s):
-            1. Import the package
-            2. Instantiation The object
+        Each object will follow those step(s):
+            1. Check if config is exist in user setting
+            2. Import the package and Instantiation The object if set status as `True` is site config
             3. If The reseeder active successfully (after session check), Append this reseeder to List
-            4. Else, Send it tracker url to another List
 
         :return: None
         """
-        # Byrbt
-        from extractors.byrbt import Byrbt
-        autoseed_byrbt = Byrbt(**setting.site_byrbt)
-        if autoseed_byrbt.status:
-            self.active_obj_list.append(autoseed_byrbt)
-
-        # NPUBits
-        from extractors.npubits import NPUBits
-        autoseed_npubits = NPUBits(**setting.site_npubits)
-        if autoseed_npubits.status:
-            self.active_obj_list.append(autoseed_npubits)
-
-        # nwsuaf6
-        from extractors.nwsuaf6 import MTPT
-        autoseed_nwsuaf6 = MTPT(**setting.site_nwsuaf6)
-        if autoseed_nwsuaf6.status:
-            self.active_obj_list.append(autoseed_nwsuaf6)
-
-        # TJUPT
-        from extractors.tjupt import TJUPT
-        autoseed_tjupt = TJUPT(**setting.site_tjupt)
-        if autoseed_tjupt.status:
-            self.active_obj_list.append(autoseed_tjupt)
+        for config_name, package_name, class_name in Support_Site:
+            if hasattr(setting, config_name):
+                config = getattr(setting, config_name)
+                if config.setdefault("status", False):
+                    package = importlib.import_module(package_name)
+                    autoseed_prototype = getattr(package, class_name)(**config)
+                    if autoseed_prototype.status:
+                        self.active_obj_list.append(autoseed_prototype)
 
         self.unactive_tracker_list = [i for i in db.col_seed_list[3:]
                                       if i not in [i.db_column for i in self.active_obj_list]]
@@ -85,11 +70,17 @@ class Controller(object):
             db.exec(sql="UPDATE `seed_list` SET `{cow}` = -1 WHERE `{cow}` = 0 ".format(cow=tracker))
 
     @staticmethod
-    def _del_torrent_with_db():
+    def _del_torrent_with_db(rid=None, count=20):
         """Delete torrent(both download and reseed) with data from transmission and database"""
         logging.debug("Begin torrent's status check.If reach condition you set,You will get a warning.")
+
+        if not rid:
+            sql = "SELECT * FROM `seed_list` ORDER BY `id` ASC LIMIT {}".format(count)
+        else:
+            sql = "SELECT * FROM `seed_list` WHERE `id`={}".format(rid)
+
         time_now = time.time()
-        for cow in db.exec(sql="SELECT * FROM `seed_list`", r_dict=True, fetch_all=True):
+        for cow in db.exec(sql=sql, r_dict=True, fetch_all=True):
             sid = cow.pop("id")
             s_title = cow.pop("title")
             err = 0
@@ -97,6 +88,8 @@ class Controller(object):
             torrent_id_list = [tid for tracker, tid in cow.items() if tid > 0]
             for tid in torrent_id_list:
                 try:  # Ensure torrent exist
+                    if rid:
+                        raise KeyError("Force Delete, Which db-record id: {}".format(rid))
                     reseed_list.append(tc.get_torrent(torrent_id=tid))
                 except KeyError:  # Mark err when the torrent is not exist.
                     err += 1
@@ -150,9 +143,11 @@ class Controller(object):
             tracker = "download_id"
         return t.id, t.name, tracker
 
-    def reseeder_feed(self, dl_torrent):
-        pre_reseeder_list = [s for s in self.active_obj_list if s.suspended == 0]  # Get active and online reseeder
+    def get_pre_reseeder_list(self):
+        return [s for s in self.active_obj_list if s.suspended == 0]  # Get active and online reseeder
 
+    def reseeder_feed(self, dl_torrent):
+        pre_reseeder_list = self.get_pre_reseeder_list()
         tname = dl_torrent.name
         cow = db.exec("SELECT * FROM `seed_list` WHERE `download_id`='{did}'".format(did=dl_torrent.id), r_dict=True)
 
@@ -161,40 +156,35 @@ class Controller(object):
             search = re.search(pat, tname)
             if search:
                 logging.debug("The search group dict: {gr}".format(gr=search.groupdict()))
-                key_raw = re.sub(r"[_\-.']", " ", search.group("search_name"))
-                clone_dict = db.get_data_clone_id(key=key_raw)
-                for reseeder in pre_reseeder_list:  # Site feed
-                    if int(cow[reseeder.db_column]) is 0:
-                        try:
-                            tag = reseeder.torrent_feed(torrent=dl_torrent, name_pattern=search,
-                                                        clone_db_dict=clone_dict)
-                        except OSError as e:
-                            logging.critical(e.args)
-                            self._online_check()
-                            pass
-                        else:
-                            db.reseed_update(did=dl_torrent.id, rid=tag, site=reseeder.db_column)
-                            # self.last_id_check = tag
+                for reseeder in [r for r in pre_reseeder_list if int(cow[r.db_column]) == 0]:  # Site feed
+                    try:
+                        tag = reseeder.torrent_feed(torrent=dl_torrent, name_pattern=search)
+                    except Exception as e:
+                        logging.critical("{}, Will start A reseeder online check soon.".format(e.args[0]))
+                        Thread(target=self._online_check, daemon=True).start()
+                        pass
+                    else:
+                        db.upsert_seed_list(self._get_torrent_info(tag))
                 reseed_status = True
                 break
 
         if not reseed_status:  # Update seed_id == -1 if no matched pattern
             logging.warning("No match pattern,Mark \"{}\" As Un-reseed torrent,Stop watching.".format(tname))
             for reseeder in pre_reseeder_list:
-                db.reseed_update(did=dl_torrent.id, rid=-1, site=reseeder.db_column)
+                db.upsert_seed_list((-1, tname, reseeder.db_column))
 
     def reseeders_update(self):
         """Get the pre-reseed list from database."""
-        pre_reseeder_list = [i for i in self.active_obj_list if i.suspended == 0]
-        pre_cond = " OR ".join(["`{}`=0".format(i.db_column) for i in pre_reseeder_list])
+        pre_cond = " OR ".join(["`{}`=0".format(i.db_column) for i in self.get_pre_reseeder_list()])
         result = db.exec("SELECT * FROM `seed_list` WHERE `download_id` != 0 AND ({})".format(pre_cond),
                          r_dict=True, fetch_all=True)
         for t in result:  # Traversal all un-reseed list
             try:
                 dl_torrent = tc.get_torrent(t["download_id"])
             except KeyError:  # Un-exist pre-reseed torrent
-                logging.error("The pre-reseed Torrent (which name: \"{0}\") isn't found in result,"
-                              "It will be deleted from db in next delete-check time".format(t["title"]))
+                logging.error("The pre-reseed Torrent: \"{0}\" isn't found in result,"
+                              " It's db-record will be deleted soon".format(t["title"]))
+                Thread(target=self._del_torrent_with_db, args={"rid": t["id"]}, daemon=True).start()
             else:
                 tname = dl_torrent.name
                 if int(dl_torrent.progress) is 100:  # Get the download progress in percent.
