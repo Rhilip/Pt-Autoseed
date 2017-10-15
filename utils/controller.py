@@ -133,14 +133,14 @@ class Controller(object):
         :return: (tid, name, tracker)
         """
         if isinstance(t, int):
-            t = tc.get_torrent(t)
+            t = tc.get_torrent(t)  # Return class 'transmissionrpc.torrent.Torrent'
 
         try:
             tracker = re.search(r"p[s]?://(?P<host>.+?)/", t.trackers[0]["announce"]).group("host")
             if tracker not in db.col_seed_list:
                 raise AttributeError("Not reseed tracker.")
         except AttributeError:
-            tracker = "download_id"
+            tracker = "download_id"  # Rewrite tracker
         return t.id, t.name, tracker
 
     def get_pre_reseeder_list(self):
@@ -164,7 +164,7 @@ class Controller(object):
                         Thread(target=self._online_check, daemon=True).start()
                         pass
                     else:
-                        db.upsert_seed_list(self._get_torrent_info(tag))
+                        db.upsert_seed_list((tag, tname, reseeder.db_column))
                 reseed_status = True
                 break
 
