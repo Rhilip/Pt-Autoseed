@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS `info_list` (
 CREATE TABLE IF NOT EXISTS `seed_list` (
   `id`                    INT(11) NOT NULL AUTO_INCREMENT,
   `title`                 TEXT    NOT NULL,
-  `download_id`           INT(11) NOT NULL,
+  `download_id`           INT(11) NOT NULL DEFAULT '0',
   `tracker.byr.cn`        INT(11) NOT NULL DEFAULT '0',
   `npupt.com`             INT(11) NOT NULL DEFAULT '0',
   `pt.nwsuaf6.edu.cn`     INT(11) NOT NULL DEFAULT '0',

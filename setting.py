@@ -6,11 +6,7 @@ import time
 
 # -*- Main Setting about Autoseed,Transmission,Database -*-
 # Autoseed
-sleep_free_time = 600  # The script runs every time interval when Free
-sleep_busy_time = 120  # The script runs every time interval when Busy
-busy_start_hour = 8  # Busy time start at [0,24)
-busy_end_hour = 14  # Busy time end at (busy_start_hour,24)
-
+SLEEP_TIME = 60 * 3
 CYCLE_CHECK_RESEEDER_ONLINE = 60 * 10
 CYCLE_SHUT_UNRESEEDER_DB = 60 * 60 * 2
 CYCLE_DEL_TORRENT_CHECK = 60 * 60

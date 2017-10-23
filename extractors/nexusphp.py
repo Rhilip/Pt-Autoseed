@@ -27,10 +27,11 @@ class NexusPHP(Site):
         The name of those key should be start with "_" and upper.
         
         Included:
-        1. _UPLVER: default "no", Enable to Release anonymously.
-        2. _AUTO_THANK: default True, Enable to Automatically thanks for additional Bones.
-        3. _DEFAULT_CLONE_TORRENT: default None, When not find the clone torrent, use it as default clone_id
-        4. _FORCE_JUDGE_DUPE_LOC: default False, Judge torrent is dupe or not in location before post it to PT-site.
+        1. _UPLVER:                default "no",  Enable to Release anonymously.
+        2. _AUTO_THANK:            default True,  Enable to Automatically thanks for additional Bones.
+        3. _DEFAULT_CLONE_TORRENT: default None,  When not find the clone torrent, use it as default clone_id
+        4. _FORCE_JUDGE_DUPE_LOC:  default False, Judge torrent is dupe or not in location before post it to PT-site.
+        5. _GET_CLONE_ID_FROM_DB:  default True,  Enable to get clone torrent's id from database first, then search.
         """
         self._UPLVER = "yes" if kwargs.setdefault("anonymous_release", True) else "no"
         self._AUTO_THANK = kwargs.setdefault("auto_thank", True)

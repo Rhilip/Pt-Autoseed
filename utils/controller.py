@@ -13,10 +13,10 @@ from utils.load.config import setting
 from utils.load.submodules import tc, db
 from utils.pattern import pattern_group
 
-TIME_TORRENT_KEEP_MIN = 86400  # The download torrent keep time even no reseed and in stopped status.
+TIME_TORRENT_KEEP_MIN = 86400  # The download torrent keep time even no reseed and in stopped status.(To avoid H&R.)
 
 
-class Controller(object):
+class Controller(Thread):
     # List of Tracker String
     downloading_torrent_id_queue = []
 
@@ -26,11 +26,14 @@ class Controller(object):
     last_id_check = 0
 
     def __init__(self):
+        super().__init__()
         self._active()
 
-        thread_args = [(self._online_check, setting.CYCLE_CHECK_RESEEDER_ONLINE),
-                       (self._shut_unreseeder_db, setting.CYCLE_SHUT_UNRESEEDER_DB),
-                       (self._del_torrent_with_db, setting.CYCLE_DEL_TORRENT_CHECK)]
+        thread_args = [
+            (self._online_check, setting.CYCLE_CHECK_RESEEDER_ONLINE),
+            (self._shut_unreseeder_db, setting.CYCLE_SHUT_UNRESEEDER_DB),
+            (self._del_torrent_with_db, setting.CYCLE_DEL_TORRENT_CHECK)
+        ]
         for args in thread_args:
             Thread(target=period_f, args=args, daemon=True).start()
 
@@ -47,6 +50,7 @@ class Controller(object):
 
         :return: None
         """
+        logging.info("Start to Active all the reseeder objects.")
         for config_name, package_name, class_name in Support_Site:
             if hasattr(setting, config_name):
                 config = getattr(setting, config_name)
@@ -58,14 +62,16 @@ class Controller(object):
 
         self.unactive_tracker_list = [i for i in db.col_seed_list[3:]
                                       if i not in [i.db_column for i in self.active_obj_list]]
-        logging.info("The assign reseeder objects:{lis}".format(lis=self.active_obj_list))
+        logging.info("The assign reseeder objects: {lis}".format(lis=self.active_obj_list))
 
     # Internal cycle function
     def _online_check(self):
+        logging.debug("The reseeder online check now start.")
         for i in self.active_obj_list:
             i.online_check()
 
     def _shut_unreseeder_db(self):
+        logging.debug("Set un-reseeder's column into -1.")
         for tracker in self.unactive_tracker_list:  # Set un_reseed column into -1
             db.exec(sql="UPDATE `seed_list` SET `{cow}` = -1 WHERE `{cow}` = 0 ".format(cow=tracker))
 
@@ -74,28 +80,30 @@ class Controller(object):
         """Delete torrent(both download and reseed) with data from transmission and database"""
         logging.debug("Begin torrent's status check.If reach condition you set,You will get a warning.")
 
-        if not rid:
-            sql = "SELECT * FROM `seed_list` ORDER BY `id` ASC LIMIT {}".format(count)
-        else:
+        if rid:
             sql = "SELECT * FROM `seed_list` WHERE `id`={}".format(rid)
+        else:
+            sql = "SELECT * FROM `seed_list` ORDER BY `id` ASC LIMIT {}".format(count)
 
         time_now = time.time()
         for cow in db.exec(sql=sql, r_dict=True, fetch_all=True):
             sid = cow.pop("id")
             s_title = cow.pop("title")
+
             err = 0
             reseed_list = []
             torrent_id_list = [tid for tracker, tid in cow.items() if tid > 0]
             for tid in torrent_id_list:
                 try:  # Ensure torrent exist
-                    if rid:
-                        raise KeyError("Force Delete, Which db-record id: {}".format(rid))
                     reseed_list.append(tc.get_torrent(torrent_id=tid))
                 except KeyError:  # Mark err when the torrent is not exist.
                     err += 1
 
             delete = False
-            if err is 0:  # It means all torrents in this cow are exist,then check these torrent's status.
+            if rid:
+                delete = True
+                logging.warning("Force Delete. Which name: {}, Affect torrents: {}".format(s_title, torrent_id_list))
+            elif err is 0:  # It means all torrents in this cow are exist,then check these torrent's status.
                 reseed_stop_list = []
                 for t in reseed_list:
                     if t.status == "stopped":  # Mark the stopped torrent
@@ -143,6 +151,18 @@ class Controller(object):
             tracker = "download_id"  # Rewrite tracker
         return t.id, t.name, tracker
 
+    def run(self):
+        i = 0
+        while True:
+            self.update_torrent_info_from_rpc_to_db()  # 更新表
+            self.reseeders_update()  # reseed判断主函数
+
+            logging.debug("Check time {ti} OK, Reach check id {cid},"
+                          " Will Sleep for {slt} seconds.".format(ti=i, cid=self.last_id_check,
+                                                                  slt=setting.SLEEP_TIME))
+            i += 1
+            time.sleep(setting.SLEEP_TIME)
+
     def get_pre_reseeder_list(self):
         return [s for s in self.active_obj_list if s.suspended == 0]  # Get active and online reseeder
 
@@ -160,7 +180,7 @@ class Controller(object):
                     try:
                         tag = reseeder.torrent_feed(torrent=dl_torrent, name_pattern=search)
                     except Exception as e:
-                        logging.critical("{}, Will start A reseeder online check soon.".format(e.args[0]))
+                        logging.critical("Reseed not success, {}".format(e))
                         Thread(target=self._online_check, daemon=True).start()
                         pass
                     else:
@@ -208,8 +228,7 @@ class Controller(object):
         if new_torrent_list:
             last_id_now = max([t.id for t in new_torrent_list])
             if last_id_db is None:
-                col_dl_reseeder = db.col_seed_list[2:]
-                last_id_db = db.get_max_in_seed_list(column_list=col_dl_reseeder)
+                last_id_db = db.get_max_in_seed_list(column_list=db.col_seed_list[2:])
             logging.debug("Max tid, transmission: {tr},database: {db}".format(tr=last_id_now, db=last_id_db))
 
             if not force_clean_check:  # Normal Update

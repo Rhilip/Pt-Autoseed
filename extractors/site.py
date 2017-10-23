@@ -49,7 +49,7 @@ class Site(object):
         
         Included:
         1. _EXTEND_DESCR_* : default True, Enable to Enhanced the description of the reseed torrent, And its priority is
-           higher than setting.extend_descr_raw[key]["status"].
+                             higher than setting.extend_descr_raw[key]["status"].
         """
         self._EXTEND_DESCR_BEFORE = kwargs.setdefault("extend_descr_before", True)
         self._EXTEND_DESCR_THUMBNAILS = kwargs.setdefault("extend_descr_thumbnails", True)
@@ -81,7 +81,7 @@ class Site(object):
             if self.suspended != 0:
                 logging.info("The Site: {si} is Online now,after {count} times tries."
                              "Will check the session soon.".format(si=self.url_host, count=self.suspended))
-                self.suspended = 0
+                self.suspended = 0  # Set self.suspended as 0 first, then session_check()
                 self.session_check()
         return True if self.suspended == 0 else False
 
