@@ -7,7 +7,7 @@ import re
 
 from bs4 import BeautifulSoup
 
-from extractors.site import Site
+from extractors.base.site import Site
 from utils.load.submodules import tc, db
 
 

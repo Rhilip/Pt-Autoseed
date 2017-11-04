@@ -7,7 +7,7 @@ import base64
 import logging
 import re
 
-from extractors.nexusphp import NexusPHP
+from extractors.base.nexusphp import NexusPHP
 
 
 def string2base64(raw):

@@ -7,7 +7,7 @@ import re
 from html import unescape
 from urllib.parse import unquote
 
-from extractors.nexusphp import NexusPHP
+from extractors.base.nexusphp import NexusPHP
 
 type_dict = {
     "电影": {
