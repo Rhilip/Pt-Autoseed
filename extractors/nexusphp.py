@@ -27,11 +27,12 @@ class NexusPHP(Site):
         The name of those key should be start with "_" and upper.
         
         Included:
-        1. _UPLVER:                default "no",  Enable to Release anonymously.
-        2. _AUTO_THANK:            default True,  Enable to Automatically thanks for additional Bones.
-        3. _DEFAULT_CLONE_TORRENT: default None,  When not find the clone torrent, use it as default clone_id
-        4. _FORCE_JUDGE_DUPE_LOC:  default False, Judge torrent is dupe or not in location before post it to PT-site.
-        5. _GET_CLONE_ID_FROM_DB:  default True,  Enable to get clone torrent's id from database first, then search.
+        1. _UPLVER                : default "no",  Enable to Release anonymously.
+        2. _AUTO_THANK            : default True,  Enable to Automatically thanks for additional Bones.
+        3. _DEFAULT_CLONE_TORRENT : default None,  When not find the clone torrent, use it as default clone_id
+        4. _FORCE_JUDGE_DUPE_LOC  : default False, Judge torrent is dupe or not in location before post it to PT-site.
+        5. _GET_CLONE_ID_FROM_DB  : default True,  Enable to get clone torrent's id from database first, then search.
+
         """
         self._UPLVER = "yes" if kwargs.setdefault("anonymous_release", True) else "no"
         self._AUTO_THANK = kwargs.setdefault("auto_thank", True)
@@ -141,7 +142,8 @@ class NexusPHP(Site):
 
         flag = -1
         search_tag = self.exist_judge(key_with_gp_ep, torrent.name)
-        if search_tag == 0:  # Non-existent repetition torrent (by local judge plugins), prepare to reseed
+        if search_tag == 0 and not self._ASSIST_ONLY:
+            # Non-existent repetition torrent (by local judge plugins), prepare to reseed
             torrent_raw_info_dict = None
 
             try:

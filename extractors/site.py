@@ -48,13 +48,15 @@ class Site(object):
         The name of those key should be start with "_" and upper.
         
         Included:
-        1. _EXTEND_DESCR_* : default True, Enable to Enhanced the description of the reseed torrent, And its priority is
-                             higher than setting.extend_descr_raw[key]["status"].
+        1. _EXTEND_DESCR_*        : default True, Enable to Enhanced the description of the reseed torrent,
+                                     And its priority is higher than setting.extend_descr_raw[key]["status"].
+        2. _ASSIST_ONLY           : default False, Enable to only assist the exist same torrent but not to reseed. 
         """
         self._EXTEND_DESCR_BEFORE = kwargs.setdefault("extend_descr_before", True)
         self._EXTEND_DESCR_THUMBNAILS = kwargs.setdefault("extend_descr_thumbnails", True)
         self._EXTEND_DESCR_MEDIAINFO = kwargs.setdefault("extend_descr_mediainfo", True)
         self._EXTEND_DESCR_CLONEINFO = kwargs.setdefault("extend_descr_cloneinfo", True)
+        self._ASSIST_ONLY = kwargs.setdefault("assist_only", False)
 
         # Check if Site is online~
         if self.status:

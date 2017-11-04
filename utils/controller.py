@@ -181,6 +181,7 @@ class Controller(Thread):
                         tag = reseeder.torrent_feed(torrent=dl_torrent, name_pattern=search)
                     except Exception as e:
                         logging.critical("Reseed not success, {}".format(e))
+                        # TODO 针对没有发成功的情况进行处理
                         Thread(target=self._online_check, daemon=True).start()
                         pass
                     else:
