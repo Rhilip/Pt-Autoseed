@@ -8,9 +8,9 @@ import re
 This package includes a list about search patterns which the Autoseed only accept torrent's name match with.
 
 NOTICE: 
-1.Every pattern should includes at least below groups,even it's empty.
+1.Every pattern should includes at least below groups, even it's empty.
   groups list:  `full_name` `search_name` `episode` `group` `filetype`
-2.It's better to use re.compile() to compile a regular expression pattern into a regular expression object.
+2.Every pattern should use re.compile() to compile a regular expression pattern into a regular expression object.
 """
 
 # Search_pattern

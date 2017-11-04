@@ -133,12 +133,14 @@ class NexusPHP(Site):
                 tag = -1
         return tag
 
-    # -*- The feeding function -*-
-    def torrent_feed(self, torrent, name_pattern):
-        logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
-        key_raw = re.sub(r"[_\-.']", " ", name_pattern.group("search_name"))
-        key_with_gp = "{gr} {search_key}".format(search_key=key_raw, gr=name_pattern.group("group"))
-        key_with_gp_ep = "{ep} {gp_key}".format(gp_key=key_with_gp, ep=name_pattern.group("episode"))
+    def torrent_reseed(self, torrent):
+        name_pattern = self._get_torrent_ptn(torrent)
+        if name_pattern:
+            key_raw = re.sub(r"[_\-.']", " ", name_pattern.group("search_name"))
+            key_with_gp = "{gr} {search_key}".format(search_key=key_raw, gr=name_pattern.group("group"))
+            key_with_gp_ep = "{ep} {gp_key}".format(gp_key=key_with_gp, ep=name_pattern.group("episode"))
+        else:
+            raise ValueError("No match pattern. Will Mark \"{}\" As Un-reseed torrent.".format(torrent.name))
 
         flag = -1
         search_tag = self.exist_judge(key_with_gp_ep, torrent.name)
@@ -183,12 +185,31 @@ class NexusPHP(Site):
                 logging.error("The torrent isn't successfully reseed. With: search_key: {pat}, dupe_tag: {tag}, "
                               "clone_id: {cid}, ".format(pat=key_with_gp_ep, tag=search_tag, cid=clone_id))
         elif search_tag == -1:  # IF the torrents are present, but not consistent (When FORCE_JUDGE_DUPE_LOC is True)
-            logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent.Stop Posting~")
+            logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent. Stop Posting~")
         else:  # IF the torrent is already released and can be assist
             flag = self.torrent_download(tid=search_tag, thanks=False)
-            logging.warning("Find dupe torrent,which id: {0},Automatically assist it~".format(search_tag))
+            logging.warning("Find dupe torrent,which id: {0}, Automatically assist it~".format(search_tag))
 
         return flag
+
+    # -*- The feeding function -*-
+    def torrent_feed(self, torrent):
+        torrent = self._get_torrent(torrent)
+        reseed_tag, = db.exec(
+            "SELECT `{}` FROM `seed_list` WHERE `download_id` = {}".format(self.db_column, torrent.id)
+        )
+
+        if reseed_tag in [None, 0, "0"] and reseed_tag not in [-1, "-1"]:
+            # It means that the pre-reseed torrent in this site is not reseed before, Or not marked as un-reseed torrent.
+            logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
+
+            try:
+                reseed_tag = self.torrent_reseed(torrent)
+            except Exception as e:
+                reseed_tag = -1
+                logging.critical("Reseed not success in Site: {}, With Exception: {}".format(self.model_name(), e))
+
+            db.upsert_seed_list((reseed_tag, torrent.name, self.db_column))
 
     # -*- At least Overridden function,Please overridden below when add a new site -*-
     def torrent_clone(self, tid) -> dict:

@@ -4,6 +4,7 @@
 
 import logging
 import os
+import re
 
 import requests
 from bs4 import BeautifulSoup
@@ -12,6 +13,8 @@ import utils.descr as descr
 from utils.constants import Video_Containers
 from utils.cookie import cookies_raw2jar
 from utils.load.config import setting
+from utils.load.submodules import tc
+from utils.pattern import pattern_group
 
 # Disable log messages from the Requests library
 logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -26,6 +29,7 @@ class Site(object):
     encode = "bbcode"  # bbcode or html
 
     suspended = 0  # 0 -> site Online, any number bigger than 0 -> Offline
+    search_ptn = pattern_group
 
     def __init__(self, status: bool, cookies: dict or str, **kwargs):
         # -*- Assign the based information -*-
@@ -97,6 +101,25 @@ class Site(object):
         """
         return os.path.basename(torrent.torrentFile), open(torrent.torrentFile, 'rb'), 'application/x-bittorrent'
 
+    @staticmethod
+    def _get_torrent(torrent):
+        if isinstance(torrent, int):
+            torrent = tc.get_torrent(torrent)
+        return torrent
+
+    def _get_torrent_ptn(self, torrent):
+        torrent = self._get_torrent(torrent)
+        tname = torrent.name
+
+        search = None
+        for ptn in self.search_ptn:
+            search = re.search(ptn, tname)
+            if search:
+                logging.debug("The search group dict of Torrent: {tn} is {gr}".format(tn=tname, gr=search.groupdict()))
+                break
+
+        return search
+
     def get_data(self, url, params=None, bs=False, json=False, **kwargs):
         """Encapsulation requests's method - GET, with format-out as bs or json"""
         page = requests.get(url=url, params=params, cookies=self.cookies, **kwargs)
@@ -138,13 +161,11 @@ class Site(object):
         # Session check code Here.
         return self.status
 
-    def torrent_feed(self, torrent, name_pattern):
+    def torrent_feed(self, torrent):
         # TODO merge name_pattern and clone_db_dict into one dict
         """
         Main entry of Reseeder.....
 
-        :param torrent: class transmissionrpc.Torrent
-        :param name_pattern: _sre.SRE_Match
-        :return: int, The flag of reseed status. any number which is bigger than 0 means success.
+        :param torrent: int or class transmissionrpc.Torrent
         """
         pass

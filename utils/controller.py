@@ -11,7 +11,6 @@ from threading import Thread
 from utils.constants import period_f, Support_Site
 from utils.load.config import setting
 from utils.load.submodules import tc, db
-from utils.pattern import pattern_group
 
 TIME_TORRENT_KEEP_MIN = 86400  # The download torrent keep time even no reseed and in stopped status.(To avoid H&R.)
 
@@ -166,37 +165,10 @@ class Controller(Thread):
     def get_pre_reseeder_list(self):
         return [s for s in self.active_obj_list if s.suspended == 0]  # Get active and online reseeder
 
-    def reseeder_feed(self, dl_torrent):
-        pre_reseeder_list = self.get_pre_reseeder_list()
-        tname = dl_torrent.name
-        cow = db.exec("SELECT * FROM `seed_list` WHERE `download_id`='{did}'".format(did=dl_torrent.id), r_dict=True)
-
-        reseed_status = False
-        for pat in pattern_group:
-            search = re.search(pat, tname)
-            if search:
-                logging.debug("The search group dict: {gr}".format(gr=search.groupdict()))
-                for reseeder in [r for r in pre_reseeder_list if int(cow[r.db_column]) == 0]:  # Site feed
-                    try:
-                        tag = reseeder.torrent_feed(torrent=dl_torrent, name_pattern=search)
-                    except Exception as e:
-                        logging.critical("Reseed not success, {}".format(e))
-                        # TODO 针对没有发成功的情况进行处理
-                        Thread(target=self._online_check, daemon=True).start()
-                        pass
-                    else:
-                        db.upsert_seed_list((tag, tname, reseeder.db_column))
-                reseed_status = True
-                break
-
-        if not reseed_status:  # Update seed_id == -1 if no matched pattern
-            logging.warning("No match pattern,Mark \"{}\" As Un-reseed torrent,Stop watching.".format(tname))
-            for reseeder in pre_reseeder_list:
-                db.upsert_seed_list((-1, tname, reseeder.db_column))
-
     def reseeders_update(self):
         """Get the pre-reseed list from database."""
-        pre_cond = " OR ".join(["`{}`=0".format(i.db_column) for i in self.get_pre_reseeder_list()])
+        pre_reseeder_list = self.get_pre_reseeder_list()
+        pre_cond = " OR ".join(["`{}`=0".format(i.db_column) for i in pre_reseeder_list])
         result = db.exec("SELECT * FROM `seed_list` WHERE `download_id` != 0 AND ({})".format(pre_cond),
                          r_dict=True, fetch_all=True)
         for t in result:  # Traversal all un-reseed list
@@ -209,14 +181,15 @@ class Controller(Thread):
             else:
                 tname = dl_torrent.name
                 if int(dl_torrent.progress) is 100:  # Get the download progress in percent.
-                    logging.info("New completed torrent: \"{name}\" ,Judge reseed or not.".format(name=tname))
-                    self.reseeder_feed(dl_torrent=dl_torrent)
+                    logging.info("New completed torrent: \"{name}\" , Judge reseed or not.".format(name=tname))
+                    for reseeder in pre_reseeder_list:
+                        reseeder.torrent_feed(torrent=dl_torrent)
                     if dl_torrent.id in self.downloading_torrent_id_queue:
                         self.downloading_torrent_id_queue.remove(dl_torrent.id)
                 elif dl_torrent.id in self.downloading_torrent_id_queue:
                     pass  # Wait until this torrent download completely.
                 else:
-                    logging.warning("Torrent:\"{name}\" is still downloading,Wait......".format(name=tname))
+                    logging.warning("Torrent:\"{name}\" is still downloading, Wait......".format(name=tname))
                     self.downloading_torrent_id_queue.append(dl_torrent.id)
 
     def update_torrent_info_from_rpc_to_db(self, last_id_db=None, force_clean_check=False):
