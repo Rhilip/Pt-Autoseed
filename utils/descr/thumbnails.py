@@ -48,7 +48,7 @@ def thumbnails(file, img_url=None, img_file_loc=None) -> str:
         logging.debug("Run Command: \"{command}\" to get Thumbnails.".format(command=ffmpeg_sh))
         stderr = os.system(ffmpeg_sh)
 
-    if stderr == 0:
+    if stderr == 0 and os.path.isfile(img_file_loc):
         img_url = img_url or "{web_url}/{file}".format(web_url=web_url_pat, file=img_file_name)
         logging.info("The thumbnail of \"{0}\" save on: \"{1}\", with uri: \"{2}\"".format(file, img_file_loc, img_url))
     else:
