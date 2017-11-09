@@ -73,9 +73,8 @@ class NexusPHP(Site):
             flag = self.torrent_download(tid=seed_torrent_download_id)
             logging.info("Reseed post OK,The torrent's in transmission: {fl}".format(fl=flag))
         else:  # Log if not reseed successfully
-            flag = -1
             outer_message = self.torrent_upload_err_message(post_text=post.text)
-            logging.error("Upload this torrent Error,The Server echo:\"{0}\",Stop Posting".format(outer_message))
+            raise ConnectionError("Upload this torrent Error, The Server echo:\"{0}\".".format(outer_message))
         return flag
 
     @staticmethod
@@ -142,7 +141,6 @@ class NexusPHP(Site):
         else:
             raise ValueError("No match pattern. Will Mark \"{}\" As Un-reseed torrent.".format(torrent.name))
 
-        flag = -1
         search_tag = self.exist_judge(key_with_gp_ep, torrent.name)
         if search_tag == 0 and not self._ASSIST_ONLY:
             # Non-existent repetition torrent (by local judge plugins), prepare to reseed
@@ -173,43 +171,40 @@ class NexusPHP(Site):
                     torrent_raw_info_dict = self.torrent_clone(clone_id)
                     logging.info("Get clone torrent info from \"Reseed-Site\" OK, Which id: {cid}".format(cid=clone_id))
 
-            err = True
             if torrent_raw_info_dict:
                 logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
                 new_dict = self.date_raw_update(torrent_name_search=name_pattern, raw_info=torrent_raw_info_dict)
                 multipart_data = self.data_raw2tuple(torrent, raw_info=new_dict)
                 flag = self.torrent_upload(data=multipart_data)
-                if flag is not -1:
-                    err = False
-            if err:  # May clone_id in [0,-1] or upload error
-                logging.error("The torrent isn't successfully reseed. With: search_key: {pat}, dupe_tag: {tag}, "
-                              "clone_id: {cid}, ".format(pat=key_with_gp_ep, tag=search_tag, cid=clone_id))
+            else:  # TODO change Error type
+                raise ValueError("Can't find any clone torrent to used.".format(self.model_name()))
         elif search_tag == -1:  # IF the torrents are present, but not consistent (When FORCE_JUDGE_DUPE_LOC is True)
-            logging.warning("Find dupe,and the exist torrent is not same as pre-reseed torrent. Stop Posting~")
+            raise ValueError("Find dupe, and the exist torrent is not same as pre-reseed torrent. Stop Posting~")
         else:  # IF the torrent is already released and can be assist
-            flag = self.torrent_download(tid=search_tag, thanks=False)
             logging.warning("Find dupe torrent,which id: {0}, Automatically assist it~".format(search_tag))
+            flag = self.torrent_download(tid=search_tag, thanks=False)
 
         return flag
 
     # -*- The feeding function -*-
     def torrent_feed(self, torrent):
-        torrent = self._get_torrent(torrent)
-        reseed_tag, = db.exec(
-            "SELECT `{}` FROM `seed_list` WHERE `download_id` = {}".format(self.db_column, torrent.id)
-        )
+        if self.online_check():
+            torrent = self._get_torrent(torrent)
+            reseed_tag, = db.exec(
+                "SELECT `{}` FROM `seed_list` WHERE `download_id` = {}".format(self.db_column, torrent.id)
+            )
 
-        if reseed_tag in [None, 0, "0"] and reseed_tag not in [-1, "-1"]:
-            # It means that the pre-reseed torrent in this site is not reseed before, Or not marked as un-reseed torrent.
-            logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
+            if reseed_tag in [None, 0, "0"] and reseed_tag not in [-1, "-1"]:
+                # It means that the pre-reseed torrent in this site is not reseed before,
+                # And this torrent not marked as an un-reseed torrent.
+                logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
 
-            try:
-                reseed_tag = self.torrent_reseed(torrent)
-            except Exception as e:
                 reseed_tag = -1
-                logging.critical("Reseed not success in Site: {}, With Exception: {}".format(self.model_name(), e))
-
-            db.upsert_seed_list((reseed_tag, torrent.name, self.db_column))
+                try:
+                    reseed_tag = self.torrent_reseed(torrent)
+                except Exception as e:
+                    logging.error("Reseed not success in Site: {}, With Exception: {}".format(self.model_name(), e))
+                db.upsert_seed_list((reseed_tag, torrent.name, self.db_column))
 
     # -*- At least Overridden function,Please overridden below when add a new site -*-
     def torrent_clone(self, tid) -> dict:
