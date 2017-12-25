@@ -62,7 +62,7 @@ class Site(object):
         self._EXTEND_DESCR_CLONEINFO = kwargs.setdefault("extend_descr_cloneinfo", True)
         self._ASSIST_ONLY = kwargs.setdefault("assist_only", False)
 
-        # Check if Site is online~
+        # Check Site Online Status
         if self.status:
             self.online_check()
 

@@ -21,7 +21,7 @@ class ServerChan(object):
         """
         if self.status:
             r = requests.post(url=self.key_url, data={'text': text, 'desp': desp})
-            logging.info("Send ServerChan message,The Server echo:\"{0}\"".format(r.text))
+            logging.info("Send ServerChan message, The Server echo: \"{0}\"".format(r.text))
 
     def send_torrent_post_ok(self, url, dl_torrent):
         # TODO more desp
