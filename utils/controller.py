@@ -20,7 +20,6 @@ class Controller(Thread):
     downloading_torrent_id_queue = []
 
     active_obj_list = []
-    unactive_tracker_list = []
 
     last_id_check = 0
 
@@ -30,13 +29,12 @@ class Controller(Thread):
 
         thread_args = [
             (self._online_check, setting.CYCLE_CHECK_RESEEDER_ONLINE),
-            (self._shut_unreseeder_db, setting.CYCLE_SHUT_UNRESEEDER_DB),
             (self._del_torrent_with_db, setting.CYCLE_DEL_TORRENT_CHECK)
         ]
         for args in thread_args:
             Thread(target=period_f, args=args, daemon=True).start()
 
-        self.update_torrent_info_from_rpc_to_db(force_clean_check=True)
+        logging.info("Initialization settings Success~")
 
     # Add Reseeder
     def _active(self):
@@ -49,7 +47,9 @@ class Controller(Thread):
 
         :return: None
         """
+        # 1. Active All used reseeder.
         logging.info("Start to Active all the reseeder objects.")
+
         for config_name, package_name, class_name in Support_Site:
             if hasattr(setting, config_name):
                 config = getattr(setting, config_name)
@@ -59,20 +59,21 @@ class Controller(Thread):
                     if autoseed_prototype.status:
                         self.active_obj_list.append(autoseed_prototype)
 
-        self.unactive_tracker_list = [i for i in db.col_seed_list[3:]
-                                      if i not in [i.db_column for i in self.active_obj_list]]
         logging.info("The assign reseeder objects: {lis}".format(lis=self.active_obj_list))
+
+        # 2. Turn off those unactive reseeder, for database safety.
+        logging.debug("Set un-reseeder's column into -1.")
+        unactive_tracker_list = [i for i in db.col_seed_list[3:]
+                                 if i not in [i.db_column for i in self.active_obj_list]
+                                 ]
+        for tracker in unactive_tracker_list:  # Set un_reseed column into -1
+            db.exec(sql="UPDATE `seed_list` SET `{cow}` = -1 WHERE `{cow}` = 0 ".format(cow=tracker))
 
     # Internal cycle function
     def _online_check(self):
         logging.debug("The reseeder online check now start.")
         for i in self.active_obj_list:
             i.online_check()
-
-    def _shut_unreseeder_db(self):
-        logging.debug("Set un-reseeder's column into -1.")
-        for tracker in self.unactive_tracker_list:  # Set un_reseed column into -1
-            db.exec(sql="UPDATE `seed_list` SET `{cow}` = -1 WHERE `{cow}` = 0 ".format(cow=tracker))
 
     @staticmethod
     def _del_torrent_with_db(rid=None, count=20):
@@ -151,6 +152,9 @@ class Controller(Thread):
         return t.id, t.name, tracker
 
     def run(self):
+
+        self.update_torrent_info_from_rpc_to_db(force_clean_check=True)
+
         i = 0
         while True:
             self.update_torrent_info_from_rpc_to_db()  # 更新表

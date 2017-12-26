@@ -55,8 +55,8 @@ class NexusPHP(Site):
     def torrent_download(self, tid, **kwargs):
         download_url = self.url_host + "/download.php?id={tid}&passkey={pk}".format(tid=tid, pk=self.passkey)
         added_torrent = tc.add_torrent(torrent=download_url)
-        # Another way is download torrent file to watch-dir(see early commits),But it will no return added_torrent.id
-        logging.info("Download Torrent OK,which id: {id}.".format(id=tid))
+        # Another way is download torrent file to watch-dir(see early commits), But it will no return added_torrent.id
+        logging.info("Download Torrent OK, which id: {id}.".format(id=tid))
         if kwargs.setdefault("thanks", self._AUTO_THANK):
             self.torrent_thank(tid)
         return added_torrent.id
@@ -67,7 +67,7 @@ class NexusPHP(Site):
         if post.url != upload_url:  # Check reseed status
             seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # Read the torrent's id in reseed site
             flag = self.torrent_download(tid=seed_torrent_download_id)
-            logging.info("Reseed post OK,The torrent's in transmission: {fl}".format(fl=flag))
+            logging.info("Reseed post OK, The torrent's in transmission: {fl}".format(fl=flag))
         else:  # Log if not reseed successfully
             outer_message = self.torrent_upload_err_message(post_text=post.text)
             raise ConnectionError("Upload this torrent Error, The Server echo:\"{0}\".".format(outer_message))
@@ -100,7 +100,7 @@ class NexusPHP(Site):
         bs = self.page_search(key=key, bs=True)
         download_tag = bs.find_all("a", href=self._pat_search_torrent_id)
         tid_list = [int(re.search(self._pat_search_torrent_id, tag["href"]).group(1)) for tag in download_tag]
-        logging.debug("USE key: {key} to search,and the Return tid-list: {list}".format(key=key, list=tid_list))
+        logging.debug("USE key: {key} to search, With the Return tid-list: {list}".format(key=key, list=tid_list))
         return tid_list
 
     def first_tid_in_search_list(self, key, _max=False) -> int:

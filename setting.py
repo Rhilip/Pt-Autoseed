@@ -8,7 +8,6 @@ import time
 # Autoseed
 SLEEP_TIME = 60 * 3
 CYCLE_CHECK_RESEEDER_ONLINE = 60 * 10
-CYCLE_SHUT_UNRESEEDER_DB = 60 * 60 * 2
 CYCLE_DEL_TORRENT_CHECK = 60 * 60
 
 # Transmission
