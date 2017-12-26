@@ -33,6 +33,7 @@ class NexusPHP(Site):
         3. _DEFAULT_CLONE_TORRENT : default None,  When not find the clone torrent, use it as default clone_id
         4. _FORCE_JUDGE_DUPE_LOC  : default False, Judge torrent is dupe or not in location before post it to PT-site.
         5. _GET_CLONE_ID_FROM_DB  : default True,  Enable to get clone torrent's id from database first, then search.
+        6. _ALLOW_CAT             : default None,  Used to limit the reseed torrent category
 
         """
         self._UPLVER = "yes" if kwargs.setdefault("anonymous_release", True) else "no"
@@ -40,6 +41,7 @@ class NexusPHP(Site):
         self._DEFAULT_CLONE_TORRENT = kwargs.setdefault("default_clone_torrent", None)
         self._FORCE_JUDGE_DUPE_LOC = kwargs.setdefault("force_judge_dupe_loc", False)
         self._GET_CLONE_ID_FROM_DB = kwargs.setdefault("get_clone_id_from_db", True)
+        self._ALLOW_CAT = kwargs.setdefault("allow_cat", None)
 
     # -*- Check login's info -*-
     def session_check(self):
@@ -175,11 +177,16 @@ class NexusPHP(Site):
                     logging.info("Get clone torrent info from \"Reseed-Site\" OK, Which id: {cid}".format(cid=clone_id))
 
             if torrent_raw_info_dict:
+                if self._ALLOW_CAT:
+                    pre_reseed_cat = torrent_raw_info_dict.get("type")
+                    if int(pre_reseed_cat) not in self._ALLOW_CAT:
+                        raise NoCloneTorrentError("The clone torrent's category is not allowed.")
+
                 logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
                 new_dict = self.date_raw_update(torrent_name_search=name_pattern, raw_info=torrent_raw_info_dict)
                 multipart_data = self.data_raw2tuple(torrent, raw_info=new_dict)
                 flag = self.torrent_upload(data=multipart_data)
-            else:  # TODO change Error type
+            else:
                 raise NoCloneTorrentError("Can't find any clone torrent to used.".format(self.model_name()))
         elif search_tag == -1:  # IF the torrents are present, but not consistent (When FORCE_JUDGE_DUPE_LOC is True)
             raise CannotAssistError("Find dupe, and the exist torrent is not same as pre-reseed torrent. Stop Posting~")
@@ -207,7 +214,8 @@ class NexusPHP(Site):
             except Exception as e:  # TODO 针对不同的Error情况做不同的更新（e.g. 因为网络问题则置0，其他情况置1）
                 err_name = type(e).__name__
                 logging.error(
-                    "Reseed not success in Site: {}, With Exception: {}, {}".format(self.model_name(), err_name, e)
+                    "Reseed not success in Site: {} for torrent: {}, "
+                    "With Exception: {}, {}".format(self.model_name(), torrent.name, err_name, e)
                 )
             db.upsert_seed_list((reseed_tag, torrent.name, self.db_column))
 

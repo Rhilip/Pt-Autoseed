@@ -177,8 +177,8 @@ class Byrbt(NexusPHP):
     encode = "html"
 
     def __init__(self, status, cookies, passkey, **kwargs):
-        # Site Features: POST without subtitle, change in data_raw_update()
-        self._NO_SUBTITLE = kwargs.setdefault("no_subtitle", False)
+        # Site Features
+        self._NO_SUBTITLE = kwargs.setdefault("no_subtitle", False)  # NO subtitle when POST
 
         super().__init__(status, cookies, passkey, **kwargs)
 
