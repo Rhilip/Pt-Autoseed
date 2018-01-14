@@ -26,8 +26,8 @@ ask_dict = {
 
 
 class TJUPT(NexusPHP):
-    url_host = "http://pt.tju.edu.cn"
-    db_column = "pttracker6.tju.edu.cn"
+    url_host = "https://tjupt.org"
+    db_column = "pttracker6.tjupt.org"
 
     def __init__(self, status, cookies, passkey, **kwargs):
         # Site Features: Display In the browse page (Dead torrent will be set if not checked -> "0")
@@ -41,7 +41,6 @@ class TJUPT(NexusPHP):
             torrent_page = self.page_torrent_detail(tid=tag, bs=True)
             torrent_title = re.search("\[TJUPT\]\.(?P<name>.+?)\.torrent", torrent_page.text).group("name")
         else:  # Due to HIGH Authority (Ultimate User) asked to view this page.
-            # TODO not test....
             torrent_file_info_table = torrent_file_page.find("ul", id="colapse")
             torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
         logging.info("The torrent name for id({id}) is \"{name}\"".format(id=tag, name=torrent_title))
