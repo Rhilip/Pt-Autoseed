@@ -10,11 +10,13 @@ import requests
 from bs4 import BeautifulSoup
 
 import utils.descr as descr
+
+from utils.err import *
 from utils.constants import Video_Containers
 from utils.cookie import cookies_raw2jar
 from utils.load.config import setting
 from utils.load.submodules import tc
-from utils.pattern import pattern_group
+from utils.pattern import pattern_group as search_ptn
 
 # Disable log messages from the Requests library
 logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -29,7 +31,6 @@ class Site(object):
     encode = "bbcode"  # bbcode or html
 
     suspended = 0  # 0 -> site Online, any number bigger than 0 -> Offline
-    search_ptn = pattern_group
 
     def __init__(self, status: bool, cookies: dict or str, **kwargs):
         # -*- Assign the based information -*-
@@ -112,13 +113,24 @@ class Site(object):
         tname = torrent.name
 
         search = None
-        for ptn in self.search_ptn:
+        for ptn in search_ptn:
             search = re.search(ptn, tname)
             if search:
                 logging.debug("The search group dict of Torrent: {tn} is {gr}".format(tn=tname, gr=search.groupdict()))
                 break
 
         return search
+
+    def _get_torrent_key(self, torrent) -> dict:
+        name_pattern = self._get_torrent_ptn(torrent)
+        if name_pattern:
+            key = {"name_pattern":name_pattern, "raw": re.sub(r"[_\-.']", " ", name_pattern.group("search_name"))}
+            key["with_gp"] = "{gr} {search_key}".format(search_key=key["raw"], gr=name_pattern.group("group"))
+            key["with_gp_ep"] = "{ep} {gp_key}".format(gp_key=key["with_gp"], ep=name_pattern.group("episode"))
+
+            return key
+        else:
+            raise NoMatchPatternError("No match pattern. Will Mark \"{}\" As Un-reseed torrent.".format(torrent.name))
 
     def get_data(self, url, params=None, bs=False, json=False, **kwargs):
         """Encapsulation requests's method - GET, with format-out as bs or json"""
@@ -149,23 +161,20 @@ class Site(object):
         return before + info_dict["descr"] + shot + mediainfo + clone_info
 
     # -*- At least Overridden function,Please overridden below when add a new site -*-
-    def session_check(self) -> bool:
+    def session_check(self):
         """
         Check function to get the reseeder's auth.
 
         Warning(s):
         1. You should write your code for session check, And self.status must be changed by check result in your code.
 
-        :return: bool, self.status
         """
-        # Session check code Here.
-        return self.status
+        raise NotImplementedError
 
     def torrent_feed(self, torrent):
-        # TODO merge name_pattern and clone_db_dict into one dict
         """
         Main entry of Reseeder.....
 
         :param torrent: int or class transmissionrpc.Torrent
         """
-        pass
+        raise NotImplementedError

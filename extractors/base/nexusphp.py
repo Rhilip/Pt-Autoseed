@@ -7,8 +7,8 @@ import re
 
 from bs4 import BeautifulSoup
 
-from extractors.base.site import Site
 from utils.err import *
+from extractors.base.site import Site
 from utils.load.submodules import tc, db
 
 
@@ -183,7 +183,7 @@ class NexusPHP(Site):
                         raise NoCloneTorrentError("The clone torrent's category is not allowed.")
 
                 logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
-                new_dict = self.date_raw_update(torrent_name_search=name_pattern, raw_info=torrent_raw_info_dict)
+                new_dict = self.date_raw_update(torrent_name_search=key.get("name_pattern"), raw_info=torrent_raw_info_dict)
                 multipart_data = self.data_raw2tuple(torrent, raw_info=new_dict)
                 flag = self.torrent_upload(data=multipart_data)
             else:
@@ -217,7 +217,8 @@ class NexusPHP(Site):
                     "Reseed not success in Site: {} for torrent: {}, "
                     "With Exception: {}, {}".format(self.model_name(), torrent.name, err_name, e)
                 )
-            db.upsert_seed_list((reseed_tag, torrent.name, self.db_column))
+            finally:
+                db.upsert_seed_list((reseed_tag, torrent.name, self.db_column))
 
     # -*- At least Overridden function,Please overridden below when add a new site -*-
     def torrent_clone(self, tid) -> dict:
@@ -228,7 +229,7 @@ class NexusPHP(Site):
         :param tid: int, The clone torrent's id in this site
         :return: dict, The information dict about this clone torrent
         """
-        pass
+        raise NotImplementedError
 
     def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
         """
@@ -238,7 +239,7 @@ class NexusPHP(Site):
         :param raw_info: dict, The information dict about the clone torrent
         :return: dict, The information dict about the pre-reseed torrent
         """
-        pass
+        raise NotImplementedError
 
     def data_raw2tuple(self, torrent, raw_info: dict) -> tuple:
         """
@@ -248,4 +249,4 @@ class NexusPHP(Site):
         :param raw_info: dict, The information dict about the pre-reseed torrent
         :return: tuple, The prepared tuple used to upload to the site
         """
-        pass
+        raise NotImplementedError

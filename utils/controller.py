@@ -12,7 +12,7 @@ from utils.load.config import setting
 from utils.load.handler import rootLogger as Logger
 from utils.load.submodules import tc, db
 
-TIME_TORRENT_KEEP_MIN = 86400  # The download torrent keep time even no reseed and in stopped status.(To avoid H&R.)
+TIME_TORRENT_KEEP_MIN = 86400 * 2  # The download torrent keep time even no reseed and in stopped status.(To avoid H&R.)
 
 
 class Controller(Thread):
@@ -23,15 +23,6 @@ class Controller(Thread):
     def __init__(self):
         super().__init__()
         self._active()
-
-        thread_args = [
-            (self._online_check, setting.CYCLE_CHECK_RESEEDER_ONLINE),
-            (self._del_torrent_with_db, setting.CYCLE_DEL_TORRENT_CHECK)
-        ]
-        for args in thread_args:
-            Thread(target=period_f, args=args, daemon=True).start()
-
-        Logger.info("Initialization settings Success~")
 
     # Add Reseeder
     def _active(self):
@@ -59,11 +50,16 @@ class Controller(Thread):
         Logger.info("The assign reseeder objects: {lis}".format(lis=self.active_obj_list))
 
         # 2. Turn off those unactive reseeder, for database safety.
-        Logger.debug("Set un-reseeder's column into -1.")
         unactive_tracker_list = [i for i in db.col_seed_list[3:]
                                  if i not in [i.db_column for i in self.active_obj_list]]
-        for tracker in unactive_tracker_list:  # Set un_reseed column into -1
-            db.exec(sql="UPDATE `seed_list` SET `{cow}` = -1 WHERE `{cow}` = 0 ".format(cow=tracker))
+
+        def _shut_unreseeder_db():
+            Logger.debug("Set un-reseeder's column into -1.")
+            for tracker in unactive_tracker_list:  # Set un_reseed column into -1
+                db.exec(sql="UPDATE `seed_list` SET `{cow}` = -1 WHERE `{cow}` = 0 ".format(cow=tracker))
+
+        Thread(target=period_f, args=(_shut_unreseeder_db, 43200), daemon=True).start()
+        Logger.info("Initialization settings Success~")
 
     # Internal cycle function
     def _online_check(self):
@@ -74,7 +70,7 @@ class Controller(Thread):
     @staticmethod
     def _del_torrent_with_db(rid=None, count=20):
         """Delete torrent(both download and reseed) with data from transmission and database"""
-        Logger.debug("Begin torrent's status check.If reach condition you set,You will get a warning.")
+        Logger.debug("Begin torrent's status check. If reach condition you set, You will get a warning.")
 
         if rid:
             sql = "SELECT * FROM `seed_list` WHERE `id`={}".format(rid)
@@ -102,18 +98,18 @@ class Controller(Thread):
             elif err is 0:  # It means all torrents in this cow are exist,then check these torrent's status.
                 reseed_stop_list = []
                 for t in reseed_list:
-                    if t.status == "stopped":  # Mark the stopped torrent
-                        if int(time_now - t.addedDate) > TIME_TORRENT_KEEP_MIN:  # At least seed time
+                    if int(time_now - t.addedDate) > TIME_TORRENT_KEEP_MIN:  # At least seed time
+                        if t.status == "stopped":  # Mark the stopped torrent
                             reseed_stop_list.append(t)
-                    elif setting.pre_delete_judge(torrent=t):
-                        tc.stop_torrent(t.id)
-                        Logger.warning(
-                            "Reach Target you set,Torrent \"{name}\" now stop, "
-                            "With Uploaded {si:.2f} MiB, Ratio {ro:.2f} , "
-                            "Keep time {ho:.2f} h".format(name=t.name, si=t.uploadedEver / 1024 / 1024,
-                                                          ro=t.uploadRatio,
-                                                          ho=(time.time() - t.startDate) / 60 / 60)
-                        )
+                        elif setting.pre_delete_judge(torrent=t):
+                            tc.stop_torrent(t.id)
+                            Logger.warning(
+                                "Reach Target you set,Torrent \"{name}\" now stop, "
+                                "With Uploaded {si:.2f} MiB, Ratio {ro:.2f} , "
+                                "Keep time {ho:.2f} h".format(name=t.name, si=t.uploadedEver / 1024 / 1024,
+                                                              ro=t.uploadRatio,
+                                                              ho=(time.time() - t.startDate) / 60 / 60)
+                            )
                 if len(reseed_list) == len(reseed_stop_list):
                     delete = True
                     Logger.info("All torrents of \"{0}\" reach target, Will DELETE them soon.".format(s_title))
@@ -150,13 +146,21 @@ class Controller(Thread):
     def run(self):
         self.update_torrent_info_from_rpc_to_db(force_clean_check=True)
 
+        # Start background thread
+        thread_args = [
+            (self._online_check, setting.CYCLE_CHECK_RESEEDER_ONLINE),
+            (self._del_torrent_with_db, setting.CYCLE_DEL_TORRENT_CHECK)
+        ]
+        for args in thread_args:
+            Thread(target=period_f, args=args, daemon=True).start()
+
         Logger.info("Check period Starting~")
         while True:
             self.update_torrent_info_from_rpc_to_db()  # Read the new torrent's info and sync it to database
             self.reseeders_update()  # Feed those new and not reseed torrent to active reseeder
             time.sleep(setting.SLEEP_TIME)
 
-    def get_pre_reseeder_list(self):
+    def get_online_reseeders(self):
         return [s for s in self.active_obj_list if s.suspended == 0]  # Get active and online reseeder
 
     def update_torrent_info_from_rpc_to_db(self, last_id_db=None, force_clean_check=False):
@@ -200,7 +204,7 @@ class Controller(Thread):
         Get the pre-reseed list from database.
         And sent those un-reseed torrents to each reseeder depend on it's download status.
         """
-        pre_reseeder_list = self.get_pre_reseeder_list()
+        pre_reseeder_list = self.get_online_reseeders()
         pre_cond = " OR ".join(["`{}`=0".format(i.db_column) for i in pre_reseeder_list])
         result = db.exec("SELECT * FROM `seed_list` WHERE `download_id` != 0 AND ({})".format(pre_cond),
                          r_dict=True, fetch_all=True)
