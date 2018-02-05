@@ -7,8 +7,8 @@ import re
 
 from bs4 import BeautifulSoup
 
-from utils.err import *
 from extractors.base.site import Site
+from utils.err import *
 from utils.load.submodules import tc, db
 
 
@@ -183,7 +183,7 @@ class NexusPHP(Site):
                         raise NoCloneTorrentError("The clone torrent's category is not allowed.")
 
                 logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
-                new_dict = self.date_raw_update(torrent_name_search=key.get("name_pattern"), raw_info=torrent_raw_info_dict)
+                new_dict = self.date_raw_update(torrent_name_search=name_pattern, raw_info=torrent_raw_info_dict)
                 multipart_data = self.data_raw2tuple(torrent, raw_info=new_dict)
                 flag = self.torrent_upload(data=multipart_data)
             else:
