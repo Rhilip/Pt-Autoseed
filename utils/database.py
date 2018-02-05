@@ -9,8 +9,6 @@ from threading import Lock
 
 import pymysql
 
-from utils.constants import TABLE_INFO_LIST, TABLE_SEED_LIST
-
 
 class Database(object):
     cache_torrent_name = []
@@ -23,18 +21,11 @@ class Database(object):
         self.col_seed_list = [i[0] for i in self.exec("SHOW COLUMNS FROM `seed_list`", fetch_all=True)]
         self.cache_torrent_list()
 
-    @staticmethod
-    def _safety_table(sql: str) -> str:
-        # TODO It's not good, but it is useful when add or change table `seed_list
-        sql = re.sub("`seed_list`", "`{}`".format(TABLE_SEED_LIST), sql)
-        sql = re.sub("`info_list`", "`{}`".format(TABLE_INFO_LIST), sql)
-        return sql
-
     # Based Function
     def exec(self, sql: str, r_dict: bool = False, fetch_all: bool = False, ret_rows: bool = False):
         with self._commit_lock:
             cursor = self.db.cursor(pymysql.cursors.DictCursor) if r_dict else self.db.cursor()  # Cursor type
-            row = cursor.execute(self._safety_table(sql))
+            row = cursor.execute(sql)
             data = cursor.fetchall() if fetch_all else cursor.fetchone()  # The lines of return info (one or all)
             logging.debug("Success,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
 
