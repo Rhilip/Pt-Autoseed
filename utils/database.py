@@ -27,7 +27,7 @@ class Database(object):
             cursor = self.db.cursor(pymysql.cursors.DictCursor) if r_dict else self.db.cursor()  # Cursor type
             row = cursor.execute(sql, args)
             data = cursor.fetchall() if fetch_all else cursor.fetchone()  # The lines of return info (one or all)
-            logging.debug("Success,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
+            logging.debug("Success, DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
 
         return (row, data) if ret_rows else data
 
@@ -60,7 +60,7 @@ class Database(object):
 
         return clone_id
 
-    def upsert_seed_list(self, torrent_info):
+    def upsert_seed_list(self, torrent_info: tuple):
         tid, name, tracker = torrent_info
         escape_name = pymysql.escape_string(name)
 
