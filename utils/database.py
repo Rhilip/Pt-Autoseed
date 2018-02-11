@@ -31,11 +31,12 @@ class Database(object):
 
         return (row, data) if ret_rows else data
 
-    def cache_torrent_list(self):
+    def cache_torrent_list(self) -> list:
         self.cache_torrent_name = [i[0] for i in self.exec(sql="SELECT `title` FROM `seed_list`", fetch_all=True)]
+        return self.cache_torrent_name
 
     # Procedure Oriented Function
-    def get_max_in_seed_list(self, column_list: list or str):
+    def get_max_in_seed_list(self, column_list: list or str) -> int:
         """Find the maximum value of the table in a list of column from the database"""
         if isinstance(column_list, str):
             column_list = [column_list]
@@ -61,18 +62,17 @@ class Database(object):
 
     def upsert_seed_list(self, torrent_info):
         tid, name, tracker = torrent_info
+        escape_name = pymysql.escape_string(name)
 
-        while True:
-            if name in self.cache_torrent_name:
-                raw_sql = "UPDATE `seed_list` SET `{cow}` = {id:d} WHERE `title`='{name}'"
-                break
-            else:
-                exist = "SELECT COUNT(*) FROM `seed_list` WHERE `title`='{}'".format(pymysql.escape_string(name))
-                if self.exec(sql=exist)[0] == 0:
-                    raw_sql = "INSERT INTO `seed_list` (`title`,`{cow}`) VALUES ('{name}',{id:d})"
-                    break
-                else:
-                    self.cache_torrent_list()
+        check_sql = "SELECT COUNT(*) FROM `seed_list` WHERE `title`='{}'"
 
-        sql = raw_sql.format(cow=tracker, name=pymysql.escape_string(name), id=tid)
+        raw_sql = "UPDATE `seed_list` SET `{cow}` = {id:d} WHERE `title`='{name}'"  # TO UPDATE
+        if name in self.cache_torrent_name:  # 1. Check in local cache list first
+            pass
+        elif self.exec(sql=check_sql.format(escape_name))[0] != 0:  # 2. Check in remote Database
+            self.cache_torrent_list()  # Update local cache
+        else:
+            raw_sql = "INSERT INTO `seed_list` (`title`,`{cow}`) VALUES ('{name}',{id:d})"  # TO INSERT
+
+        sql = raw_sql.format(cow=tracker, name=escape_name, id=tid)
         return self.exec(sql=sql)

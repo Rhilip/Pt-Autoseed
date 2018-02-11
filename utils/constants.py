@@ -5,8 +5,6 @@
 import re
 import time
 
-TABLE_INFO_LIST = "info_list"
-TABLE_SEED_LIST = "seed_list"
 
 Support_Site = [
     # The tuple is like (config_dict_name in setting, Package name, Class name)
