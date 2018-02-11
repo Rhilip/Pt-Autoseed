@@ -22,10 +22,10 @@ class Database(object):
         self.cache_torrent_list()
 
     # Based Function
-    def exec(self, sql: str, r_dict: bool = False, fetch_all: bool = False, ret_rows: bool = False):
+    def exec(self, sql: str, args=None, r_dict: bool = False, fetch_all: bool = False, ret_rows: bool = False):
         with self._commit_lock:
             cursor = self.db.cursor(pymysql.cursors.DictCursor) if r_dict else self.db.cursor()  # Cursor type
-            row = cursor.execute(sql)
+            row = cursor.execute(sql, args)
             data = cursor.fetchall() if fetch_all else cursor.fetchone()  # The lines of return info (one or all)
             logging.debug("Success,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
 
