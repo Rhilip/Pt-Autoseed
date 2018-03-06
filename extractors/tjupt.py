@@ -39,9 +39,9 @@ class TJUPT(NexusPHP):
 
     def torrent_link(self, tid):
         torrent_link = self.url_host + "/download.php?id={tid}&passkey={pk}".format(tid=tid, pk=self.passkey)
-        tmp_file = r"/tmp/[TJUPT].{}.torrent".format(tid)
-        with open(tmp_file, "rb") as torrent:
-            r = requests.get(torrent_link, cookies=self.cookies)
+        tmp_file = "/tmp/[TJUPT].{}.torrent".format(tid)
+        with open(tmp_file, "wb") as torrent:
+            r = requests.get(torrent_link)
             torrent.write(r.content)
         return tmp_file
 
