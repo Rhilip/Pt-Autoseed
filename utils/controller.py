@@ -67,8 +67,7 @@ class Controller(Thread):
         for i in self.active_obj_list:
             i.online_check()
 
-    @staticmethod
-    def _del_torrent_with_db(rid=None, count=20):
+    def _del_torrent_with_db(self, rid=None, count=20):
         """Delete torrent(both download and reseed) with data from transmission and database"""
         Logger.debug("Begin torrent's status check. If reach condition you set, You will get a warning.")
 
@@ -102,20 +101,20 @@ class Controller(Thread):
                         if t.status == "stopped":  # Mark the stopped torrent
                             reseed_stop_list.append(t)
                         elif setting.pre_delete_judge(torrent=t):
+                            _tid, _tname, _tracker = self._get_torrent_info(t)
                             tc.stop_torrent(t.id)
                             Logger.warning(
-                                "Reach Target you set,Torrent \"{name}\" now stop, "
-                                "With Uploaded {si:.2f} MiB, Ratio {ro:.2f} , "
-                                "Keep time {ho:.2f} h".format(name=t.name, si=t.uploadedEver / 1024 / 1024,
-                                                              ro=t.uploadRatio,
-                                                              ho=(time.time() - t.startDate) / 60 / 60)
+                                "Reach Target you set, Torrent({tid}) \"{name}\" in Tracker \"{tracker}\" now stop, "
+                                "With Uploaded {si:.2f} MiB, Ratio {ro:.2f} , Keep time {ho:.2f} h."
+                                "".format(tid=_tid, name=_tname, tracker=_tracker, si=t.uploadedEver / 1024 / 1024,
+                                          ro=t.uploadRatio, ho=(time.time() - t.startDate) / 60 / 60)
                             )
                 if len(reseed_list) == len(reseed_stop_list):
                     delete = True
                     Logger.info("All torrents of \"{0}\" reach target, Will DELETE them soon.".format(s_title))
             else:
                 delete = True
-                Logger.error("Some Torrents (\"{name}\",{er} of {co}) may not found, "
+                Logger.error("Some Torrents (\"{name}\", {er} of {co}) may not found, "
                              "Delete all it's records from db".format(name=s_title, er=err, co=len(torrent_id_list)))
 
             if delete:  # Delete torrents with it's data and db-records
@@ -144,7 +143,9 @@ class Controller(Thread):
         return t.id, t.name, tracker
 
     def run(self):
+        # Sync status between transmission, database, controller and reseeder modules
         self.update_torrent_info_from_rpc_to_db(force_clean_check=True)
+        self.reseeders_update()
 
         # Start background thread
         thread_args = [
@@ -156,8 +157,10 @@ class Controller(Thread):
 
         Logger.info("Check period Starting~")
         while True:
+            _cache_last_check_id = self.last_id_check
             self.update_torrent_info_from_rpc_to_db()  # Read the new torrent's info and sync it to database
-            self.reseeders_update()  # Feed those new and not reseed torrent to active reseeder
+            if self.last_id_check != _cache_last_check_id or self.downloading_torrent_id_queue:
+                self.reseeders_update()  # Feed those new and not reseed torrent to active reseeder
             time.sleep(setting.SLEEP_TIME)
 
     def get_online_reseeders(self):
@@ -174,12 +177,13 @@ class Controller(Thread):
             last_id_now = max([t.id for t in new_torrent_list])
             if last_id_db is None:
                 last_id_db = db.get_max_in_seed_list(column_list=db.col_seed_list[2:])
-            Logger.debug("Max tid, transmission: {tr},database: {db}".format(tr=last_id_now, db=last_id_db))
+            Logger.debug("Max tid, transmission: {tr}, database: {db}".format(tr=last_id_now, db=last_id_db))
 
             if not force_clean_check:  # Normal Update
-                Logger.info("Some new torrents were add to transmission,Sync to db~")
+                Logger.info("Some new torrents were add to transmission, Sync to db~")
                 for i in new_torrent_list:  # Upsert the new torrent
                     db.upsert_seed_list(self._get_torrent_info(i))
+                self.last_id_check = last_id_now
 
             elif last_id_now != last_id_db:  # Check the torrent 's record between tr and db
                 total_num_in_tr = len(set([t.name for t in torrent_list]))
@@ -189,14 +193,13 @@ class Controller(Thread):
                     Logger.info("Upsert the whole torrent id to database.")
                     for t in torrent_list:  # Upsert the whole torrent
                         db.upsert_seed_list(self._get_torrent_info(t))
-
-                else:  # TODO check....
-                    Logger.error("The torrent list didn't match with db-records, Clean the \"seed_list\" for safety.")
+                else:
+                    Logger.error(
+                        "The torrent list didn't match with db-records, Clean the whole \"seed_list\" for safety.")
                     db.exec(sql="DELETE FROM `seed_list` WHERE 1")  # Delete all line from seed_list
                     self.update_torrent_info_from_rpc_to_db(last_id_db=0)
-            self.last_id_check = last_id_now
         else:
-            Logger.debug("No new torrent(s),Return with nothing to do.")
+            Logger.debug("No new torrent(s), Return with nothing to do.")
         return self.last_id_check
 
     def reseeders_update(self):
@@ -215,6 +218,8 @@ class Controller(Thread):
                 Logger.error("The pre-reseed Torrent: \"{0}\" isn't found in result, "
                              "It's db-record will be deleted soon.".format(t["title"]))
                 self._del_torrent_with_db(rid=t["id"])
+                if t["id"] in self.downloading_torrent_id_queue:
+                    self.downloading_torrent_id_queue.remove(t["id"])
             else:
                 tname = dl_torrent.name
                 if int(dl_torrent.progress) is 100:  # Get the download progress in percent.

@@ -53,10 +53,12 @@ class NexusPHP(Site):
             logging.error("Can not verify identity. Please Check your Cookies".format(mo=self.model_name()))
         return self.status
 
+    def torrent_link(self, tid):
+        return self.url_host + "/download.php?id={tid}&passkey={pk}".format(tid=tid, pk=self.passkey)
+
     # -*- Torrent's download, upload and thank -*-
     def torrent_download(self, tid, **kwargs):
-        download_url = self.url_host + "/download.php?id={tid}&passkey={pk}".format(tid=tid, pk=self.passkey)
-        added_torrent = tc.add_torrent(torrent=download_url)
+        added_torrent = tc.add_torrent(torrent=self.torrent_link(tid))
         # Another way is download torrent file to watch-dir(see early commits), But it will no return added_torrent.id
         logging.info("Download Torrent OK, which id: {id}.".format(id=tid))
         if kwargs.setdefault("thanks", self._AUTO_THANK):

@@ -22,20 +22,21 @@ class Database(object):
         self.cache_torrent_list()
 
     # Based Function
-    def exec(self, sql: str, r_dict: bool = False, fetch_all: bool = False, ret_rows: bool = False):
+    def exec(self, sql: str, args=None, r_dict: bool = False, fetch_all: bool = False, ret_rows: bool = False):
         with self._commit_lock:
             cursor = self.db.cursor(pymysql.cursors.DictCursor) if r_dict else self.db.cursor()  # Cursor type
-            row = cursor.execute(sql)
+            row = cursor.execute(sql, args)
             data = cursor.fetchall() if fetch_all else cursor.fetchone()  # The lines of return info (one or all)
-            logging.debug("Success,DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
+            logging.debug("Success, DDL: \"{sql}\",Affect rows: {row}".format(sql=sql, row=row))
 
         return (row, data) if ret_rows else data
 
-    def cache_torrent_list(self):
+    def cache_torrent_list(self) -> list:
         self.cache_torrent_name = [i[0] for i in self.exec(sql="SELECT `title` FROM `seed_list`", fetch_all=True)]
+        return self.cache_torrent_name
 
     # Procedure Oriented Function
-    def get_max_in_seed_list(self, column_list: list or str):
+    def get_max_in_seed_list(self, column_list: list or str) -> int:
         """Find the maximum value of the table in a list of column from the database"""
         if isinstance(column_list, str):
             column_list = [column_list]
@@ -59,20 +60,19 @@ class Database(object):
 
         return clone_id
 
-    def upsert_seed_list(self, torrent_info):
+    def upsert_seed_list(self, torrent_info: tuple):
         tid, name, tracker = torrent_info
+        escape_name = pymysql.escape_string(name)
 
-        while True:
-            if name in self.cache_torrent_name:
-                raw_sql = "UPDATE `seed_list` SET `{cow}` = {id:d} WHERE `title`='{name}'"
-                break
-            else:
-                exist = "SELECT COUNT(*) FROM `seed_list` WHERE `title`='{}'".format(pymysql.escape_string(name))
-                if self.exec(sql=exist)[0] == 0:
-                    raw_sql = "INSERT INTO `seed_list` (`title`,`{cow}`) VALUES ('{name}',{id:d})"
-                    break
-                else:
-                    self.cache_torrent_list()
+        check_sql = "SELECT COUNT(*) FROM `seed_list` WHERE `title`='{}'"
 
-        sql = raw_sql.format(cow=tracker, name=pymysql.escape_string(name), id=tid)
+        raw_sql = "UPDATE `seed_list` SET `{cow}` = {id:d} WHERE `title`='{name}'"  # TO UPDATE
+        if name in self.cache_torrent_name:  # 1. Check in local cache list first
+            pass
+        elif self.exec(sql=check_sql.format(escape_name))[0] != 0:  # 2. Check in remote Database
+            self.cache_torrent_list()  # Update local cache
+        else:
+            raw_sql = "INSERT INTO `seed_list` (`title`,`{cow}`) VALUES ('{name}',{id:d})"  # TO INSERT
+
+        sql = raw_sql.format(cow=tracker, name=escape_name, id=tid)
         return self.exec(sql=sql)
