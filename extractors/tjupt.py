@@ -6,6 +6,8 @@
 import logging
 import re
 
+import requests
+
 from extractors.base.nexusphp import NexusPHP
 
 ask_dict = {
@@ -27,13 +29,21 @@ ask_dict = {
 
 class TJUPT(NexusPHP):
     url_host = "https://tjupt.org"
-    db_column = "pttracker6.tjupt.org"
+    db_column = "trackerv6.tjupt.org"
 
     def __init__(self, status, cookies, passkey, **kwargs):
         # Site Features: Display In the browse page (Dead torrent will be set if not checked -> "0")
         self._TORRENT_VISIBLE = "1" if kwargs.setdefault("torrent_visible", True) else "0"
 
         super().__init__(status, cookies, passkey, **kwargs)
+
+    def torrent_link(self, tid):
+        torrent_link = self.url_host + "/download.php?id={tid}&passkey={pk}".format(tid=tid, pk=self.passkey)
+        tmp_file = r"/tmp/[TJUPT].{}.torrent".format(tid)
+        with open(tmp_file, "rb") as torrent:
+            r = requests.get(torrent_link, cookies=self.cookies)
+            torrent.write(r.content)
+        return tmp_file
 
     def exist_torrent_title(self, tag):
         torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
@@ -48,8 +58,8 @@ class TJUPT(NexusPHP):
 
     def torrent_clone(self, tid):
         """
-        Use Internal API: - http://pt.tju.edu.cn/upsimilartorrent.php?id={tid} ,Request Method: GET
-                          - http://pt.tju.edu.cn/catdetail_edittorrents.php?torid={id} ,Request Method: GET
+        Use Internal API: - /upsimilartorrent.php?id={tid} ,Request Method: GET
+                          - /catdetail_edittorrents.php?torid={id} ,Request Method: GET
         Will response two pages about this clone torrent's information,
         And this function will sort those pages to a pre-reseed dict.
         """
