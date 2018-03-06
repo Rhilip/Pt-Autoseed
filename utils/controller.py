@@ -157,10 +157,8 @@ class Controller(Thread):
 
         Logger.info("Check period Starting~")
         while True:
-            _cache_last_check_id = self.last_id_check
             self.update_torrent_info_from_rpc_to_db()  # Read the new torrent's info and sync it to database
-            if self.last_id_check != _cache_last_check_id or self.downloading_torrent_id_queue:
-                self.reseeders_update()  # Feed those new and not reseed torrent to active reseeder
+            self.reseeders_update()  # Feed those new and not reseed torrent to active reseeder
             time.sleep(setting.SLEEP_TIME)
 
     def get_online_reseeders(self):
