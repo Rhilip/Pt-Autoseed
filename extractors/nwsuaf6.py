@@ -129,6 +129,8 @@ class MTPT(NexusPHP):
             raw_descr = re.sub(r"\u3000", " ", raw_descr)
             res_dic["descr"] = raw_descr
 
+            res_dic["type"] = res_dic["category"]
+
             logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
         return res_dic
 
