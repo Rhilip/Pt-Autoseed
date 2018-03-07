@@ -183,6 +183,8 @@ class MTPT(NexusPHP):
         return (  # Submit form
             ("cite_torrent", ('', str(raw_info["clone_id"]))),
             ("file", self._post_torrent_file_tuple(torrent)),
+            ("ismttv", ('', "no")),
+            ("prohibit_reshipment", ('', 'no_restrain')),
             ("type", ('', str(raw_info["category"]))),
             ("source_sel", ('', str(raw_info["source"]))),
             ("name", ('', raw_info["name"])),
