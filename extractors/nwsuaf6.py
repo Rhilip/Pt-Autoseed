@@ -107,7 +107,7 @@ title_split_dict = {
 
 
 class MTPT(NexusPHP):
-    url_host = "http://pt.nwsuaf6.edu.cn"
+    url_host = "https://pt.nwsuaf6.edu.cn"
     db_column = "pt.nwsuaf6.edu.cn"
 
     def torrent_clone(self, tid) -> dict:
