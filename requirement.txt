@@ -1,0 +1,6 @@
+beautifulsoup4
+lxml
+PyMySQL
+requests
+transmissionrpc
+html2bbcode

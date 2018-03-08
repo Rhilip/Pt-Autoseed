@@ -8,12 +8,12 @@ import re
 
 import requests
 from bs4 import BeautifulSoup
+from html2bbcode.parser import HTML2BBCode
 
 import utils.descr as descr
-
-from utils.err import *
 from utils.constants import Video_Containers
 from utils.cookie import cookies_raw2jar
+from utils.err import *
 from utils.load.config import setting
 from utils.load.submodules import tc
 from utils.pattern import pattern_group as search_ptn
@@ -104,9 +104,26 @@ class Site(object):
 
     @staticmethod
     def _get_torrent(torrent):
+        """
+        Build-in function to get torrent class by it's id.
+
+        :param torrent: int or class transmissionrpc.Torrent
+        :return: class transmissionrpc.Torrent
+        """
         if isinstance(torrent, int):
             torrent = tc.get_torrent(torrent)
         return torrent
+
+    @staticmethod
+    def _descr_html2ubb(string: str) -> str:
+        """
+        Build-in function to make a string from html to bbcode
+
+        :param string: str
+        :return: str
+        """
+        parser = HTML2BBCode()
+        return str(parser.feed(string))
 
     def _get_torrent_ptn(self, torrent):
         torrent = self._get_torrent(torrent)
