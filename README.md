@@ -17,7 +17,7 @@ The Reseed List: Saw Gist [Rhilip/Reseed List](https://gist.github.com/Rhilip/34
 
 ## Based Environment
 
-### Ubtuntu 14.04, Python > 3.4.
+- Ubuntu 16.04.03, Python 3.5.2
 
 * Transmission
 
@@ -87,6 +87,43 @@ sudo python3 run.py
 ```
 Notice: You should run the autoseed as root.
 if no problem or error, You can use `screen` or other software like `supervisor` to keep it run in the background.
+
+## Reseeder Setting
+
+ - class extractors.base.site.Site
+
+| Key in setting | Type | Default | Description |
+|:---|:---:|:---:|:---|
+| status | Boolean | False | Require, Reseeder enable status |
+| cookies | Dict or String | None | Require, Cookies for reseeder site |
+| extend_descr_before | Boolean | True | Enable to Enhanced the description of the reseed torrent |
+| extend_descr_thumbnails | Boolean | True | Enable to Enhanced the description of the reseed torrent |
+| extend_descr_mediainfo | Boolean | True | Enable to Enhanced the description of the reseed torrent |
+| extend_descr_cloneinfo | Boolean | True | Enable to Enhanced the description of the reseed torrent |
+| assist_only | Boolean | False | Enable to only assist the exist same torrent but not to reseed |
+
+- class extractors.base.nexusphp.NexusPHP(Site)
+
+| Key in setting | Type | Default | Description |
+|:---|:---:|:---:|:---|
+| anonymous_release | Boolean | True | Enable to Release anonymously |
+| auto_thank | Boolean | True | Enable to Automatically thanks for additional Bones after Reseed |
+| default_clone_torrent | Integer | None | When not find the clone torrent, use it as default clone_id |
+| force_judge_dupe_loc | Boolean | False | Judge torrent is dupe or not in location before post it to PT-site. |
+| get_clone_id_from_db | Boolean | True | Enable to get clone torrent's id from database first, then search. |
+| allow_cat | List | None | Used to limit the reseed torrent category |
+
+- class extractors.byrbt.Byrbt(NexusPHP)
+
+| Key in setting | Type | Default | Description |
+|:---|:---:|:---:|:---|
+| no_subtitle | Boolean | False | NO subtitle when POST |
+
+- class extractors.tjupt.TJUPT(NexusPHP)
+
+| Key in setting | Type | Default | Description |
+|:---|:---:|:---:|:---|
+| torrent_visible | Boolean | True | Display In the browse page (Dead torrent will be set if not checked) |
 
 ## Contribute
 
