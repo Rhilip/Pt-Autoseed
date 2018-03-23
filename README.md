@@ -96,10 +96,10 @@ if no problem or error, You can use `screen` or other software like `supervisor`
 |:---|:---:|:---:|:---|
 | status | Boolean | False | Require, Reseeder enable status |
 | cookies | Dict or String | None | Require, Cookies for reseeder site |
-| extend_descr_before | Boolean | True | Enable to Enhanced the description of the reseed torrent |
-| extend_descr_thumbnails | Boolean | True | Enable to Enhanced the description of the reseed torrent |
-| extend_descr_mediainfo | Boolean | True | Enable to Enhanced the description of the reseed torrent |
-| extend_descr_cloneinfo | Boolean | True | Enable to Enhanced the description of the reseed torrent |
+| extend_descr_before | Boolean | True | Enable to Enhanced the description of notice |
+| extend_descr_thumbnails | Boolean | True | Enable to Enhanced the description of thumbnails |
+| extend_descr_mediainfo | Boolean | True | Enable to Enhanced the description of mediainfo |
+| extend_descr_cloneinfo | Boolean | True | Enable to Enhanced the description of cloneinfo |
 | assist_only | Boolean | False | Enable to only assist the exist same torrent but not to reseed |
 
 - class extractors.base.nexusphp.NexusPHP(Site)
