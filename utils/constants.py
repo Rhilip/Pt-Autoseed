@@ -5,7 +5,6 @@
 import re
 import time
 
-
 Support_Site = [
     # The tuple is like (config_dict_name in setting, Package name, Class name)
     ("site_byrbt", "extractors.byrbt", "Byrbt"),
@@ -32,3 +31,9 @@ def period_f(func, sleep_time):
     while True:
         func()
         time.sleep(sleep_time)
+
+
+def ubb_clean(string: str) -> str:
+    string = re.sub(r"\[(?P<bbcode>code|quote).+?\[/(?P=bbcode)\]", "", string, flags=re.S)  # Remove code and quote
+    string = re.sub(r"\u3000", " ", string)
+    return string

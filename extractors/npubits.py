@@ -8,6 +8,7 @@ import logging
 import re
 
 from extractors.base.nexusphp import NexusPHP
+from utils.constants import ubb_clean
 
 
 def string2base64(raw):
@@ -46,12 +47,7 @@ class NPUBits(NexusPHP):
             logging.error("Error,this torrent may not exist or ConnectError")
         else:
             res_dic.update({"transferred_url": transferred_url, "clone_id": tid})
-
-            # Remove code and quote.
-            raw_descr = res_dic["descr"]
-            raw_descr = re.sub(r"\[(?P<bbcode>code|quote).+?\[/(?P=bbcode)\]", "", raw_descr, flags=re.S)
-            raw_descr = re.sub(r"\u3000", " ", raw_descr)
-            res_dic["descr"] = raw_descr
+            res_dic["descr"] = ubb_clean(res_dic["descr"])
 
             logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
         return res_dic
