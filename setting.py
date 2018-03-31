@@ -69,7 +69,7 @@ web_loc = "/var/www"  # demo网站在服务器上的地址
 logging_debug_level = False  # debug model
 logging_filename = "autoseed.log"
 logging_file_maxBytes = 5 * 1024 * 1024
-logging_format = "%(asctime)s - %(levelname)s - %(funcName)s - %(message)s"
+logging_format = "%(asctime)s - %(levelname)s - %(threadName)s - %(funcName)s - %(message)s"
 logging_datefmt = "%m/%d/%Y %I:%M:%S %p"
 
 # ServerChan
