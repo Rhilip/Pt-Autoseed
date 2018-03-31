@@ -8,7 +8,7 @@ import time
 # Autoseed
 SLEEP_TIME = 60 * 3
 CYCLE_CHECK_RESEEDER_ONLINE = 60 * 10
-CYCLE_DEL_TORRENT_CHECK = 60 * 60
+CYCLE_DEL_TORRENT_CHECK = 60 * 60 * 24
 
 # Transmission
 trans_address = "localhost"

@@ -67,14 +67,14 @@ class Controller(Thread):
         for i in self.active_obj_list:
             i.online_check()
 
-    def _del_torrent_with_db(self, rid=None, count=20):
+    def _del_torrent_with_db(self, rid=None):
         """Delete torrent(both download and reseed) with data from transmission and database"""
         Logger.debug("Begin torrent's status check. If reach condition you set, You will get a warning.")
 
         if rid:
             sql = "SELECT * FROM `seed_list` WHERE `id`={}".format(rid)
         else:
-            sql = "SELECT * FROM `seed_list` ORDER BY `id` ASC LIMIT {}".format(count)
+            sql = "SELECT * FROM `seed_list`"
 
         time_now = time.time()
         for cow in db.exec(sql=sql, r_dict=True, fetch_all=True):
