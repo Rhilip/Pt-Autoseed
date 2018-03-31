@@ -10,7 +10,8 @@ Support_Site = [
     ("site_byrbt", "extractors.byrbt", "Byrbt"),
     ("site_npubits", "extractors.npubits", "NPUBits"),
     ("site_nwsuaf6", "extractors.nwsuaf6", "MTPT"),
-    ("site_tjupt", "extractors.tjupt", "TJUPT")
+    ("site_tjupt", "extractors.tjupt", "TJUPT"),
+    ("site_hudbt", "extractors.hudbt", "HUDBT")
 ]
 
 Video_Containers = [
@@ -37,3 +38,13 @@ def ubb_clean(string: str) -> str:
     string = re.sub(r"\[(?P<bbcode>code|quote).+?\[/(?P=bbcode)\]", "", string, flags=re.S)  # Remove code and quote
     string = re.sub(r"\u3000", " ", string)
     return string
+
+
+def episode_eng2chs(ep: str) -> str:
+    season_episode_info_search = re.search("(?:[Ss](?P<season>\d+))?.*?(?:[Ee][Pp]?(?P<episode>\d+))?", ep)
+    season_episode_info = ""
+    if season_episode_info_search.group("season"):
+        season_episode_info += "第{s}季".format(s=season_episode_info_search.group("season"))
+    if season_episode_info_search.group("episode"):
+        season_episode_info += " 第{e}集".format(e=season_episode_info_search.group("episode"))
+    return season_episode_info

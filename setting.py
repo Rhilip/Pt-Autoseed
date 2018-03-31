@@ -29,25 +29,31 @@ db_name = ""
 # -*- Reseed Site Setting -*-
 # """Byrbt"""
 site_byrbt = {
-    "status": True,  # default: False
+    "status": False,  # default: False
     "cookies": "",  # raw_cookies
     "passkey": "",
 }
 # """NPUBits"""
 site_npubits = {
-    "status": True,
+    "status": False,
     "cookies": "",
     "passkey": "",
 }
 # """MTPT(nwsuaf6)"""
 site_nwsuaf6 = {
-    "status": True,
+    "status": False,
     "cookies": "",
     "passkey": "",
 }
 # """TJUPT"""
 site_tjupt = {
-    "status": True,
+    "status": False,
+    "cookies": "",
+    "passkey": "",
+}
+# """HUDBT"""
+site_hudbt = {
+    "status": False,
     "cookies": "",
     "passkey": "",
 }

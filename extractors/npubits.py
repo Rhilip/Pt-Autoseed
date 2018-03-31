@@ -8,7 +8,7 @@ import logging
 import re
 
 from extractors.base.nexusphp import NexusPHP
-from utils.constants import ubb_clean
+from utils.constants import ubb_clean, episode_eng2chs
 
 
 def string2base64(raw):
@@ -55,13 +55,7 @@ class NPUBits(NexusPHP):
     def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
         if int(raw_info["category"]) == 402:  # Series
             raw_info["name"] = torrent_name_search.group("full_name")
-            season_episode_info_search = re.search("(?:[Ss](?P<season>\d+))?.*?(?:[Ee][Pp]?(?P<episode>\d+))?",
-                                                   torrent_name_search.group("episode"))
-            season_episode_info = ""
-            if season_episode_info_search.group("season"):
-                season_episode_info += "第{s}季".format(s=season_episode_info_search.group("season"))
-            if season_episode_info_search.group("episode"):
-                season_episode_info += "第{e}集".format(e=season_episode_info_search.group("episode"))
+            season_episode_info = episode_eng2chs(torrent_name_search.group("episode"))
             raw_info["small_descr"] = re.sub(r"第.+([集季])", season_episode_info, raw_info["small_descr"])
         elif int(raw_info["category"]) == 405:  # Anime
             episode = torrent_name_search.group("episode")
