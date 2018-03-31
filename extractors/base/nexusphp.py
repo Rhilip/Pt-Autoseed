@@ -208,6 +208,7 @@ class NexusPHP(Site):
         if reseed_tag in [None, 0, "0"] and reseed_tag not in [-1, "-1"]:
             # It means that the pre-reseed torrent in this site is not reseed before,
             # And this torrent not marked as an un-reseed torrent.
+            self._assist_delay()
             logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
 
             reseed_tag = -1

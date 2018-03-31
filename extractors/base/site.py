@@ -5,6 +5,7 @@
 import logging
 import os
 import re
+import time
 
 import requests
 from bs4 import BeautifulSoup
@@ -62,6 +63,7 @@ class Site(object):
         self._EXTEND_DESCR_MEDIAINFO = kwargs.setdefault("extend_descr_mediainfo", True)
         self._EXTEND_DESCR_CLONEINFO = kwargs.setdefault("extend_descr_cloneinfo", True)
         self._ASSIST_ONLY = kwargs.setdefault("assist_only", False)
+        self._ASSIST_DELAY_TIME = kwargs.setdefault("assist_delay_time", 0)
 
         # Check Site Online Status
         if self.status:
@@ -122,8 +124,14 @@ class Site(object):
         :param string: str
         :return: str
         """
-        parser = HTML2BBCode()
-        return str(parser.feed(string))
+        return str(HTML2BBCode().feed(string))
+
+    def _assist_delay(self):
+        if self._ASSIST_ONLY:
+            logging.info("Autoseed-{mo} only allowed to assist."
+                         "it will sleep {sl} Seconds to wait the reseed site "
+                         "to have this torrent".format(mo=self.model_name(), sl=self._ASSIST_DELAY_TIME))
+            time.sleep(self._ASSIST_DELAY_TIME)
 
     def _get_torrent_ptn(self, torrent):
         torrent = self._get_torrent(torrent)

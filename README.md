@@ -101,6 +101,7 @@ if no problem or error, You can use `screen` or other software like `supervisor`
 | extend_descr_mediainfo | Boolean | True | Enable to Enhanced the description of mediainfo |
 | extend_descr_cloneinfo | Boolean | True | Enable to Enhanced the description of cloneinfo |
 | assist_only | Boolean | False | Enable to only assist the exist same torrent but not to reseed |
+| assist_delay_time | Integer | 0 | Seconds, Delay time when assist only modal enable |
 
 - class extractors.base.nexusphp.NexusPHP(Site)
 
