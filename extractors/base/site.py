@@ -5,15 +5,16 @@
 import logging
 import os
 import re
+import time
 
 import requests
 from bs4 import BeautifulSoup
+from html2bbcode.parser import HTML2BBCode
 
 import utils.descr as descr
-
-from utils.err import *
 from utils.constants import Video_Containers
 from utils.cookie import cookies_raw2jar
+from utils.err import *
 from utils.load.config import setting
 from utils.load.submodules import tc
 from utils.pattern import pattern_group as search_ptn
@@ -62,6 +63,7 @@ class Site(object):
         self._EXTEND_DESCR_MEDIAINFO = kwargs.setdefault("extend_descr_mediainfo", True)
         self._EXTEND_DESCR_CLONEINFO = kwargs.setdefault("extend_descr_cloneinfo", True)
         self._ASSIST_ONLY = kwargs.setdefault("assist_only", False)
+        self._ASSIST_DELAY_TIME = kwargs.setdefault("assist_delay_time", 0)
 
         # Check Site Online Status
         if self.status:
@@ -104,9 +106,32 @@ class Site(object):
 
     @staticmethod
     def _get_torrent(torrent):
+        """
+        Build-in function to get torrent class by it's id.
+
+        :param torrent: int or class transmissionrpc.Torrent
+        :return: class transmissionrpc.Torrent
+        """
         if isinstance(torrent, int):
             torrent = tc.get_torrent(torrent)
         return torrent
+
+    @staticmethod
+    def _descr_html2ubb(string: str) -> str:
+        """
+        Build-in function to make a string from html to bbcode
+
+        :param string: str
+        :return: str
+        """
+        return str(HTML2BBCode().feed(string))
+
+    def _assist_delay(self):
+        if self._ASSIST_ONLY:
+            logging.info("Autoseed-{mo} only allowed to assist."
+                         "it will sleep {sl} Seconds to wait the reseed site "
+                         "to have this torrent".format(mo=self.model_name(), sl=self._ASSIST_DELAY_TIME))
+            time.sleep(self._ASSIST_DELAY_TIME)
 
     def _get_torrent_ptn(self, torrent):
         torrent = self._get_torrent(torrent)

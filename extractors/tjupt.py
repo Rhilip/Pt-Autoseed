@@ -9,6 +9,7 @@ import re
 import requests
 
 from extractors.base.nexusphp import NexusPHP
+from utils.constants import ubb_clean
 
 ask_dict = {
     "401": ["cname", "ename", "issuedate", "language", "format", "subsinfo", "district"],  # 电影
@@ -69,18 +70,12 @@ class TJUPT(NexusPHP):
 
         if not re.search(r"<h2>错误！</h2>", str(page_clone)):
             logging.info("Got clone torrent's info,id: {tid}".format(tid=tid))
-            res_dic.update({"clone_id": tid})
 
             type_select = page_clone.find("select", id="oricat")
             type_value = type_select.find("option", selected="selected")["value"]
-
-            raw_descr = page_clone.find("textarea", id="descr").text
-            raw_descr = re.sub(r"\[(?P<bbcode>code|quote).+?\[/(?P=bbcode)\]", "", raw_descr, flags=re.S)
-            raw_descr = re.sub(r"\u3000", " ", raw_descr)
-
+            raw_descr = ubb_clean(page_clone.find("textarea", id="descr").text)
             url = page_clone.find("input", attrs={"name": "url"})
-
-            res_dic.update({"type": type_value, "descr": raw_descr, "url": url["value"]})
+            res_dic.update({"clone_id": tid, "type": type_value, "descr": raw_descr, "url": url["value"]})
 
             for name in ["source_sel", "team_sel"]:
                 tag = page_clone.find("select", attrs={"name": name})
@@ -112,6 +107,7 @@ class TJUPT(NexusPHP):
         elif int(raw_info["type"]) == 402:  # 剧集
             raw_info["ename"] = torrent_name_search.group("full_name")  # 英文名
             raw_info["tvseasoninfo"] = torrent_name_search.group("episode")  # 集数
+            raw_info["subinfo"] = "1"  # 强制更新字幕情况为"暂无字幕"
         elif int(raw_info["type"]) == 403:  # 综艺
             pass
         elif int(raw_info["type"]) == 404:  # 资料

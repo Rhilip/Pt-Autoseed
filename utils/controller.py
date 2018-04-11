@@ -223,7 +223,9 @@ class Controller(Thread):
                 if int(dl_torrent.progress) is 100:  # Get the download progress in percent.
                     Logger.info("New completed torrent: \"{name}\" , Judge reseed or not.".format(name=tname))
                     for reseeder in pre_reseeder_list:
-                        reseeder.torrent_feed(torrent=dl_torrent)
+                        Thread(target=reseeder.torrent_feed, args=(dl_torrent,),
+                               name="Thread-{}".format(reseeder.model_name()), daemon=True).start()
+                        # reseeder.torrent_feed(torrent=dl_torrent)
                     if dl_torrent.id in self.downloading_torrent_id_queue:
                         self.downloading_torrent_id_queue.remove(dl_torrent.id)
                 elif dl_torrent.id in self.downloading_torrent_id_queue:

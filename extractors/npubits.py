@@ -8,6 +8,7 @@ import logging
 import re
 
 from extractors.base.nexusphp import NexusPHP
+from utils.constants import ubb_clean, episode_eng2chs
 
 
 def string2base64(raw):
@@ -31,6 +32,7 @@ class NPUBits(NexusPHP):
         self.post_data(url=self.url_host + "/thanks.php", data={"id": str(tid), "value": 0})
 
     def page_search(self, key: str, bs=False):
+        key = key.replace("&", " ")  # To Fix Multi Group Search Error
         return self.get_data(url=self.url_host + "/torrents.php", params={"search": key, "incldead": 1}, bs=bs)
 
     def torrent_clone(self, tid) -> dict:
@@ -46,12 +48,7 @@ class NPUBits(NexusPHP):
             logging.error("Error,this torrent may not exist or ConnectError")
         else:
             res_dic.update({"transferred_url": transferred_url, "clone_id": tid})
-
-            # Remove code and quote.
-            raw_descr = res_dic["descr"]
-            raw_descr = re.sub(r"\[(?P<bbcode>code|quote).+?\[/(?P=bbcode)\]", "", raw_descr, flags=re.S)
-            raw_descr = re.sub(r"\u3000", " ", raw_descr)
-            res_dic["descr"] = raw_descr
+            res_dic["descr"] = ubb_clean(res_dic["descr"])
 
             logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
         return res_dic
@@ -59,13 +56,7 @@ class NPUBits(NexusPHP):
     def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
         if int(raw_info["category"]) == 402:  # Series
             raw_info["name"] = torrent_name_search.group("full_name")
-            season_episode_info_search = re.search("(?:[Ss](?P<season>\d+))?.*?(?:[Ee][Pp]?(?P<episode>\d+))?",
-                                                   torrent_name_search.group("episode"))
-            season_episode_info = ""
-            if season_episode_info_search.group("season"):
-                season_episode_info += "第{s}季".format(s=season_episode_info_search.group("season"))
-            if season_episode_info_search.group("episode"):
-                season_episode_info += "第{e}集".format(e=season_episode_info_search.group("episode"))
+            season_episode_info = episode_eng2chs(torrent_name_search.group("episode"))
             raw_info["small_descr"] = re.sub(r"第.+([集季])", season_episode_info, raw_info["small_descr"])
         elif int(raw_info["category"]) == 405:  # Anime
             episode = torrent_name_search.group("episode")
