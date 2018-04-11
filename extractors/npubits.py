@@ -32,6 +32,7 @@ class NPUBits(NexusPHP):
         self.post_data(url=self.url_host + "/thanks.php", data={"id": str(tid), "value": 0})
 
     def page_search(self, key: str, bs=False):
+        key = key.replace("&", " ")  # To Fix Multi Group Search Error
         return self.get_data(url=self.url_host + "/torrents.php", params={"search": key, "incldead": 1}, bs=bs)
 
     def torrent_clone(self, tid) -> dict:
