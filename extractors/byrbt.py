@@ -171,7 +171,7 @@ def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
 
 
 class Byrbt(NexusPHP):
-    url_host = "http://bt.byr.cn"
+    url_host = "https://bt.byr.cn"
     db_column = "tracker.byr.cn"
 
     encode = "html"
