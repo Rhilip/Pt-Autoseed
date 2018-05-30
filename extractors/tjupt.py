@@ -107,7 +107,7 @@ class TJUPT(NexusPHP):
         elif int(raw_info["type"]) == 402:  # 剧集
             raw_info["ename"] = torrent_name_search.group("full_name")  # 英文名
             raw_info["tvseasoninfo"] = torrent_name_search.group("episode")  # 集数
-            raw_info["subinfo"] = "1"  # 强制更新字幕情况为"暂无字幕"
+            raw_info["subsinfo"] = "1"  # 强制更新字幕情况为"暂无字幕"
         elif int(raw_info["type"]) == 403:  # 综艺
             pass
         elif int(raw_info["type"]) == 404:  # 资料
