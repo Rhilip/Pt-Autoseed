@@ -102,7 +102,8 @@ class Site(object):
         :param torrent: class transmissionrpc.Torrent
         :return: part of post tuple in Requests,like ('name.torrent', <_io.BufferedReader>, 'application/x-bittorrent')
         """
-        return os.path.basename(torrent.torrentFile), open(torrent.torrentFile, 'rb'), 'application/x-bittorrent'
+        filename = os.path.basename(torrent.torrentFile).encode("ascii", errors="ignore").decode()
+        return filename, open(torrent.torrentFile, 'rb'), 'application/x-bittorrent'
 
     @staticmethod
     def _get_torrent(torrent):
