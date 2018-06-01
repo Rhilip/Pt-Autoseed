@@ -252,21 +252,20 @@ class Byrbt(NexusPHP):
 
     def data_raw2tuple(self, torrent, raw_info: dict):
         begin_list = [
-            ("type", ('', str(raw_info["type"]))),
-            ("second_type", ('', str(raw_info["second_type"]))),
-            ("file", self._post_torrent_file_tuple(torrent))
+            ("type", raw_info["type"]),
+            ("second_type", raw_info["second_type"]),
         ]
 
-        cat_post_list = [(cat, ('', str(raw_info[cat]))) for cat in type_dict[raw_info["raw_type"]]["split"]]
+        cat_post_list = [(cat, raw_info[cat]) for cat in type_dict[raw_info["raw_type"]]["split"]]
 
         end_post_list = [
-            ("type", ('', str(raw_info["type"]))),
-            ("small_descr", ('', raw_info["small_descr"])),
-            ("url", ('', raw_info["url"])),
-            ("dburl", ('', raw_info["dburl"])),
-            ("nfo", ('', '')),
-            ("descr", ('', self.enhance_descr(torrent=torrent, info_dict=raw_info))),
-            ("uplver", ('', self._UPLVER)),
+            ("type", raw_info["type"]),
+            ("small_descr", raw_info["small_descr"]),
+            ("url", raw_info["url"]),
+            ("dburl", raw_info["dburl"]),
+            ("nfo", ''),
+            ("descr", self.enhance_descr(torrent=torrent, info_dict=raw_info)),
+            ("uplver", self._UPLVER),
         ]
 
         return tuple(begin_list + cat_post_list + end_post_list)

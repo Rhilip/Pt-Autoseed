@@ -65,9 +65,10 @@ class NexusPHP(Site):
             self.torrent_thank(tid)
         return added_torrent.id
 
-    def torrent_upload(self, data: tuple):
+    def torrent_upload(self, torrent, data: tuple or list):
         upload_url = self.url_host + "/takeupload.php"
-        post = self.post_data(url=upload_url, files=data)
+        file_tuple = self._post_torrent_file_tuple(torrent)
+        post = self.post_data(url=upload_url, files={"file": file_tuple}, data=data)
         if post.url != upload_url:  # Check reseed status
             seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # Read the torrent's id in reseed site
             flag = self.torrent_download(tid=seed_torrent_download_id)
@@ -187,7 +188,7 @@ class NexusPHP(Site):
                 logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
                 new_dict = self.date_raw_update(torrent_name_search=name_pattern, raw_info=torrent_raw_info_dict)
                 multipart_data = self.data_raw2tuple(torrent, raw_info=new_dict)
-                flag = self.torrent_upload(data=multipart_data)
+                flag = self.torrent_upload(torrent=torrent, data=multipart_data)
             else:
                 raise NoCloneTorrentError("Can't find any clone torrent to used.".format(self.model_name()))
         elif search_tag == -1:  # IF the torrents are present, but not consistent (When FORCE_JUDGE_DUPE_LOC is True)

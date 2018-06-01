@@ -61,14 +61,13 @@ class HUDBT(NexusPHP):
 
     def data_raw2tuple(self, torrent, raw_info: dict) -> tuple:
         return (
-            ("file", self._post_torrent_file_tuple(torrent)),  # 种子文件
-            ("dl-url", ('', '')),  # 下载链接
-            ("name", ('', raw_info["name"])),  # 主标题
-            ("small_descr", ('', raw_info["small_descr"])),  # 副标题
-            ("url", ('', raw_info["url"])),  # IMDb链接
-            ("nfo", ('', '')),  # NFO文件
-            ("descr", ('', self.enhance_descr(torrent=torrent, info_dict=raw_info))),  # 简介
-            ("type", ('', raw_info["type"])),  # 类型
-            ("data[Tcategory][Tcategory][]", ('', '')),  # 分类
-            ("standard_sel", ('', raw_info["standard_sel"]))  # 质量
+            ("dl-url", ''),  # 下载链接
+            ("name", raw_info["name"]),  # 主标题
+            ("small_descr", raw_info["small_descr"]),  # 副标题
+            ("url", raw_info["url"]),  # IMDb链接
+            ("nfo", ''),  # NFO文件
+            ("descr", self.enhance_descr(torrent=torrent, info_dict=raw_info)),  # 简介
+            ("type", raw_info["type"]),  # 类型
+            ("data[Tcategory][Tcategory][]", ''),  # 分类
+            ("standard_sel", raw_info["standard_sel"])  # 质量
         )

@@ -176,20 +176,19 @@ class MTPT(NexusPHP):
 
     def data_raw2tuple(self, torrent, raw_info):
         return (  # Submit form
-            ("cite_torrent", ('', str(raw_info["clone_id"]))),
-            ("file", self._post_torrent_file_tuple(torrent)),
-            ("ismttv", ('', "no")),
-            ("prohibit_reshipment", ('', 'no_restrain')),
-            ("type", ('', str(raw_info["category"]))),
-            ("source_sel", ('', str(raw_info["source"]))),
-            ("name", ('', raw_info["name"])),
-            ("small_descr", ('', raw_info["small_descr"])),
-            ("imdburl", ('', raw_info["url"])),
-            ("dburl", ('', raw_info["dburl"])),
-            ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-            ("color", ('', '0')),  # Tell me those three key's function~
-            ("font", ('', '0')),
-            ("size", ('', '0')),
-            ("descr", ('', self.enhance_descr(torrent=torrent, info_dict=raw_info))),
-            ("uplver", ('', self._UPLVER)),
+            ("cite_torrent", raw_info["clone_id"]),
+            ("ismttv", "no"),
+            ("prohibit_reshipment", 'no_restrain'),
+            ("type", raw_info["category"]),
+            ("source_sel", raw_info["source"]),
+            ("name", raw_info["name"]),
+            ("small_descr", raw_info["small_descr"]),
+            ("imdburl", raw_info["url"]),
+            ("dburl", raw_info["dburl"]),
+            ("nfo", ""),  # 实际上并不是这样的，但是nfo一般没有，故这么写
+            ("color", 0),  # Tell me those three key's function~
+            ("font", 0),
+            ("size", 0),
+            ("descr", self.enhance_descr(torrent=torrent, info_dict=raw_info)),
+            ("uplver", self._UPLVER),
         )

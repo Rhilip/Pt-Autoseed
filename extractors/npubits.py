@@ -67,18 +67,17 @@ class NPUBits(NexusPHP):
 
     def data_raw2tuple(self, torrent, raw_info):
         return (  # Submit form
-            ("transferred_url", ('', str(raw_info["transferred_url"]))),
-            ("type", ('', str(raw_info["category"]))),
-            ("source_sel", ('', str(raw_info["sub_category"]))),
-            ("file", self._post_torrent_file_tuple(torrent)),
-            ("name", ('', string2base64(raw_info["name"]))),
-            ("small_descr", ('', string2base64(raw_info["small_descr"]))),
-            ("color", ('', '0')),  # Tell me those three key's function~
-            ("font", ('', '0')),
-            ("size", ('', '0')),
-            ("descr", ('', string2base64(self.enhance_descr(torrent=torrent, info_dict=raw_info)))),
-            ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-            ("uplver", ('', self._UPLVER)),
-            ("transferred_torrent_file_base64", ('', '')),
-            ("transferred_torrent_file_name", ('', '')),
+            ("transferred_url", raw_info["transferred_url"]),
+            ("type", raw_info["category"]),
+            ("source_sel", raw_info["sub_category"]),
+            ("name", string2base64(raw_info["name"])),
+            ("small_descr", string2base64(raw_info["small_descr"])),
+            ("color", 0),  # Tell me those three key's function~
+            ("font", 0),
+            ("size", 0),
+            ("descr", string2base64(self.enhance_descr(torrent=torrent, info_dict=raw_info))),
+            ("nfo", ""),  # 实际上并不是这样的，但是nfo一般没有，故这么写
+            ("uplver", self._UPLVER),
+            ("transferred_torrent_file_base64", ""),
+            ("transferred_torrent_file_name", ""),
         )
