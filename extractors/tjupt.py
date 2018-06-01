@@ -131,27 +131,26 @@ class TJUPT(NexusPHP):
 
     def data_raw2tuple(self, torrent, raw_info: dict):
         begin_post_list = [
-            ("id", ('', str(raw_info["clone_id"]))),
-            ("quote", ('', str(raw_info["clone_id"]))),
-            ("file", self._post_torrent_file_tuple(torrent)),
-            ("type", ('', str(raw_info["type"]))),
+            ("id", raw_info["clone_id"]),
+            ("quote", raw_info["clone_id"]),
+            ("type", raw_info["type"]),
         ]
 
         # Make category post list
-        cat_post_list = [(cat, ('', str(raw_info[cat]))) for cat in ask_dict[raw_info["type"]]]
+        cat_post_list = [(cat, raw_info[cat]) for cat in ask_dict[raw_info["type"]]]
 
         end_post_list = [
-            ("url", ('', str(raw_info["url"]))),  # IMDb链接
-            ("nfo", ('', '')),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-            ("color", ('', '0')),  # Tell me those three key's function~
-            ("font", ('', '0')),
-            ("size", ('', '0')),
-            ("descr", ('', self.enhance_descr(torrent=torrent, info_dict=raw_info))),  # 简介*
-            ("getDescByTorrentId", ('', "")),
-            ("source_sel", ('', str(raw_info["source_sel"]))),  # 质量
-            ("team_sel", ('', str(raw_info["team_sel"]))),  # 内容
-            ("visible", ('', self._TORRENT_VISIBLE)),
-            ("uplver", ('', self._UPLVER)),
+            ("url", raw_info["url"]),  # IMDb链接
+            ("nfo", ""),  # 实际上并不是这样的，但是nfo一般没有，故这么写
+            ("color", 0),  # Tell me those three key's function~
+            ("font", 0),
+            ("size", 0),
+            ("descr", self.enhance_descr(torrent=torrent, info_dict=raw_info)),  # 简介*
+            ("getDescByTorrentId", ""),
+            ("source_sel", raw_info["source_sel"]),  # 质量
+            ("team_sel", raw_info["team_sel"]),  # 内容
+            ("visible", self._TORRENT_VISIBLE),
+            ("uplver", self._UPLVER),
         ]
 
         return tuple(begin_post_list + cat_post_list + end_post_list)
