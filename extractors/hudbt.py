@@ -56,6 +56,10 @@ class HUDBT(NexusPHP):
             raw_info["name"] = title_clean(torrent_raw_name)
             season_episode_info = episode_eng2chs(torrent_name_search.group("episode"))
             raw_info["small_descr"] = re.sub(r"第.+([集季])", season_episode_info, raw_info["small_descr"])
+        if type_ == 427:  # 连载动漫
+            ep = torrent_name_search.group("episode")
+            raw_info["name"] = re.sub("^\d{2,3}(?:\.5|[Vv]2)? (TV|BD|WEB|DVD)", "{} \g<1>".format(ep), raw_info["name"])
+            raw_info["small_descr"] = re.sub("第[\d ]+?话", "第 {} 话".format(ep), raw_info["small_descr"])
 
         return raw_info
 
