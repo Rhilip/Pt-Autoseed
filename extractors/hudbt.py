@@ -35,7 +35,10 @@ class HUDBT(NexusPHP):
         # 解析原种页面
         return_dict["name"] = details_bs.find("h1", id="page-title").text  # 标题
         return_dict["small_descr"] = details_bs.find("dt", text="副标题").next_sibling.text  # 副标题
-        return_dict["url"] = details_bs.find("a", href=re.compile("http://www.imdb.com/title/tt")).text or ""  # IMDb
+
+        # IMDb
+        imdb_another = details_bs.find("a", href=re.compile("http://www.imdb.com/title/tt"))
+        return_dict["url"] = imdb_another.text if imdb_another else ""
 
         for key_dict, key_search in [("type", "cat"), ("standard_sel", "standard")]:  # 类型, 质量
             temp_reg = re.compile("torrents.php\?{}=(\d+)".format(key_search))
