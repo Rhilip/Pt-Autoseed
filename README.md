@@ -19,28 +19,19 @@ The Reseed List: Saw Gist [Rhilip/Reseed List](https://gist.github.com/Rhilip/34
 
 - Ubuntu 16.04.03, Python 3.5.2
 
-* Transmission
+* Seedbox Environment 
 
-```sh
-apt-get -y install software-properties-common
-add-apt-repository -y ppa:transmissionbt/ppa
-apt-get update
-apt-get -y install transmission-cli transmission-common transmission-daemon
-```
+    It's recommended to use [Aniverse/inexistence](https://github.com/Aniverse/inexistence)
+     to prepare your Seedbox Environment.
+    
+    Notice:
+     You should at least install this software:
 
-* Flexget
+       - Transmission
+       - Flexget
+       - MediaInfo
+       - ffmpeg
 
-```sh
-apt-get -y install python-pip
-pip install flexget transmissionrpc
-```
-
-* rtorrent + irssi-autodl (see [arakasi72/rtinst](https://github.com/arakasi72/rtinst))
-
-```sh
-bash -c "$(wget --no-check-certificate -qO - https://raw.githubusercontent.com/arakasi72/rtinst/master/rtsetup)"
-rtinst
-```
 
 * MySQL (Use a remote mysqld alternative is feasible)
 
@@ -48,25 +39,11 @@ rtinst
 apt-get -y install mysql-server
 ```
 
-* ~~MediaInfo~~ (rtinst.sh will install it)
-
-```sh
-apt-get -y install mediainfo
-```
-
-* ~~ffmpeg~~ (rtinst.sh will install it)
-
-```sh
-apt-add-repository -y ppa:mc3man/trusty-media
-apt-get update
-apt-get -y install ffmpeg
-```
-
 * Python3 model
 
 ```sh
 apt-get -y install python3-pip python3-lxml
-pip3 install pymysql transmissionrpc requests bs4
+pip3 install pymysql transmissionrpc requests bs4 html2bbcode
 ```
 
 * Supervisor (Suggest)
