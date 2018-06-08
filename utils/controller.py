@@ -15,17 +15,12 @@ from utils.load.submodules import tc, db
 TIME_TORRENT_KEEP_MIN = 86400 * 2  # The download torrent keep time even no reseed and in stopped status.(To avoid H&R.)
 
 
-class Controller(Thread):
+class Controller(object):
     downloading_torrent_id_queue = []
     active_obj_list = []
     last_id_check = 0
 
     def __init__(self):
-        super().__init__()
-        self._active()
-
-    # Add Reseeder
-    def _active(self):
         """
         Active the reseeder objects and append it to self.active_reseeder_list.
         Each object will follow those step(s):
@@ -144,16 +139,12 @@ class Controller(Thread):
 
     def run(self):
         # Sync status between transmission, database, controller and reseeder modules
-        self.update_torrent_info_from_rpc_to_db(force_clean_check=True)
+        self.update_torrent_info_from_rpc_to_db(force_check=True)
         self.reseeders_update()
 
         # Start background thread
-        thread_args = [
-            (self._online_check, setting.CYCLE_CHECK_RESEEDER_ONLINE),
-            (self._del_torrent_with_db, setting.CYCLE_DEL_TORRENT_CHECK)
-        ]
-        for args in thread_args:
-            Thread(target=period_f, args=args, daemon=True).start()
+        Thread(target=period_f, args=(self._online_check, setting.CYCLE_CHECK_RESEEDER_ONLINE), daemon=True).start()
+        Thread(target=period_f, args=(self._del_torrent_with_db, setting.CYCLE_DEL_TORRENT_CHECK), daemon=True).start()
 
         Logger.info("Check period Starting~")
         while True:
@@ -164,7 +155,7 @@ class Controller(Thread):
     def get_online_reseeders(self):
         return [s for s in self.active_obj_list if s.suspended == 0]  # Get active and online reseeder
 
-    def update_torrent_info_from_rpc_to_db(self, last_id_db=None, force_clean_check=False):
+    def update_torrent_info_from_rpc_to_db(self, last_id_db=None, force_check=False):
         """
         Sync torrent's id from transmission to database,
         List Start on last check id,and will return the max id as the last check id.
@@ -177,7 +168,7 @@ class Controller(Thread):
                 last_id_db = db.get_max_in_seed_list(column_list=db.col_seed_list[2:])
             Logger.debug("Max tid, transmission: {tr}, database: {db}".format(tr=last_id_now, db=last_id_db))
 
-            if not force_clean_check:  # Normal Update
+            if not force_check:  # Normal Update
                 Logger.info("Some new torrents were add to transmission, Sync to db~")
                 for i in new_torrent_list:  # Upsert the new torrent
                     db.upsert_seed_list(self._get_torrent_info(i))
@@ -205,6 +196,9 @@ class Controller(Thread):
         And sent those un-reseed torrents to each reseeder depend on it's download status.
         """
         pre_reseeder_list = self.get_online_reseeders()
+        if len(pre_reseeder_list) == 0:
+            Logger.critical("It seems no online reseeder, May network error?")
+            return
         pre_cond = " OR ".join(["`{}`=0".format(i.db_column) for i in pre_reseeder_list])
         result = db.exec("SELECT * FROM `seed_list` WHERE `download_id` != 0 AND ({})".format(pre_cond),
                          r_dict=True, fetch_all=True)
