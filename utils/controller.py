@@ -174,7 +174,7 @@ class Controller(object):
                     db.upsert_seed_list(self._get_torrent_info(i))
                 self.last_id_check = last_id_now
 
-            elif last_id_now != last_id_db:  # Check the torrent 's record between tr and db
+            elif int(last_id_now) != int(last_id_db):  # Check the torrent 's record between tr and db
                 total_num_in_tr = len(set([t.name for t in torrent_list]))
                 total_num_in_db = db.exec(sql="SELECT COUNT(*) FROM `seed_list`")[0]
                 if int(total_num_in_tr) >= int(total_num_in_db):
