@@ -172,7 +172,6 @@ class Controller(object):
                 Logger.info("Some new torrents were add to transmission, Sync to db~")
                 for i in new_torrent_list:  # Upsert the new torrent
                     db.upsert_seed_list(self._get_torrent_info(i))
-                self.last_id_check = last_id_now
 
             elif int(last_id_now) != int(last_id_db):  # Check the torrent 's record between tr and db
                 total_num_in_tr = len(set([t.name for t in torrent_list]))
@@ -186,6 +185,8 @@ class Controller(object):
                         "The torrent list didn't match with db-records, Clean the whole \"seed_list\" for safety.")
                     db.exec(sql="DELETE FROM `seed_list` WHERE 1")  # Delete all line from seed_list
                     self.update_torrent_info_from_rpc_to_db(last_id_db=0)
+
+            self.last_id_check = last_id_now
         else:
             Logger.debug("No new torrent(s), Return with nothing to do.")
         return self.last_id_check

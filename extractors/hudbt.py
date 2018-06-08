@@ -32,6 +32,8 @@ class HUDBT(NexusPHP):
         return_dict = {}
         details_bs = self.page_torrent_detail(tid=tid, bs=True)
 
+        return_dict["clone_id"] = tid
+
         # 解析原种页面
         return_dict["name"] = details_bs.find("h1", id="page-title").text  # 标题
         return_dict["small_descr"] = details_bs.find("dt", text="副标题").next_sibling.text  # 副标题
