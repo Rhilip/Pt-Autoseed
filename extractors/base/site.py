@@ -14,9 +14,8 @@ from html2bbcode.parser import HTML2BBCode
 import utils.descr as descr
 from utils.constants import Video_Containers
 from utils.cookie import cookies_raw2jar
-from utils.err import *
 from utils.load.config import setting
-from utils.load.submodules import tc
+from utils.load.submodules import tc, db
 from utils.pattern import pattern_group as search_ptn
 
 # Disable log messages from the Requests library
@@ -147,17 +146,6 @@ class Site(object):
 
         return search
 
-    def _get_torrent_key(self, torrent) -> dict:
-        name_pattern = self._get_torrent_ptn(torrent)
-        if name_pattern:
-            key = {"name_pattern":name_pattern, "raw": re.sub(r"[_\-.']", " ", name_pattern.group("search_name"))}
-            key["with_gp"] = "{gr} {search_key}".format(search_key=key["raw"], gr=name_pattern.group("group"))
-            key["with_gp_ep"] = "{ep} {gp_key}".format(gp_key=key["with_gp"], ep=name_pattern.group("episode"))
-
-            return key
-        else:
-            raise NoMatchPatternError("No match pattern. Will Mark \"{}\" As Un-reseed torrent.".format(torrent.name))
-
     def get_data(self, url, params=None, bs=False, json=False, **kwargs):
         """Encapsulation requests's method - GET, with format-out as bs or json"""
         page = requests.get(url=url, params=params, cookies=self.cookies, **kwargs)
@@ -186,6 +174,31 @@ class Site(object):
 
         return before + info_dict["descr"] + shot + mediainfo + clone_info
 
+    # -*- The feeding function -*-
+    def torrent_feed(self, torrent):
+        torrent = self._get_torrent(torrent)
+        reseed_tag, = db.exec(
+            "SELECT `{}` FROM `seed_list` WHERE `download_id` = {}".format(self.db_column, torrent.id)
+        )
+
+        if reseed_tag in [None, 0, "0"] and reseed_tag not in [-1, "-1"]:
+            # It means that the pre-reseed torrent in this site is not reseed before,
+            # And this torrent not marked as an un-reseed torrent.
+            self._assist_delay()
+            logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
+
+            reseed_tag = -1
+            try:
+                reseed_tag = self.torrent_reseed(torrent)
+            except Exception as e:  # TODO 针对不同的Error情况做不同的更新（e.g. 因为网络问题则置0，其他情况置1）
+                err_name = type(e).__name__
+                logging.error(
+                    "Reseed not success in Site: {} for torrent: {}, "
+                    "With Exception: {}, {}".format(self.model_name(), torrent.name, err_name, e)
+                )
+            finally:
+                db.upsert_seed_list((reseed_tag, torrent.name, self.db_column))
+
     # -*- At least Overridden function,Please overridden below when add a new site -*-
     def session_check(self):
         """
@@ -197,10 +210,11 @@ class Site(object):
         """
         raise NotImplementedError
 
-    def torrent_feed(self, torrent):
+    def torrent_reseed(self, torrent):
         """
-        Main entry of Reseeder.....
+        Main reseed function of Reseeder.....
 
-        :param torrent: int or class transmissionrpc.Torrent
+        :param torrent: class transmissionrpc.Torrent
+        :return: int, the reseed flag - the reseed torrent id in transmission or -1, 0 (if not successfully reseed)
         """
         raise NotImplementedError

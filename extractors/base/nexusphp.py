@@ -199,31 +199,6 @@ class NexusPHP(Site):
 
         return flag
 
-    # -*- The feeding function -*-
-    def torrent_feed(self, torrent):
-        torrent = self._get_torrent(torrent)
-        reseed_tag, = db.exec(
-            "SELECT `{}` FROM `seed_list` WHERE `download_id` = {}".format(self.db_column, torrent.id)
-        )
-
-        if reseed_tag in [None, 0, "0"] and reseed_tag not in [-1, "-1"]:
-            # It means that the pre-reseed torrent in this site is not reseed before,
-            # And this torrent not marked as an un-reseed torrent.
-            self._assist_delay()
-            logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
-
-            reseed_tag = -1
-            try:
-                reseed_tag = self.torrent_reseed(torrent)
-            except Exception as e:  # TODO 针对不同的Error情况做不同的更新（e.g. 因为网络问题则置0，其他情况置1）
-                err_name = type(e).__name__
-                logging.error(
-                    "Reseed not success in Site: {} for torrent: {}, "
-                    "With Exception: {}, {}".format(self.model_name(), torrent.name, err_name, e)
-                )
-            finally:
-                db.upsert_seed_list((reseed_tag, torrent.name, self.db_column))
-
     # -*- At least Overridden function,Please overridden below when add a new site -*-
     def torrent_clone(self, tid) -> dict:
         """
