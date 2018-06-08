@@ -48,9 +48,9 @@ class NexusPHP(Site):
         page_usercp_bs = self.get_data(url=self.url_host + "/usercp.php", bs=True)
         self.status = True if page_usercp_bs.find(id="info_block") else False
         if self.status:
-            logging.debug("Through authentication in Site: {}".format(self.model_name()))
+            logging.debug("Through authentication in Site: {}".format(self.name))
         else:
-            logging.error("Can not verify identity. Please Check your Cookies".format(mo=self.model_name()))
+            logging.error("Can not verify identity. Please Check your Cookies".format(mo=self.name))
         return self.status
 
     def torrent_link(self, tid):
@@ -190,7 +190,7 @@ class NexusPHP(Site):
                 multipart_data = self.data_raw2tuple(torrent, raw_info=new_dict)
                 flag = self.torrent_upload(torrent=torrent, data=multipart_data)
             else:
-                raise NoCloneTorrentError("Can't find any clone torrent to used.".format(self.model_name()))
+                raise NoCloneTorrentError("Can't find any clone torrent to used.".format(self.name))
         elif search_tag == -1:  # IF the torrents are present, but not consistent (When FORCE_JUDGE_DUPE_LOC is True)
             raise CannotAssistError("Find dupe, and the exist torrent is not same as pre-reseed torrent. Stop Posting~")
         else:  # IF the torrent is already released and can be assist

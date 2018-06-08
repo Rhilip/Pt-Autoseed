@@ -33,18 +33,15 @@ class Site(object):
     suspended = 0  # 0 -> site Online, any number bigger than 0 -> Offline
 
     def __init__(self, status: bool, cookies: dict or str, **kwargs):
+        self.name = type(self).__name__
+
         # -*- Assign the based information -*-
         self.status = status
         try:
             self.cookies = cookies_raw2jar(cookies) if isinstance(cookies, str) else cookies
         except ValueError:  # Empty raw_cookies will raise ValueError (,see utils.cookie )
-            logging.critical("Empty cookies, Not allowed to active Model \"{}\"".format(self.model_name()))
+            logging.critical("Empty cookies, Not allowed to active Model \"{}\"".format(self.name))
             self.status = False
-        else:
-            if self.status:
-                logging.debug("Model \"{}\" is activation now.".format(self.model_name()))
-            else:
-                logging.info("Model \"{}\" isn't active due to your settings.".format(self.model_name()))
 
         # -*- Assign Enhanced Features : Site -*-
         """
@@ -66,10 +63,10 @@ class Site(object):
 
         # Check Site Online Status
         if self.status:
+            logging.debug("Model \"{}\" is activation now.".format(self.name))
             self.online_check()
-
-    def model_name(self):
-        return type(self).__name__
+        else:
+            logging.info("Model \"{}\" isn't active due to your settings.".format(self.name))
 
     def online_check(self) -> bool:
         """
@@ -130,7 +127,7 @@ class Site(object):
         if self._ASSIST_ONLY:
             logging.info("Autoseed-{mo} only allowed to assist."
                          "it will sleep {sl} Seconds to wait the reseed site "
-                         "to have this torrent".format(mo=self.model_name(), sl=self._ASSIST_DELAY_TIME))
+                         "to have this torrent".format(mo=self.name, sl=self._ASSIST_DELAY_TIME))
             time.sleep(self._ASSIST_DELAY_TIME)
 
     def _get_torrent_ptn(self, torrent):
@@ -185,7 +182,7 @@ class Site(object):
             # It means that the pre-reseed torrent in this site is not reseed before,
             # And this torrent not marked as an un-reseed torrent.
             self._assist_delay()
-            logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.model_name(), na=torrent.name))
+            logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.name, na=torrent.name))
 
             reseed_tag = -1
             try:
@@ -194,7 +191,7 @@ class Site(object):
                 err_name = type(e).__name__
                 logging.error(
                     "Reseed not success in Site: {} for torrent: {}, "
-                    "With Exception: {}, {}".format(self.model_name(), torrent.name, err_name, e)
+                    "With Exception: {}, {}".format(self.name, torrent.name, err_name, e)
                 )
             finally:
                 db.upsert_seed_list((reseed_tag, torrent.name, self.db_column))
