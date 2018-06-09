@@ -103,6 +103,12 @@ if no problem or error, You can use `screen` or other software like `supervisor`
 |:---|:---:|:---:|:---|
 | torrent_visible | Boolean | True | Display In the browse page (Dead torrent will be set if not checked) |
 
+- class extractors.hudbt.HUDBT(NexusPHP)
+
+| Key in setting | Type | Default | Description |
+|:---|:---:|:---:|:---|
+| original_search | Boolean | False | USE Original Search method, but not Third-party interface |
+
 ## Contribute
 
 * Fork the repository on GitHub to start making your changes to the master branch (or branch off of it).

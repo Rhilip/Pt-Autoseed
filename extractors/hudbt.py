@@ -2,12 +2,23 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
 
+"""
+
+Notice:
+  Due to the Original search method has some limits to protect it's server. Such as:
+    - if one of the Search field length is less than 4 (each after split), It will return null
+  So, It's better to use a Third-party interface to search torrent list,
+    the API url: https://api.rhilip.info/tool/ptboard?site=HUDBT&search=<search_key>
+  If you don't need it, and want to search originally, You should leave `original_search: True` in your config.
+
+"""
+
 import re
 
 from bs4 import BeautifulSoup
 
 from extractors.base.nexusphp import NexusPHP
-from utils.constants import ubb_clean, episode_eng2chs, html2ubb
+from utils.constants import ubb_clean, episode_eng2chs, html2ubb, api_ptboard
 from utils.load.handler import rootLogger as Logger
 
 
@@ -24,12 +35,34 @@ class HUDBT(NexusPHP):
     url_host = "https://hudbt.hust.edu.cn"
     db_column = "hudbt.hust.edu.cn"
 
+    def __init__(self, status, cookies, passkey, **kwargs):
+        super().__init__(status, cookies, passkey, **kwargs)
+        self._ORIGINAL_SEARCH = kwargs.setdefault("original_search", False)  # Original Search
+
     @staticmethod
     def torrent_upload_err_message(post_text) -> str:
         outer_bs = BeautifulSoup(post_text, "lxml")
         outer_tag = outer_bs.find("div", id="stderr")
         outer_message = outer_tag.get_text().replace("\n", "")
         return outer_message
+
+    def page_search(self, key: str, bs=False):
+        if self._ORIGINAL_SEARCH:
+            return super().page_search(key, bs)
+        else:
+            self.get_data(api_ptboard, params={"site": "HUDBT", "search": key}, json=True)
+
+    def search_list(self, key) -> list:
+        if self._ORIGINAL_SEARCH:
+            return super().search_list(key)
+        else:
+            tid_list = []
+            data_json = self.page_search(key=key, bs=False)
+            if data_json["success"] and data_json["total"] > 0:
+                tid_list = list(map(lambda x: x["sid"], data_json["rows"]))
+            Logger.debug("USE key: {key} to search through ptboard API, "
+                         "With the Return tid-list: {list}".format(key=key, list=tid_list))
+            return tid_list
 
     def torrent_clone(self, tid) -> dict:
         """

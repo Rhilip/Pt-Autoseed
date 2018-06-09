@@ -2,13 +2,13 @@
 # Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
 # Licensed under the GNU General Public License v3.0
 
-import logging
 import re
 
 from bs4 import BeautifulSoup
 
 from extractors.base.site import Site
 from utils.err import *
+from utils.load.handler import rootLogger as Logger
 from utils.load.submodules import tc, db
 
 
@@ -48,9 +48,9 @@ class NexusPHP(Site):
         page_usercp_bs = self.get_data(url=self.url_host + "/usercp.php", bs=True)
         self.status = True if page_usercp_bs.find(id="info_block") else False
         if self.status:
-            logging.debug("Through authentication in Site: {}".format(self.name))
+            Logger.debug("Through authentication in Site: {}".format(self.name))
         else:
-            logging.error("Can not verify identity. Please Check your Cookies".format(mo=self.name))
+            Logger.error("Can not verify identity. Please Check your Cookies".format(mo=self.name))
         return self.status
 
     def torrent_link(self, tid):
@@ -60,7 +60,7 @@ class NexusPHP(Site):
     def torrent_download(self, tid, **kwargs):
         added_torrent = tc.add_torrent(torrent=self.torrent_link(tid))
         # Another way is download torrent file to watch-dir(see early commits), But it will no return added_torrent.id
-        logging.info("Download Torrent OK, which id: {id}.".format(id=tid))
+        Logger.info("Download Torrent OK, which id: {id}.".format(id=tid))
         if kwargs.setdefault("thanks", self._AUTO_THANK):
             self.torrent_thank(tid)
         return added_torrent.id
@@ -72,7 +72,7 @@ class NexusPHP(Site):
         if post.url != upload_url:  # Check reseed status
             seed_torrent_download_id = re.search("id=(\d+)", post.url).group(1)  # Read the torrent's id in reseed site
             flag = self.torrent_download(tid=seed_torrent_download_id)
-            logging.info("Reseed post OK, The torrent's in transmission: {fl}".format(fl=flag))
+            Logger.info("Reseed post OK, The torrent's in transmission: {fl}".format(fl=flag))
         else:  # Log if not reseed successfully
             outer_message = self.torrent_upload_err_message(post_text=post.text)
             raise ConnectionError("Upload this torrent Error, The Server echo:\"{0}\".".format(outer_message))
@@ -105,7 +105,7 @@ class NexusPHP(Site):
         bs = self.page_search(key=key, bs=True)
         download_tag = bs.find_all("a", href=self._pat_search_torrent_id)
         tid_list = [int(re.search(self._pat_search_torrent_id, tag["href"]).group(1)) for tag in download_tag]
-        logging.debug("USE key: {key} to search, With the Return tid-list: {list}".format(key=key, list=tid_list))
+        Logger.debug("USE key: {key} to search, With the Return tid-list: {list}".format(key=key, list=tid_list))
         return tid_list
 
     def first_tid_in_search_list(self, key, _max=False) -> int:
@@ -116,7 +116,7 @@ class NexusPHP(Site):
         torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
         torrent_file_info_table = torrent_file_page.find("ul", id="colapse")
         torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
-        logging.info("The torrent name for id({id}) is \"{name}\"".format(id=tag, name=torrent_title))
+        Logger.info("The torrent name for id({id}) is \"{name}\"".format(id=tag, name=torrent_title))
         return torrent_title
 
     def exist_judge(self, search_title: str, torrent_file_name: str) -> int:
@@ -163,11 +163,11 @@ class NexusPHP(Site):
                         torrent_raw_info_dict = self.torrent_clone(clone_id)
                         if not torrent_raw_info_dict:
                             raise ValueError("The clone torrent for tid in db-record is not exist.")
-                        logging.debug("Get clone torrent info from \"DataBase\" OK, Which id: {}".format(clone_id))
+                            Logger.debug("Get clone torrent info from \"DataBase\" OK, Which id: {}".format(clone_id))
                 else:
                     raise KeyError("Set not get clone torrent id from \"Database.\"")
             except (KeyError, ValueError) as e:
-                logging.warning("{}, Try to search the clone info from site, it may not correct".format(e.args[0]))
+                Logger.warning("{}, Try to search the clone info from site, it may not correct".format(e.args[0]))
                 clone_id = self._DEFAULT_CLONE_TORRENT if self._DEFAULT_CLONE_TORRENT else 0  # USE Default clone id
                 for key in [key_with_gp, key_raw]:  # USE The same group to search firstly and Then non-group tag
                     search_id = self.first_tid_in_search_list(key=key)
@@ -177,7 +177,7 @@ class NexusPHP(Site):
 
                 if clone_id is not 0:
                     torrent_raw_info_dict = self.torrent_clone(clone_id)
-                    logging.info("Get clone torrent info from \"Reseed-Site\" OK, Which id: {cid}".format(cid=clone_id))
+                    Logger.info("Get clone torrent info from \"Reseed-Site\" OK, Which id: {cid}".format(cid=clone_id))
 
             if torrent_raw_info_dict:
                 if self._ALLOW_CAT:
@@ -185,7 +185,7 @@ class NexusPHP(Site):
                     if int(pre_reseed_cat) not in self._ALLOW_CAT:
                         raise NoCloneTorrentError("The clone torrent's category is not allowed.")
 
-                logging.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
+                Logger.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
                 new_dict = self.date_raw_update(torrent_name_search=name_pattern, raw_info=torrent_raw_info_dict)
                 multipart_data = self.data_raw2tuple(torrent, raw_info=new_dict)
                 flag = self.torrent_upload(torrent=torrent, data=multipart_data)
@@ -194,7 +194,7 @@ class NexusPHP(Site):
         elif search_tag == -1:  # IF the torrents are present, but not consistent (When FORCE_JUDGE_DUPE_LOC is True)
             raise CannotAssistError("Find dupe, and the exist torrent is not same as pre-reseed torrent. Stop Posting~")
         else:  # IF the torrent is already released and can be assist
-            logging.warning("Find dupe torrent,which id: {0}, Automatically assist it~".format(search_tag))
+            Logger.warning("Find dupe torrent,which id: {0}, Automatically assist it~".format(search_tag))
             flag = self.torrent_download(tid=search_tag, thanks=False)
 
         return flag

@@ -7,6 +7,8 @@ import time
 
 from html2bbcode.parser import HTML2BBCode
 
+api_ptboard = "https://api.rhilip.info/tool/ptboard"
+
 Support_Site = [
     # The tuple is like (config_dict_name in setting, Package name, Class name)
     ("site_byrbt", "extractors.byrbt", "Byrbt"),
