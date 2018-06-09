@@ -142,7 +142,7 @@ class MTPT(NexusPHP):
         # TODO if len_split == 0:
         if len_split != len(raw_title_group):
             Logger.warning("The raw title \"{raw}\" may lack of tag (now: {no},ask: {co}),"
-                            "The split may wrong.".format(raw=raw_title, no=len(raw_title_group), co=len_split))
+                           "The split may wrong.".format(raw=raw_title, no=len(raw_title_group), co=len_split))
             while len_split > len(raw_title_group):
                 raw_title_group.append("")
         raw_title_group.reverse()

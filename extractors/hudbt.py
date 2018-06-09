@@ -7,7 +7,8 @@ import re
 from bs4 import BeautifulSoup
 
 from extractors.base.nexusphp import NexusPHP
-from utils.constants import ubb_clean, episode_eng2chs
+from utils.constants import ubb_clean, episode_eng2chs, html2ubb
+from utils.load.handler import rootLogger as Logger
 
 
 def title_clean(noext: str) -> str:
@@ -41,25 +42,25 @@ class HUDBT(NexusPHP):
         return_dict = {}
         details_bs = self.page_torrent_detail(tid=tid, bs=True)
 
-        return_dict["clone_id"] = tid
+        if re.search("没有该ID的种子", str(details_bs)):
+            Logger.error("Error,this torrent may not exist or ConnectError")
+        else:  # 解析原种页面
+            return_dict["clone_id"] = tid  # 传入引用种子号
+            return_dict["name"] = details_bs.find("h1", id="page-title").text  # 标题
+            return_dict["small_descr"] = details_bs.find("dt", text="副标题").next_sibling.text  # 副标题
 
-        # 解析原种页面
-        return_dict["name"] = details_bs.find("h1", id="page-title").text  # 标题
-        return_dict["small_descr"] = details_bs.find("dt", text="副标题").next_sibling.text  # 副标题
+            imdb_another = details_bs.find("a", href=re.compile("http://www.imdb.com/title/tt"))
+            return_dict["url"] = imdb_another.text if imdb_another else ""  # IMDb
 
-        # IMDb
-        imdb_another = details_bs.find("a", href=re.compile("http://www.imdb.com/title/tt"))
-        return_dict["url"] = imdb_another.text if imdb_another else ""
+            for key_dict, key_search in [("type", "cat"), ("standard_sel", "standard")]:  # 类型, 质量
+                temp_reg = re.compile("torrents.php\?{}=(\d+)".format(key_search))
+                temp_tag = details_bs.find("a", href=temp_reg)
+                return_dict[key_dict] = re.search(temp_reg, temp_tag["href"]).group(1)
 
-        for key_dict, key_search in [("type", "cat"), ("standard_sel", "standard")]:  # 类型, 质量
-            temp_reg = re.compile("torrents.php\?{}=(\d+)".format(key_search))
-            temp_tag = details_bs.find("a", href=temp_reg)
-            return_dict[key_dict] = re.search(temp_reg, temp_tag["href"]).group(1)
-
-        # 简介
-        descr_html = str((details_bs.select("div#kdescr > div.bbcode") or "")[0])
-        descr_ubb = self._descr_html2ubb(descr_html)
-        return_dict["descr"] = ubb_clean(descr_ubb)
+            # 简介
+            descr_html = str((details_bs.select("div#kdescr > div.bbcode") or "")[0])
+            descr_ubb = html2ubb(descr_html)
+            return_dict["descr"] = ubb_clean(descr_ubb)
 
         return return_dict
 

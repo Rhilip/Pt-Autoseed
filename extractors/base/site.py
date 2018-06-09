@@ -8,7 +8,6 @@ import time
 
 import requests
 from bs4 import BeautifulSoup
-from html2bbcode.parser import HTML2BBCode
 
 import utils.descr as descr
 from utils.constants import Video_Containers
@@ -81,7 +80,7 @@ class Site(object):
         else:
             if self.suspended != 0:
                 Logger.info("The Site: {si} is Online now,after {count} times tries."
-                             "Will check the session soon.".format(si=self.url_host, count=self.suspended))
+                            "Will check the session soon.".format(si=self.url_host, count=self.suspended))
                 self.suspended = 0  # Set self.suspended as 0 first, then session_check()
                 self.session_check()
         return True if self.suspended == 0 else False
@@ -109,21 +108,11 @@ class Site(object):
             torrent = tc.get_torrent(torrent)
         return torrent
 
-    @staticmethod
-    def _descr_html2ubb(string: str) -> str:
-        """
-        Build-in function to make a string from html to bbcode
-
-        :param string: str
-        :return: str
-        """
-        return str(HTML2BBCode().feed(string))
-
     def _assist_delay(self):
         if self._ASSIST_ONLY:
             Logger.info("Autoseed-{mo} only allowed to assist."
-                         "it will sleep {sl} Seconds to wait the reseed site "
-                         "to have this torrent".format(mo=self.name, sl=self._ASSIST_DELAY_TIME))
+                        "it will sleep {sl} Seconds to wait the reseed site "
+                        "to have this torrent".format(mo=self.name, sl=self._ASSIST_DELAY_TIME))
             time.sleep(self._ASSIST_DELAY_TIME)
 
     def _get_torrent_ptn(self, torrent):

@@ -5,6 +5,8 @@
 import re
 import time
 
+from html2bbcode.parser import HTML2BBCode
+
 Support_Site = [
     # The tuple is like (config_dict_name in setting, Package name, Class name)
     ("site_byrbt", "extractors.byrbt", "Byrbt"),
@@ -48,3 +50,7 @@ def episode_eng2chs(ep: str) -> str:
     if season_episode_info_search.group("episode"):
         season_episode_info += " 第{e}集".format(e=season_episode_info_search.group("episode"))
     return season_episode_info
+
+
+def html2ubb(html: str) -> str:
+    return str(HTML2BBCode().feed(html))

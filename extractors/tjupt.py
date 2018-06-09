@@ -102,30 +102,15 @@ class TJUPT(NexusPHP):
 
     def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
         # TODO Change info due to reseed torrent's name information
-        if int(raw_info["type"]) == 401:  # 电影
+        type_ = int(raw_info["type"])
+        if type_ == 401:  # 电影
             pass
-        elif int(raw_info["type"]) == 402:  # 剧集
+        elif type_ == 402:  # 剧集
             raw_info["ename"] = torrent_name_search.group("full_name")  # 英文名
             raw_info["tvseasoninfo"] = torrent_name_search.group("episode")  # 集数
-            raw_info["subsinfo"] = "1"  # 强制更新字幕情况为"暂无字幕"
-        elif int(raw_info["type"]) == 403:  # 综艺
-            pass
-        elif int(raw_info["type"]) == 404:  # 资料
-            pass
-        elif int(raw_info["type"]) == 405:  # 动漫
+            raw_info["subsinfo"] = 1  # 强制更新字幕情况为"暂无字幕"
+        elif type_ == 405:  # 动漫
             raw_info["animenum"] = torrent_name_search.group("episode")  # 动漫集数
-        elif int(raw_info["type"]) == 407:  # 体育
-            pass
-        elif int(raw_info["type"]) == 408:  # 软件
-            pass
-        elif int(raw_info["type"]) == 409:  # 游戏
-            pass
-        elif int(raw_info["type"]) == 410:  # 其他
-            pass
-        elif int(raw_info["type"]) == 411:  # 纪录片
-            pass
-        elif int(raw_info["type"]) == 412:  # 移动视频
-            pass
 
         return raw_info
 
