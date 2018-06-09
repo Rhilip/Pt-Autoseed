@@ -4,11 +4,11 @@
 # Licensed under the GNU General Public License v3.0
 
 import base64
-import logging
 import re
 
 from extractors.base.nexusphp import NexusPHP
 from utils.constants import ubb_clean, episode_eng2chs
+from utils.load.handler import rootLogger as Logger
 
 
 def string2base64(raw):
@@ -45,12 +45,12 @@ class NPUBits(NexusPHP):
         try:
             res_dic = self.get_data(url=self.url_host + "/transfer.php", params={"url": transferred_url}, json=True)
         except ValueError:
-            logging.error("Error,this torrent may not exist or ConnectError")
+            Logger.error("Error,this torrent may not exist or ConnectError")
         else:
             res_dic.update({"transferred_url": transferred_url, "clone_id": tid})
             res_dic["descr"] = ubb_clean(res_dic["descr"])
 
-            logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
+            Logger.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
         return res_dic
 
     def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:

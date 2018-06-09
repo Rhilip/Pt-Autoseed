@@ -2,12 +2,12 @@
 # Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
 # Licensed under the GNU General Public License v3.0
 
-import logging
 import re
 from html import unescape
 from urllib.parse import unquote
 
 from extractors.base.nexusphp import NexusPHP
+from utils.load.handler import rootLogger as Logger
 
 type_dict = {
     "电影": {
@@ -152,7 +152,7 @@ def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
 
     len_split = len(type_dict[raw_type]["split"])
     if len_split != len(raw_title_group):
-        logging.warning("The raw title \"{raw}\" may lack of tag (now: {no},ask: {co}),"
+        Logger.warning("The raw title \"{raw}\" may lack of tag (now: {no},ask: {co}),"
                         "The split may wrong.".format(raw=raw_title, no=len(raw_title_group), co=len_split))
         while len_split > len(raw_title_group):
             raw_title_group.append("")
@@ -166,7 +166,7 @@ def sort_title_info(raw_title, raw_type, raw_sec_type) -> dict:
                 title_split = ""  # type_dict[raw_type]["limit"][i][0]
                 raw_title_group.append(j)
         return_dict.update({i: title_split})
-    logging.debug("the title split success.The title dict:{dic}".format(dic=return_dict))
+    Logger.debug("the title split success.The title dict:{dic}".format(dic=return_dict))
     return return_dict
 
 
@@ -195,7 +195,7 @@ class Byrbt(NexusPHP):
         title_search = re.search("种子详情 \"(?P<title>.*)\" - Powered", str(details_bs.title))
         if title_search:
             title = unescape(title_search.group("title"))
-            logging.info("Get clone torrent's info,id: {tid},title: \"{ti}\"".format(tid=tid, ti=title))
+            Logger.info("Get clone torrent's info,id: {tid},title: \"{ti}\"".format(tid=tid, ti=title))
             title_dict = sort_title_info(raw_title=title, raw_type=details_bs.find("span", id="type").text.strip(),
                                          raw_sec_type=details_bs.find("span", id="sec_type").text.strip())
             return_dict.update(title_dict)
@@ -203,10 +203,10 @@ class Byrbt(NexusPHP):
             imdb_url = dburl = ""
             if body.find(class_="imdbRatingPlugin"):
                 imdb_url = 'http://www.imdb.com/title/' + body.find(class_="imdbRatingPlugin")["data-title"]
-                logging.debug("Found imdb link:{link} for this torrent.".format(link=imdb_url))
+                Logger.debug("Found imdb link:{link} for this torrent.".format(link=imdb_url))
             if body.find("a", href=re.compile("://movie.douban.com/subject")):
                 dburl = body.find("a", href=re.compile("://movie.douban.com/subject")).text
-                logging.debug("Found douban link:{link} for this torrent.".format(link=dburl))
+                Logger.debug("Found douban link:{link} for this torrent.".format(link=dburl))
             # Update description
             descr = body.find(id="kdescr")
 
@@ -230,7 +230,7 @@ class Byrbt(NexusPHP):
                 "clone_id": tid
             })
         else:
-            logging.error("Error,this torrent may not exist or ConnectError")
+            Logger.error("Error,this torrent may not exist or ConnectError")
         return return_dict
 
     def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:

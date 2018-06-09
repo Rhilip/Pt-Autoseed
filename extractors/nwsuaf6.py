@@ -3,11 +3,11 @@
 # Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
 # Licensed under the GNU General Public License v3.0
 
-import logging
 import re
 
 from extractors.base.nexusphp import NexusPHP
 from utils.constants import ubb_clean
+from utils.load.handler import rootLogger as Logger
 
 filetype_list = ["MKV", "RMVB", "MP4", "AVI", "MPEG", "ts", "ISO", "其他文件类型"]
 resolution_list = ["1080P", "720P", "480P", "其他"]
@@ -120,13 +120,13 @@ class MTPT(NexusPHP):
         try:
             res_dic = self.get_data(url=self.url_host + "/citetorrent.php", params={"torrent_id": tid}, json=True)
         except ValueError:
-            logging.error("Error,this torrent may not exist or ConnectError")
+            Logger.error("Error,this torrent may not exist or ConnectError")
         else:
             res_dic["clone_id"] = tid
             res_dic["descr"] = ubb_clean(res_dic["descr"])
             res_dic["type"] = res_dic["category"]
 
-            logging.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
+            Logger.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
         return res_dic
 
     def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
@@ -141,7 +141,7 @@ class MTPT(NexusPHP):
         len_split = len(title_split_dict[cat]["order"])
         # TODO if len_split == 0:
         if len_split != len(raw_title_group):
-            logging.warning("The raw title \"{raw}\" may lack of tag (now: {no},ask: {co}),"
+            Logger.warning("The raw title \"{raw}\" may lack of tag (now: {no},ask: {co}),"
                             "The split may wrong.".format(raw=raw_title, no=len(raw_title_group), co=len_split))
             while len_split > len(raw_title_group):
                 raw_title_group.append("")

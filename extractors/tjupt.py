@@ -3,13 +3,13 @@
 # Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
 # Licensed under the GNU General Public License v3.0
 
-import logging
 import re
 
 import requests
 
 from extractors.base.nexusphp import NexusPHP
 from utils.constants import ubb_clean
+from utils.load.handler import rootLogger as Logger
 
 ask_dict = {
     "401": ["cname", "ename", "issuedate", "language", "format", "subsinfo", "district"],  # 电影
@@ -54,7 +54,7 @@ class TJUPT(NexusPHP):
         else:  # Due to HIGH Authority (Ultimate User) asked to view this page.
             torrent_file_info_table = torrent_file_page.find("ul", id="colapse")
             torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
-        logging.info("The torrent name for id({id}) is \"{name}\"".format(id=tag, name=torrent_title))
+        Logger.info("The torrent name for id({id}) is \"{name}\"".format(id=tag, name=torrent_title))
         return torrent_title
 
     def torrent_clone(self, tid):
@@ -69,7 +69,7 @@ class TJUPT(NexusPHP):
         page_clone = self.get_data(url=self.url_host + "/upsimilartorrent.php", params={"id": tid}, bs=True)
 
         if not re.search(r"<h2>错误！</h2>", str(page_clone)):
-            logging.info("Got clone torrent's info,id: {tid}".format(tid=tid))
+            Logger.info("Got clone torrent's info,id: {tid}".format(tid=tid))
 
             type_select = page_clone.find("select", id="oricat")
             type_value = type_select.find("option", selected="selected")["value"]

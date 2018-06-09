@@ -2,7 +2,6 @@
 # Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
 # Licensed under the GNU General Public License v3.0
 
-import logging
 import os
 import re
 import time
@@ -15,12 +14,9 @@ import utils.descr as descr
 from utils.constants import Video_Containers
 from utils.cookie import cookies_raw2jar
 from utils.load.config import setting
+from utils.load.handler import rootLogger as Logger
 from utils.load.submodules import tc, db
 from utils.pattern import pattern_group as search_ptn
-
-# Disable log messages from the Requests library
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("requests").setLevel(logging.WARNING)
 
 REQUESTS_TIMEOUT = 5
 
@@ -40,7 +36,7 @@ class Site(object):
         try:
             self.cookies = cookies_raw2jar(cookies) if isinstance(cookies, str) else cookies
         except ValueError:  # Empty raw_cookies will raise ValueError (,see utils.cookie )
-            logging.critical("Empty cookies, Not allowed to active Model \"{}\"".format(self.name))
+            Logger.critical("Empty cookies, Not allowed to active Model \"{}\"".format(self.name))
             self.status = False
 
         # -*- Assign Enhanced Features : Site -*-
@@ -63,10 +59,10 @@ class Site(object):
 
         # Check Site Online Status
         if self.status:
-            logging.debug("Model \"{}\" is activation now.".format(self.name))
+            Logger.debug("Model \"{}\" is activation now.".format(self.name))
             self.online_check()
         else:
-            logging.info("Model \"{}\" isn't active due to your settings.".format(self.name))
+            Logger.info("Model \"{}\" isn't active due to your settings.".format(self.name))
 
     def online_check(self) -> bool:
         """
@@ -80,11 +76,11 @@ class Site(object):
             requests.head(self.url_host, timeout=REQUESTS_TIMEOUT)
         except OSError:  # requests.exceptions.RequestException
             if self.suspended == 0:
-                logging.warning("Site: {si} is Offline now.".format(si=self.url_host))
+                Logger.warning("Site: {si} is Offline now.".format(si=self.url_host))
             self.suspended += 1
         else:
             if self.suspended != 0:
-                logging.info("The Site: {si} is Online now,after {count} times tries."
+                Logger.info("The Site: {si} is Online now,after {count} times tries."
                              "Will check the session soon.".format(si=self.url_host, count=self.suspended))
                 self.suspended = 0  # Set self.suspended as 0 first, then session_check()
                 self.session_check()
@@ -125,7 +121,7 @@ class Site(object):
 
     def _assist_delay(self):
         if self._ASSIST_ONLY:
-            logging.info("Autoseed-{mo} only allowed to assist."
+            Logger.info("Autoseed-{mo} only allowed to assist."
                          "it will sleep {sl} Seconds to wait the reseed site "
                          "to have this torrent".format(mo=self.name, sl=self._ASSIST_DELAY_TIME))
             time.sleep(self._ASSIST_DELAY_TIME)
@@ -138,7 +134,7 @@ class Site(object):
         for ptn in search_ptn:
             search = re.search(ptn, tname)
             if search:
-                logging.debug("The search group dict of Torrent: {tn} is {gr}".format(tn=tname, gr=search.groupdict()))
+                Logger.debug("The search group dict of Torrent: {tn} is {gr}".format(tn=tname, gr=search.groupdict()))
                 break
 
         return search
@@ -182,14 +178,14 @@ class Site(object):
             # It means that the pre-reseed torrent in this site is not reseed before,
             # And this torrent not marked as an un-reseed torrent.
             self._assist_delay()
-            logging.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.name, na=torrent.name))
+            Logger.info("Autoseed-{mo} Get A feed torrent: {na}".format(mo=self.name, na=torrent.name))
 
             reseed_tag = -1
             try:
                 reseed_tag = self.torrent_reseed(torrent)
             except Exception as e:  # TODO 针对不同的Error情况做不同的更新（e.g. 因为网络问题则置0，其他情况置1）
                 err_name = type(e).__name__
-                logging.error(
+                Logger.error(
                     "Reseed not success in Site: {} for torrent: {}, "
                     "With Exception: {}, {}".format(self.name, torrent.name, err_name, e)
                 )

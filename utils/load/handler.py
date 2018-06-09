@@ -27,3 +27,7 @@ while rootLogger.handlers:  # Remove un-format logging in Stream, or all of mess
     rootLogger.handlers.pop()
 rootLogger.addHandler(fileHandler)
 rootLogger.addHandler(consoleHandler)
+
+# Disable log messages from the Requests library
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("requests").setLevel(logging.WARNING)
