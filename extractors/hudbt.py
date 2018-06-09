@@ -50,7 +50,7 @@ class HUDBT(NexusPHP):
         if self._ORIGINAL_SEARCH:
             return super().page_search(key, bs)
         else:
-            self.get_data(api_ptboard, params={"site": "HUDBT", "search": key}, json=True)
+            self.get_data(api_ptboard, params={"site": "HUDBT", "search": key, "limit": 15}, json=True)
 
     def search_list(self, key) -> list:
         if self._ORIGINAL_SEARCH:
