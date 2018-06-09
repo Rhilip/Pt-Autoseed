@@ -4,6 +4,8 @@
 
 import re
 
+from bs4 import BeautifulSoup
+
 from extractors.base.nexusphp import NexusPHP
 from utils.constants import ubb_clean, episode_eng2chs
 
@@ -20,6 +22,13 @@ def title_clean(noext: str) -> str:
 class HUDBT(NexusPHP):
     url_host = "https://hudbt.hust.edu.cn"
     db_column = "hudbt.hust.edu.cn"
+
+    @staticmethod
+    def torrent_upload_err_message(post_text) -> str:
+        outer_bs = BeautifulSoup(post_text, "lxml")
+        outer_tag = outer_bs.find("div", id="stderr")
+        outer_message = outer_tag.get_text().replace("\n", "")
+        return outer_message
 
     def torrent_clone(self, tid) -> dict:
         """
