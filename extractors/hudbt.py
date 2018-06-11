@@ -97,7 +97,8 @@ class HUDBT(NexusPHP):
 
         return return_dict
 
-    def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
+    def date_raw_update(self, torrent, torrent_name_search, raw_info: dict) -> dict:
+        raw_info["descr"] = self.enhance_descr(torrent=torrent, info_dict=raw_info)
         type_ = int(raw_info["type"])
         if type_ == 418:  # 欧美剧集
             torrent_raw_name = torrent_name_search.group("full_name")
@@ -111,14 +112,14 @@ class HUDBT(NexusPHP):
 
         return raw_info
 
-    def data_raw2tuple(self, torrent, raw_info: dict) -> tuple:
+    def data_raw2tuple(self, raw_info: dict) -> tuple:
         return (
             ("dl-url", ''),  # 下载链接
             ("name", raw_info["name"]),  # 主标题
             ("small_descr", raw_info["small_descr"]),  # 副标题
             ("url", raw_info["url"]),  # IMDb链接
             ("nfo", ''),  # NFO文件
-            ("descr", self.enhance_descr(torrent=torrent, info_dict=raw_info)),  # 简介
+            ("descr", raw_info["descr"]),  # 简介
             ("type", raw_info["type"]),  # 类型
             ("data[Tcategory][Tcategory][]", ''),  # 分类
             ("standard_sel", raw_info["standard_sel"])  # 质量

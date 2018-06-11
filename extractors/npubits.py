@@ -53,7 +53,8 @@ class NPUBits(NexusPHP):
             Logger.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
         return res_dic
 
-    def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
+    def date_raw_update(self, torrent, torrent_name_search, raw_info: dict) -> dict:
+        raw_info["descr"] = self.enhance_descr(torrent=torrent, info_dict=raw_info)
         if int(raw_info["category"]) == 402:  # Series
             raw_info["name"] = torrent_name_search.group("full_name")
             season_episode_info = episode_eng2chs(torrent_name_search.group("episode"))
@@ -65,7 +66,7 @@ class NPUBits(NexusPHP):
 
         return raw_info
 
-    def data_raw2tuple(self, torrent, raw_info):
+    def data_raw2tuple(self, raw_info):
         return (  # Submit form
             ("transferred_url", raw_info["transferred_url"]),
             ("type", raw_info["category"]),
@@ -75,7 +76,7 @@ class NPUBits(NexusPHP):
             ("color", 0),  # Tell me those three key's function~
             ("font", 0),
             ("size", 0),
-            ("descr", string2base64(self.enhance_descr(torrent=torrent, info_dict=raw_info))),
+            ("descr", string2base64(raw_info["descr"])),
             ("nfo", ""),  # 实际上并不是这样的，但是nfo一般没有，故这么写
             ("uplver", self._UPLVER),
             ("transferred_torrent_file_base64", ""),

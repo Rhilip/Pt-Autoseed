@@ -163,7 +163,7 @@ class NexusPHP(Site):
                         torrent_raw_info_dict = self.torrent_clone(clone_id)
                         if not torrent_raw_info_dict:
                             raise ValueError("The clone torrent for tid in db-record is not exist.")
-                            Logger.debug("Get clone torrent info from \"DataBase\" OK, Which id: {}".format(clone_id))
+                        Logger.debug("Get clone torrent info from \"DataBase\" OK, Which id: {}".format(clone_id))
                 else:
                     raise KeyError("Set not get clone torrent id from \"Database.\"")
             except (KeyError, ValueError) as e:
@@ -186,8 +186,8 @@ class NexusPHP(Site):
                         raise NoCloneTorrentError("The clone torrent's category is not allowed.")
 
                 Logger.info("Begin post The torrent {0},which name: {1}".format(torrent.id, torrent.name))
-                new_dict = self.date_raw_update(torrent_name_search=name_pattern, raw_info=torrent_raw_info_dict)
-                multipart_data = self.data_raw2tuple(torrent, raw_info=new_dict)
+                new_dict = self.date_raw_update(torrent, name_pattern, torrent_raw_info_dict)
+                multipart_data = self.data_raw2tuple(new_dict)
                 flag = self.torrent_upload(torrent=torrent, data=multipart_data)
             else:
                 raise NoCloneTorrentError("Can't find any clone torrent to used.".format(self.name))
@@ -210,21 +210,21 @@ class NexusPHP(Site):
         """
         raise NotImplementedError
 
-    def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
+    def date_raw_update(self, torrent, torrent_name_search, raw_info: dict) -> dict:
         """
         Update the raw dict due to the pre-reseed torrent's info (main from `torrent_name_search`)
-        
+
+        :param torrent: class transmissionrpc.Torrent
         :param torrent_name_search: class '_sre.SRE_Match'
         :param raw_info: dict, The information dict about the clone torrent
         :return: dict, The information dict about the pre-reseed torrent
         """
         raise NotImplementedError
 
-    def data_raw2tuple(self, torrent, raw_info: dict) -> tuple:
+    def data_raw2tuple(self, raw_info: dict) -> tuple:
         """
         Sort the information dict to the post tuple.
-        
-        :param torrent: class transmissionrpc.Torrent
+
         :param raw_info: dict, The information dict about the pre-reseed torrent
         :return: tuple, The prepared tuple used to upload to the site
         """

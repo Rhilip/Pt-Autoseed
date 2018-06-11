@@ -100,8 +100,8 @@ class TJUPT(NexusPHP):
 
         return res_dic
 
-    def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
-        # TODO Change info due to reseed torrent's name information
+    def date_raw_update(self, torrent, torrent_name_search, raw_info: dict) -> dict:
+        raw_info["descr"] = self.enhance_descr(torrent=torrent, info_dict=raw_info)
         type_ = int(raw_info["type"])
         if type_ == 401:  # 电影
             pass
@@ -114,7 +114,7 @@ class TJUPT(NexusPHP):
 
         return raw_info
 
-    def data_raw2tuple(self, torrent, raw_info: dict):
+    def data_raw2tuple(self, raw_info: dict):
         begin_post_list = [
             ("id", raw_info["clone_id"]),
             ("quote", raw_info["clone_id"]),
@@ -130,7 +130,7 @@ class TJUPT(NexusPHP):
             ("color", 0),  # Tell me those three key's function~
             ("font", 0),
             ("size", 0),
-            ("descr", self.enhance_descr(torrent=torrent, info_dict=raw_info)),  # 简介*
+            ("descr", raw_info["descr"]),  # 简介*
             ("getDescByTorrentId", ""),
             ("source_sel", raw_info["source_sel"]),  # 质量
             ("team_sel", raw_info["team_sel"]),  # 内容

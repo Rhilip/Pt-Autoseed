@@ -129,7 +129,7 @@ class MTPT(NexusPHP):
             Logger.info("Get clone torrent's info,id: {tid},title:\"{ti}\"".format(tid=tid, ti=res_dic["name"]))
         return res_dic
 
-    def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
+    def date_raw_update(self, torrent, torrent_name_search, raw_info: dict) -> dict:
 
         raw_title = raw_info["name"]
         cat = raw_info["category"]
@@ -171,10 +171,11 @@ class MTPT(NexusPHP):
 
         # Assign raw info
         raw_info["name"] = new_title
+        raw_info["descr"] = self.enhance_descr(torrent=torrent, info_dict=raw_info)
 
         return raw_info
 
-    def data_raw2tuple(self, torrent, raw_info):
+    def data_raw2tuple(self, raw_info):
         return (  # Submit form
             ("cite_torrent", raw_info["clone_id"]),
             ("ismttv", "no"),
@@ -189,6 +190,6 @@ class MTPT(NexusPHP):
             ("color", 0),  # Tell me those three key's function~
             ("font", 0),
             ("size", 0),
-            ("descr", self.enhance_descr(torrent=torrent, info_dict=raw_info)),
+            ("descr", raw_info["descr"]),
             ("uplver", self._UPLVER),
         )

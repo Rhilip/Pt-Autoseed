@@ -233,7 +233,8 @@ class Byrbt(NexusPHP):
             Logger.error("Error,this torrent may not exist or ConnectError")
         return return_dict
 
-    def date_raw_update(self, torrent_name_search, raw_info: dict) -> dict:
+    def date_raw_update(self, torrent, torrent_name_search, raw_info: dict) -> dict:
+        raw_info["descr"] = self.enhance_descr(torrent=torrent, info_dict=raw_info)
         filetype = torrent_name_search.group("filetype")
         if raw_info["type"] == 401:  # Series
             raw_info["tv_ename"] = torrent_name_search.group("full_name")
@@ -250,7 +251,7 @@ class Byrbt(NexusPHP):
 
         return raw_info
 
-    def data_raw2tuple(self, torrent, raw_info: dict):
+    def data_raw2tuple(self, raw_info: dict):
         begin_list = [
             ("type", raw_info["type"]),
             ("second_type", raw_info["second_type"]),
@@ -264,7 +265,7 @@ class Byrbt(NexusPHP):
             ("url", raw_info["url"]),
             ("dburl", raw_info["dburl"]),
             ("nfo", ''),
-            ("descr", self.enhance_descr(torrent=torrent, info_dict=raw_info)),
+            ("descr", raw_info["descr"]),
             ("uplver", self._UPLVER),
         ]
 
