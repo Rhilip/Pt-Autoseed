@@ -98,7 +98,7 @@ class HUDBT(NexusPHP):
         return return_dict
 
     def date_raw_update(self, torrent, torrent_name_search, raw_info: dict) -> dict:
-        raw_info["descr"] = self.enhance_descr(torrent=torrent, info_dict=raw_info)
+        raw_info["descr"] = self.enhance_descr(torrent, raw_info["descr"], raw_info["clone_id"])
         type_ = int(raw_info["type"])
         if type_ == 418:  # 欧美剧集
             torrent_raw_name = torrent_name_search.group("full_name")

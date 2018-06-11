@@ -137,7 +137,7 @@ class Site(object):
         """Encapsulation requests's method - POST"""
         return requests.post(url=url, params=params, cookies=self.cookies, **kwargs)
 
-    def enhance_descr(self, torrent, info_dict):
+    def enhance_descr(self, torrent, descr_text, clone_id):
         video_file = None
         for test_file in [v["name"] for k, v in torrent.files().items()]:  # To get video file
             if (os.path.splitext(test_file)[1]).lower() in Video_Containers:
@@ -151,10 +151,10 @@ class Site(object):
             shot = descr.build_shot(file=video_file, encode=self.encode) if self._EXTEND_DESCR_THUMBNAILS else ""
             mediainfo = descr.build_mediainfo(file=video_file,
                                               encode=self.encode) if self._EXTEND_DESCR_MEDIAINFO else ""
-        clone_info = descr.build_clone_info(clone_id=info_dict["clone_id"],
+        clone_info = descr.build_clone_info(clone_id=clone_id,
                                             encode=self.encode) if self._EXTEND_DESCR_CLONEINFO else ""
 
-        return before + info_dict["descr"] + shot + mediainfo + clone_info
+        return before + descr_text + shot + mediainfo + clone_info
 
     # -*- The feeding function -*-
     def torrent_feed(self, torrent):

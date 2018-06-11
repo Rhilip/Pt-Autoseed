@@ -54,7 +54,7 @@ class NPUBits(NexusPHP):
         return res_dic
 
     def date_raw_update(self, torrent, torrent_name_search, raw_info: dict) -> dict:
-        raw_info["descr"] = self.enhance_descr(torrent=torrent, info_dict=raw_info)
+        raw_info["descr"] = self.enhance_descr(torrent, raw_info["descr"], raw_info["clone_id"])
         if int(raw_info["category"]) == 402:  # Series
             raw_info["name"] = torrent_name_search.group("full_name")
             season_episode_info = episode_eng2chs(torrent_name_search.group("episode"))

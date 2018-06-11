@@ -171,7 +171,7 @@ class MTPT(NexusPHP):
 
         # Assign raw info
         raw_info["name"] = new_title
-        raw_info["descr"] = self.enhance_descr(torrent=torrent, info_dict=raw_info)
+        raw_info["descr"] = self.enhance_descr(torrent, raw_info["descr"], raw_info["clone_id"])
 
         return raw_info
 
