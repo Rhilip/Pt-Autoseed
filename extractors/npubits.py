@@ -73,9 +73,6 @@ class NPUBits(NexusPHP):
             ("source_sel", raw_info["sub_category"]),
             ("name", string2base64(raw_info["name"])),
             ("small_descr", string2base64(raw_info["small_descr"])),
-            ("color", 0),  # Tell me those three key's function~
-            ("font", 0),
-            ("size", 0),
             ("descr", string2base64(raw_info["descr"])),
             ("nfo", ""),  # 实际上并不是这样的，但是nfo一般没有，故这么写
             ("uplver", self._UPLVER),

@@ -187,9 +187,6 @@ class MTPT(NexusPHP):
             ("imdburl", raw_info["url"]),
             ("dburl", raw_info["dburl"]),
             ("nfo", ""),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-            ("color", 0),  # Tell me those three key's function~
-            ("font", 0),
-            ("size", 0),
             ("descr", raw_info["descr"]),
             ("uplver", self._UPLVER),
         )

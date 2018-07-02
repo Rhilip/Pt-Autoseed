@@ -260,7 +260,6 @@ class Byrbt(NexusPHP):
         cat_post_list = [(cat, raw_info[cat]) for cat in type_dict[raw_info["raw_type"]]["split"]]
 
         end_post_list = [
-            ("type", raw_info["type"]),
             ("small_descr", raw_info["small_descr"]),
             ("url", raw_info["url"]),
             ("dburl", raw_info["dburl"]),

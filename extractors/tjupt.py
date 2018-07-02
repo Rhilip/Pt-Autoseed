@@ -127,9 +127,6 @@ class TJUPT(NexusPHP):
         end_post_list = [
             ("url", raw_info["url"]),  # IMDb链接
             ("nfo", ""),  # 实际上并不是这样的，但是nfo一般没有，故这么写
-            ("color", 0),  # Tell me those three key's function~
-            ("font", 0),
-            ("size", 0),
             ("descr", raw_info["descr"]),  # 简介*
             ("getDescByTorrentId", ""),
             ("source_sel", raw_info["source_sel"]),  # 质量
