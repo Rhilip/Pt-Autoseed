@@ -31,7 +31,8 @@ CREATE TABLE `info_list` (
   `pt.nwsuaf6.edu.cn`    int(11)      NOT NULL DEFAULT '0',
   `pttracker6.tjupt.org` int(11)      NOT NULL DEFAULT '0',
   `hudbt.hust.edu.cn`    int(11)      NOT NULL DEFAULT '0',
-  `tracker.whupt.net`    int(11)      NOT NULL DEFAULT '0'
+  `tracker.whupt.net`    int(11)      NOT NULL DEFAULT '0',
+  `ourbits.club`         int(11)      NOT NULL DEFAULT '0'
 )
   ENGINE = MyISAM
   DEFAULT CHARSET = utf8mb4;
@@ -51,7 +52,8 @@ CREATE TABLE `seed_list` (
   `pt.nwsuaf6.edu.cn`    int(11)      NOT NULL DEFAULT '0',
   `pttracker6.tjupt.org` int(11)      NOT NULL DEFAULT '0',
   `hudbt.hust.edu.cn`    int(11)      NOT NULL DEFAULT '0',
-  `tracker.whupt.net`    int(11)      NOT NULL DEFAULT '0'
+  `tracker.whupt.net`    int(11)      NOT NULL DEFAULT '0',
+  `ourbits.club`         int(11)      NOT NULL DEFAULT '0'
 )
   ENGINE = MyISAM
   DEFAULT CHARSET = utf8mb4;

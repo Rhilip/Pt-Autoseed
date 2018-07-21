@@ -57,6 +57,12 @@ site_hudbt = {
     "cookies": "",
     "passkey": "",
 }
+# """OurBits"""
+site_ourbits = {
+    "status": False,
+    "cookies": "",
+    "passkey": "",
+}
 # -*- End of Reseed Site Setting -*-
 
 # -*- Feeding Torrent Setting -*-

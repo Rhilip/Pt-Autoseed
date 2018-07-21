@@ -14,6 +14,7 @@ The Reseed List: Saw Gist [Rhilip/Reseed List](https://gist.github.com/Rhilip/34
 | 蒲公英 NPUBits | <https://npupt.com/> | 2017-05-12 |
 | 麦田 PT | <https://pt.nwsuaf6.edu.cn/> | 2017-05-26 |
 | 北洋园PT | <https://tjupt.org/> | 2017-06-23 |
+| OurBits | <https://ourbits.club/> | 2018-07-21 |
 
 ## Based Environment
 

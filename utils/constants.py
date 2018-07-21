@@ -15,7 +15,8 @@ Support_Site = [
     ("site_npubits", "extractors.npubits", "NPUBits"),
     ("site_nwsuaf6", "extractors.nwsuaf6", "MTPT"),
     ("site_tjupt", "extractors.tjupt", "TJUPT"),
-    ("site_hudbt", "extractors.hudbt", "HUDBT")
+    ("site_hudbt", "extractors.hudbt", "HUDBT"),
+    ("site_ourbits", "extractors.ourbits", "OurBits")
 ]
 
 Video_Containers = [
@@ -42,6 +43,15 @@ def ubb_clean(string: str) -> str:
     string = re.sub(r"\[(?P<bbcode>code|quote).+?\[/(?P=bbcode)\]", "", string, flags=re.S)  # Remove code and quote
     string = re.sub(r"\u3000", " ", string)
     return string
+
+
+def title_clean(noext: str) -> str:
+    noext = re.sub("H\.264", "H_264", noext)
+    noext = re.sub("([25])\.1", r"\1_1", noext)
+    noext = re.sub("\.", " ", noext)
+    noext = re.sub("H_264", "H.264", noext)
+    noext = re.sub("[25]_1", r"\1.1", noext)
+    return noext
 
 
 def episode_eng2chs(ep: str) -> str:

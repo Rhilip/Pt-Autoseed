@@ -18,17 +18,8 @@ import re
 from bs4 import BeautifulSoup
 
 from extractors.base.nexusphp import NexusPHP
-from utils.constants import ubb_clean, episode_eng2chs, html2ubb, api_ptboard
+from utils.constants import ubb_clean, episode_eng2chs, html2ubb, api_ptboard, title_clean
 from utils.load.handler import rootLogger as Logger
-
-
-def title_clean(noext: str) -> str:
-    noext = re.sub("H\.264", "H_264", noext)
-    noext = re.sub("([25])\.1", r"\1_1", noext)
-    noext = re.sub("\.", " ", noext)
-    noext = re.sub("H_264", "H.264", noext)
-    noext = re.sub("[25]_1", r"\1.1", noext)
-    return noext
 
 
 class HUDBT(NexusPHP):
@@ -82,7 +73,7 @@ class HUDBT(NexusPHP):
             return_dict["name"] = details_bs.find("h1", id="page-title").text  # 标题
             return_dict["small_descr"] = details_bs.find("dt", text="副标题").next_sibling.text  # 副标题
 
-            imdb_another = details_bs.find("a", href=re.compile("http://www.imdb.com/title/tt"))
+            imdb_another = details_bs.find("a", href=re.compile("https?://www.imdb.com/title/tt"))
             return_dict["url"] = imdb_another.text if imdb_another else ""  # IMDb
 
             for key_dict, key_search in [("type", "cat"), ("standard_sel", "standard")]:  # 类型, 质量
