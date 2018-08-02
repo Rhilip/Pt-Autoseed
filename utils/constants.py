@@ -65,4 +65,6 @@ def episode_eng2chs(ep: str) -> str:
 
 
 def html2ubb(html: str) -> str:
-    return str(HTML2BBCode().feed(html))
+    ret = str(HTML2BBCode().feed(html))
+    ret = re.sub("\n\n", "\n", ret)
+    return ret

@@ -5,6 +5,8 @@
 import re
 from html import unescape
 
+import requests
+
 from extractors.base.nexusphp import NexusPHP
 from utils.constants import ubb_clean, episode_eng2chs, html2ubb, title_clean
 from utils.load.handler import rootLogger as Logger
@@ -49,27 +51,47 @@ class OurBits(NexusPHP):
     url_host = "https://ourbits.club"
     db_column = "ourbits.club"
 
+    def torrent_link(self, tid):
+        torrent_link = self.url_host + "/download.php?id={tid}&passkey={pk}".format(tid=tid, pk=self.passkey)
+        tmp_file = "/tmp/[TJUPT].{}.torrent".format(tid)
+        with open(tmp_file, "wb") as torrent:
+            r = requests.get(torrent_link)
+            torrent.write(r.content)
+        return tmp_file
+
+    def exist_torrent_title(self, tag):
+        torrent_page = self.page_torrent_detail(tid=tag, bs=True)
+        torrent_title = re.search("\[OurBits\]\.(?P<name>.+?)\.torrent", torrent_page.text).group("name")
+        Logger.info("The torrent name for id({id}) is \"{name}\"".format(id=tag, name=torrent_title))
+        return torrent_title
+
     def torrent_clone(self, tid) -> dict:
         return_dict = {}
         details_bs = self.page_torrent_detail(tid=tid, bs=True)
         title_search = re.search("种子详情 \"(?P<title>.*)\" - Powered", str(details_bs.title))
         if title_search:
-            body = details_bs.body
+            return_dict["clone_id"] = tid
             return_dict["name"] = unescape(title_search.group("title")) or ""
 
+            body = details_bs.body
             for pat, type_ in [("://movie.douban.com/subject", "dburl"), ("://www.imdb.com/title/tt", "url")]:
                 a_another = body.find("a", href=re.compile(pat))
                 return_dict[type_] = a_another.get_text() if a_another else ""
 
-            descr_html = str(details_bs.find("div", id="kdescr"))
-            return_dict["descr"] = ubb_clean(html2ubb(descr_html)) or ""
+            # Remove Quota First
+            kdescr = details_bs.find("div", id="kdescr")
+            kdescr_quota = kdescr.findAll("fieldset")
+            for tag in kdescr_quota:
+                tag.extract()
+
+            return_dict["descr"] = ubb_clean(html2ubb(str(kdescr))) or ""
 
             def detail_fetch(text):
                 return details_bs.find("td", text=text).next_sibling.get_text(" ", strip=True)
 
             return_dict["small_descr"] = detail_fetch("副标题") or ""
 
-            info_gp = re.findall("([^：]+?[：:].+?) ", re.sub("大小.+?([TGMk]?B) ", "", detail_fetch("基本信息")))
+            info_gp = re.findall("([^：]+?[：:].+?) ", re.sub("大小.+?([TGMk]?B) ", "", detail_fetch("基本信息") + " "))
             for info in info_gp:
                 info_pat = re.search("([^：:]+?)[：: ]+(.+)", info)
                 if info_pat:
