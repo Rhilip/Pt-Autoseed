@@ -50,7 +50,7 @@ def title_clean(noext: str) -> str:
     noext = re.sub("([25])\.1", r"\1_1", noext)
     noext = re.sub("\.", " ", noext)
     noext = re.sub("H_264", "H.264", noext)
-    noext = re.sub("[25]_1", r"\1.1", noext)
+    noext = re.sub("([25])_1", r"\1.1", noext)
     return noext
 
 
