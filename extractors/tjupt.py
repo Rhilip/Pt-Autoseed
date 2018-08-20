@@ -30,7 +30,7 @@ ask_dict = {
 
 class TJUPT(NexusPHP):
     url_host = "https://tjupt.org"
-    db_column = "pttracker6.tjupt.org"
+    db_column = "pttrackertju.tjupt.org"
 
     def __init__(self, status, cookies, passkey, **kwargs):
         # Site Features: Display In the browse page (Dead torrent will be set if not checked -> "0")
