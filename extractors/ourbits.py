@@ -75,8 +75,8 @@ class OurBits(NexusPHP):
 
             body = details_bs.body
             for pat, type_ in [("://movie.douban.com/subject", "dburl"), ("://www.imdb.com/title/tt", "url")]:
-                a_another = body.find("a", href=re.compile(pat))
-                return_dict[type_] = a_another.get_text() if a_another else ""
+                a_another = body.find("a", href=re.compile(re.escape(pat)))
+                return_dict[type_] = a_another.get("href") if a_another else ""
 
             # Remove Quota First
             kdescr = details_bs.find("div", id="kdescr")
