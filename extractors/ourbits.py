@@ -3,48 +3,12 @@
 # Copyright (c) 2017-2020 Rhilip <rhilipruan@gmail.com>
 
 import re
-from html import unescape
 
 import requests
 
 from extractors.base.nexusphp import NexusPHP
-from utils.constants import ubb_clean, episode_eng2chs, html2ubb, title_clean
+from utils.constants import ubb_clean, episode_eng2chs, title_clean
 from utils.load.handler import rootLogger as Logger
-
-upload_dict = {
-    "类型": {
-        "key": "type",
-        "values": {"Movies": 401, "Movies-3D": 402, "Concert": 419, "TV-Episode": 412, "TV-Pack": 405, "TV-Show": 413,
-                   "Documentary": 410, "Animation": 411, "Sports": 415, "Music-Video": 414, "Music": 416},
-    },
-    "媒介": {
-        "key": "medium_sel",
-        "values": {"UHD Blu-ray": 12, "FHD Blu-ray": 1, "Remux": 3, "Encode": 7, "WEB-DL": 9, "HDTV": 5, "DVD": 2,
-                   "CD": 8},
-    },
-    "编码": {
-        "key": "codec_sel",
-        "values": {"AVC/H.264": 12, "x264": 13, "HEVC/H.265": 14, "MPEG-2": 15, "VC-1": 16, "Xvid": 17, "Other": 18},
-    },
-    "音频编码": {
-        "key": "audiocodec_sel",
-        "values": {"Atmos": 14, "DTS X": 21, "DTS-HDMA": 1, "TrueHD": 2, "DTS": 4, "LPCM": 5, "FLAC": 13, "APE": 12,
-                   "AAC": 7, "AC3": 6, "WAV": 11, "MPEG": 32},
-    },
-    "分辨率": {
-        "key": "standard_sel",
-        "values": {"SD": 4, "720p": 3, "1080i": 2, "1080p": 1, "4k": 5},
-    },
-    "地区": {
-        "key": "processing_sel",
-        "values": {"CN/中国大陆": 1, "US/EU/欧美": 2, "HK/TW/港台": 3, "JP/日": 4, "KR/韩": 5, "OT/其他": 6},
-    },
-    "制作组": {
-        "key": "team_sel",
-        "values": {"OurBits": 1, "PbK": 2, "OurPad": 3, "OurTV": 12, "iLoveTV": 42, "iLoveHD": 31, "HosT": 18,
-                   "FFans": 43, "FFansWEB": 44, "DyFm": 41, "FLTTH": 46, "SBSUB": 45},
-    },
-}
 
 
 class OurBits(NexusPHP):
@@ -67,40 +31,21 @@ class OurBits(NexusPHP):
 
     def torrent_clone(self, tid) -> dict:
         return_dict = {}
-        details_bs = self.page_torrent_detail(tid=tid, bs=True)
-        title_search = re.search("种子详情 \"(?P<title>.*)\" - Powered", str(details_bs.title))
-        if title_search:
+
+        api_res = self.post_data(self.url_host + "/api.php", data={"action": "getTorrentData", "torrentId": tid})
+        api_json = api_res.json()
+
+        if api_json["success"]:
             return_dict["clone_id"] = tid
-            return_dict["name"] = unescape(title_search.group("title")) or ""
-
-            body = details_bs.body
-            for pat, type_ in [("://movie.douban.com/subject", "dburl"), ("://www.imdb.com/title/tt", "url")]:
-                a_another = body.find("a", href=re.compile(re.escape(pat)))
-                return_dict[type_] = a_another.get("href") if a_another else ""
-
-            # Remove Quota First
-            kdescr = details_bs.find("div", id="kdescr")
-            kdescr_quota = kdescr.findAll("fieldset")
-            for tag in kdescr_quota:
-                tag.extract()
-
-            return_dict["descr"] = ubb_clean(html2ubb(str(kdescr))) or ""
-
-            def detail_fetch(text):
-                return details_bs.find("td", text=text).next_sibling.get_text(" ", strip=True)
-
-            return_dict["small_descr"] = detail_fetch("副标题") or ""
-
-            info_gp = re.findall("([^：]+?[：:].+?) ", re.sub("大小.+?([TGMk]?B) ", "", detail_fetch("基本信息") + " "))
-            for info in info_gp:
-                info_pat = re.search("([^：:]+?)[：: ]+(.+)", info)
-                if info_pat:
-                    key_human = info_pat.group(1).strip()
-                    value_human = info_pat.group(2).strip()
-                    try:
-                        return_dict[upload_dict[key_human]["key"]] = upload_dict[key_human]["values"][value_human]
-                    except (KeyError, TypeError):
-                        pass
+            return_dict["name"] = api_json["name"]
+            return_dict["small_descr"] = api_json["small_descr"]
+            return_dict["url"] = ("https://www.imdb.com/title/tt" + api_json["url"]) if api_json["url"] else ""
+            return_dict["dburl"] = ("https://movie.douban.com/subject/" + api_json["dburl"]) if api_json[
+                "dburl"] else ""
+            return_dict["descr"] = ubb_clean(api_json["descr"])
+            return_dict["type"] = api_json["category"]
+            for i in ["medium", "codec", "audiocodec", "standard", "processing", "team"]:
+                return_dict[i + "_sel"] = api_json[i]
         else:
             Logger.error("Error,this torrent may not exist or ConnectError")
         return return_dict
@@ -117,19 +62,14 @@ class OurBits(NexusPHP):
         return raw_info
 
     def data_raw2tuple(self, raw_info: dict) -> tuple:
-        regular_list = [
-            ("name", raw_info["name"]),  # 标题
-            ("small_descr", raw_info["small_descr"]),  # 副标题
-            ("url", raw_info["url"]),  # IMDb链接
-            ("dburl", raw_info["dburl"]),  # 豆瓣链接
-            ("descr", raw_info["descr"]),  # 简介
+        upload_list = ["name", "small_descr", "url", "dburl", "type", "descr",
+                       "medium_sel", "codec_sel", "audiocodec_sel", "standard_sel", "processing_sel", "team_sel"]
+        regular_list = [(i, raw_info[i]) for i in upload_list]  # 自动生成 upload_dict 中对应表单信息
+
+        other_list = [
             ("nfo", ""),  # 实际上并不是这样的，但是nfo一般没有，故这么写
             ("uplver", self._UPLVER),  # 匿名发布
         ]
 
-        flexible_list = [
-            (upload_dict[i]["key"], raw_info[upload_dict[i]["key"]] if upload_dict[i]["key"] in raw_info else "")
-            for i in upload_dict]  # 自动生成 upload_dict 中对应表单信息
-
         # 部分非必填表单项未列入，如 hr, tagGF, tagDIY, tagSF, tagGY, tagZZ, tagJZ, tagBD
-        return tuple(regular_list + flexible_list)
+        return tuple(regular_list + other_list)
