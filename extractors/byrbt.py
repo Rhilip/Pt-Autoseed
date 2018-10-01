@@ -200,13 +200,19 @@ class Byrbt(NexusPHP):
                                          raw_sec_type=details_bs.find("span", id="sec_type").text.strip())
             return_dict.update(title_dict)
             body = details_bs.body
-            imdb_url = dburl = ""
+            imdb_url = dburl = bgmurl = ""
             if body.find(class_="imdbRatingPlugin"):
                 imdb_url = 'http://www.imdb.com/title/' + body.find(class_="imdbRatingPlugin")["data-title"]
                 Logger.debug("Found imdb link:{link} for this torrent.".format(link=imdb_url))
             if body.find("a", href=re.compile("://movie.douban.com/subject")):
                 dburl = body.find("a", href=re.compile("://movie.douban.com/subject")).text
                 Logger.debug("Found douban link:{link} for this torrent.".format(link=dburl))
+
+            # Bangumi url is only need in Anime cat and should find it in detail body
+            if title_dict["type"] == 404 and body.find("a",
+                                                       href=re.compile("://(bgm\.tv|bangumi\.tv|chii\.in)/subject")):
+                bgmurl = body.find("a", href=re.compile("://(bgm\.tv|bangumi\.tv|chii\.in)/subject"))["href"]
+
             # Update description
             descr = body.find(id="kdescr")
 
@@ -226,6 +232,7 @@ class Byrbt(NexusPHP):
                 "small_descr": body.find(id="subtitle").find("li").text,
                 "url": imdb_url,
                 "dburl": dburl,
+                "bgmurl": bgmurl,
                 "descr": descr_out,
                 "clone_id": tid
             })
@@ -263,6 +270,7 @@ class Byrbt(NexusPHP):
             ("small_descr", raw_info["small_descr"]),
             ("url", raw_info["url"]),
             ("dburl", raw_info["dburl"]),
+            ("bgmtv_url", raw_info["bgmurl"]),
             ("nfo", ''),
             ("descr", raw_info["descr"]),
             ("uplver", self._UPLVER),
