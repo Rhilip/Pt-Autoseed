@@ -207,10 +207,7 @@ class Byrbt(NexusPHP):
             if body.find("a", href=re.compile("://movie.douban.com/subject")):
                 dburl = body.find("a", href=re.compile("://movie.douban.com/subject")).text
                 Logger.debug("Found douban link:{link} for this torrent.".format(link=dburl))
-
-            # Bangumi url is only need in Anime cat and should find it in detail body
-            if title_dict["type"] == 404 and body.find("a",
-                                                       href=re.compile("://(bgm\.tv|bangumi\.tv|chii\.in)/subject")):
+            if body.find("a", href=re.compile("://(bgm\.tv|bangumi\.tv|chii\.in)/subject")):
                 bgmurl = body.find("a", href=re.compile("://(bgm\.tv|bangumi\.tv|chii\.in)/subject"))["href"]
 
             # Update description
