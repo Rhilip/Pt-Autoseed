@@ -35,10 +35,10 @@ pattern_group = [
         "\[?(?P<episode>\d+(\.?\d+|-\d+|[ _]?[Vv]2)?)\]?.+?)"
         "(\.(?P<filetype>\w+)$|$)"
     ),
-    # re.compile(  # Anime - Foreign Group
-    #     "(?P<full_name>\[(?P<group>[^\[\]]+?)\] (?P<search_name>.+?) - (?P<episode>\d+(\.?\d+|-\d+|[ _]?[Vv]2)?) \[\d+?[Pp]\])"
-    #     "(\.(?P<filetype>\w+)$|$)"
-    # ),
+    re.compile(  # Anime - Foreign Group or group list Kamigami
+        "(?P<full_name>\[(?P<group>[^\[\]]+?)\] (?P<search_name>.+?) - (?P<episode>\d+(\.?\d+|-\d+|[ _]?[Vv]2)?) \[\d+?[Pp]\])"
+        "(\.(?P<filetype>\w+)$|$)"
+    ),
     re.compile(  # Anime - Normal Pattern
         "(?P<full_name>\[(?P<group>[^\[\]]+?)\](?P<n_s>\[)?(?P<search_name>[^\[\]]+?)(?(n_s)\])"
         "\[?(?P<episode>\d+(\.?\d+|-\d+|[ _]?[Vv]2)?)\]?.+?)"
