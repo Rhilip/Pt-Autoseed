@@ -47,7 +47,7 @@ class Database(object):
         clone_id = None
 
         key = pymysql.escape_string(re.sub(r"[_\-. ]", "%", key))
-        sql = "SELECT `{site}` FROM `info_list` WHERE `search_name` LIKE '{key}%'".format(site=site, key=key)
+        sql = "SELECT `{site}` FROM `info_list` WHERE `search_name` LIKE '{key}'".format(site=site, key=key)
         try:  # Get clone id info from database
             clone_id = int(self.exec(sql=sql)[0])
         except TypeError:  # The database doesn't have the search data, Return dict only with raw key.

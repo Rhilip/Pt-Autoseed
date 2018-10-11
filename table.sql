@@ -23,16 +23,16 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `info_list` (
-  `sort_id`              int(11)      NOT NULL,
-  `search_name`          varchar(200) NOT NULL
+  `sort_id`                int(11)      NOT NULL,
+  `search_name`            varchar(200) NOT NULL
   COMMENT '搜索名称',
-  `tracker.byr.cn`       int(11)      NOT NULL DEFAULT '0',
-  `npupt.com`            int(11)      NOT NULL DEFAULT '0',
-  `pt.nwsuaf6.edu.cn`    int(11)      NOT NULL DEFAULT '0',
-  `pttracker6.tjupt.org` int(11)      NOT NULL DEFAULT '0',
-  `hudbt.hust.edu.cn`    int(11)      NOT NULL DEFAULT '0',
-  `tracker.whupt.net`    int(11)      NOT NULL DEFAULT '0',
-  `ourbits.club`         int(11)      NOT NULL DEFAULT '0'
+  `tracker.byr.cn`         int(11)      NOT NULL DEFAULT '0',
+  `npupt.com`              int(11)      NOT NULL DEFAULT '0',
+  `pt.nwsuaf6.edu.cn`      int(11)      NOT NULL DEFAULT '0',
+  `pttrackertju.tjupt.org` int(11)      NOT NULL DEFAULT '0',
+  `hudbt.hust.edu.cn`      int(11)      NOT NULL DEFAULT '0',
+  `tracker.whupt.net`      int(11)      NOT NULL DEFAULT '0',
+  `ourbits.club`           int(11)      NOT NULL DEFAULT '0'
 )
   ENGINE = MyISAM
   DEFAULT CHARSET = utf8mb4;
@@ -44,16 +44,16 @@ CREATE TABLE `info_list` (
 --
 
 CREATE TABLE `seed_list` (
-  `id`                   int(11)      NOT NULL,
-  `title`                varchar(200) NOT NULL,
-  `download_id`          int(11)               DEFAULT '0',
-  `tracker.byr.cn`       int(11)      NOT NULL DEFAULT '0',
-  `npupt.com`            int(11)      NOT NULL DEFAULT '0',
-  `pt.nwsuaf6.edu.cn`    int(11)      NOT NULL DEFAULT '0',
-  `pttracker6.tjupt.org` int(11)      NOT NULL DEFAULT '0',
-  `hudbt.hust.edu.cn`    int(11)      NOT NULL DEFAULT '0',
-  `tracker.whupt.net`    int(11)      NOT NULL DEFAULT '0',
-  `ourbits.club`         int(11)      NOT NULL DEFAULT '0'
+  `id`                     int(11)      NOT NULL,
+  `title`                  varchar(200) NOT NULL,
+  `download_id`            int(11)               DEFAULT '0',
+  `tracker.byr.cn`         int(11)      NOT NULL DEFAULT '0',
+  `npupt.com`              int(11)      NOT NULL DEFAULT '0',
+  `pt.nwsuaf6.edu.cn`      int(11)      NOT NULL DEFAULT '0',
+  `pttrackertju.tjupt.org` int(11)      NOT NULL DEFAULT '0',
+  `hudbt.hust.edu.cn`      int(11)      NOT NULL DEFAULT '0',
+  `tracker.whupt.net`      int(11)      NOT NULL DEFAULT '0',
+  `ourbits.club`           int(11)      NOT NULL DEFAULT '0'
 )
   ENGINE = MyISAM
   DEFAULT CHARSET = utf8mb4;
