@@ -131,6 +131,9 @@ class Controller(object):
         return t.id, t.name, tracker
 
     def run(self):
+        # Do clean work first before sync
+        self._del_torrent_with_db()
+
         # Sync status between transmission, database, controller and reseeder modules
         self.update_torrent_info_from_rpc_to_db(force_check=True)
         self.reseeders_update()
