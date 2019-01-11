@@ -62,60 +62,53 @@ class Controller(object):
         for i in self.active_obj_list:
             i.online_check()
 
-    def _del_torrent_with_db(self, rid=None):
+    def _del_torrent_with_db(self):
         """Delete torrent(both download and reseed) with data from transmission and database"""
         Logger.debug("Begin torrent's status check. If reach condition you set, You will get a warning.")
 
-        if rid:
-            sql = "SELECT * FROM `seed_list` WHERE `id`={}".format(rid)
-        else:
-            sql = "SELECT * FROM `seed_list`"
-
         time_now = time.time()
-        for cow in db.exec(sql=sql, r_dict=True, fetch_all=True):
-            sid = cow.pop("id")
-            s_title = cow.pop("title")
+        t_all_list = tc.get_torrents()
+        t_name_list = set(map(lambda x: x.name, t_all_list))
 
-            err = 0
-            reseed_list = []
-            torrent_id_list = [tid for tracker, tid in cow.items() if tid > 0]
-            for tid in torrent_id_list:
-                try:  # Ensure torrent exist
-                    reseed_list.append(tc.get_torrent(torrent_id=tid))
-                except KeyError:  # Mark err when the torrent is not exist.
-                    err += 1
+        for t_name in t_name_list:
+            t_list = list(filter(lambda x: x.name == t_name, t_all_list))
+            t_list_len = len(t_list)
+            t_list_stop = 0
+            for t in t_list:
+                if t.status == "stopped":
+                    t_list_stop += 1
+                    continue
 
-            delete = False
-            if rid:
-                delete = True
-                Logger.warning("Force Delete. Which name: {}, Affect torrents: {}".format(s_title, torrent_id_list))
-            elif err is 0:  # It means all torrents in this cow are exist,then check these torrent's status.
-                reseed_stop_list = []
-                for t in reseed_list:
-                    if int(time_now - t.addedDate) > TIME_TORRENT_KEEP_MIN:  # At least seed time
-                        if t.status == "stopped":  # Mark the stopped torrent
-                            reseed_stop_list.append(t)
-                        elif setting.pre_delete_judge(torrent=t):
-                            _tid, _tname, _tracker = self._get_torrent_info(t)
-                            tc.stop_torrent(t.id)
-                            Logger.warning(
-                                "Reach Target you set, Torrent({tid}) \"{name}\" in Tracker \"{tracker}\" now stop, "
-                                "With Uploaded {si:.2f} MiB, Ratio {ro:.2f} , Keep time {ho:.2f} h."
-                                "".format(tid=_tid, name=_tname, tracker=_tracker, si=t.uploadedEver / 1024 / 1024,
-                                          ro=t.uploadRatio, ho=(time.time() - t.startDate) / 60 / 60)
-                            )
-                if len(reseed_list) == len(reseed_stop_list):
-                    delete = True
-                    Logger.info("All torrents of \"{0}\" reach target, Will DELETE them soon.".format(s_title))
-            else:
-                delete = True
-                Logger.error("Some Torrents (\"{name}\", {er} of {co}) may not found, "
-                             "Delete all it's records from db".format(name=s_title, er=err, co=len(torrent_id_list)))
+                _tid, _tname, _tracker = self._get_torrent_info(t)
 
-            if delete:  # Delete torrents with it's data and db-records
-                for tid in torrent_id_list:
+                # 0 means OK, 1 means tracker warning, 2 means tracker error, 3 means local error.
+                if t.error > 1:
+                    tc.stop_torrent(t.id)
+                    Logger.warning(
+                        "Torrent Error, Torrent({tid}) \"{name}\" in Tracker \"{tracker}\" now stop, "
+                        "Error code : {code} {msg}."
+                        "With Uploaded {si:.2f} MiB, Ratio {ro:.2f} , Keep time {ho:.2f} h."
+                        "".format(tid=_tid, name=_tname, tracker=_tracker, si=t.uploadedEver / 1024 / 1024,
+                                  ro=t.uploadRatio, ho=(time.time() - t.startDate) / 60 / 60,
+                                  code=t.error, msg=t.errorString)
+                    )
+
+                if int(time_now - t.addedDate) > TIME_TORRENT_KEEP_MIN:  # At least seed time
+                    if setting.pre_delete_judge(torrent=t):
+                        tc.stop_torrent(t.id)
+                        Logger.warning(
+                            "Reach Target you set, Torrent({tid}) \"{name}\" in Tracker \"{tracker}\" now stop, "
+                            "With Uploaded {si:.2f} MiB, Ratio {ro:.2f} , Keep time {ho:.2f} h."
+                            "".format(tid=_tid, name=_tname, tracker=_tracker, si=t.uploadedEver / 1024 / 1024,
+                                      ro=t.uploadRatio, ho=(time.time() - t.startDate) / 60 / 60)
+                        )
+
+            if t_list_stop == t_list_len:  # Delete torrents with it's data and db-records
+                Logger.info("All torrents of \"{0}\" reach target, Will DELETE them soon.".format(t_name))
+                tid_list = map(lambda x: x.id, t_list)
+                for tid in tid_list:
                     tc.remove_torrent(tid, delete_data=True)
-                db.exec(sql="DELETE FROM `seed_list` WHERE `id` = {0}".format(sid))
+                db.exec("DELETE FROM `seed_list` WHERE `title` = %s", (t_name,))
 
     @staticmethod
     def _get_torrent_info(t) -> tuple:
@@ -209,7 +202,7 @@ class Controller(object):
             except KeyError:  # Un-exist pre-reseed torrent
                 Logger.error("The pre-reseed Torrent: \"{0}\" isn't found in result, "
                              "It's db-record will be deleted soon.".format(t["title"]))
-                self._del_torrent_with_db(rid=t["id"])
+                # self._del_torrent_with_db(rid=t["id"])
                 if t["id"] in self.downloading_torrent_id_queue:
                     self.downloading_torrent_id_queue.remove(t["id"])
             else:
