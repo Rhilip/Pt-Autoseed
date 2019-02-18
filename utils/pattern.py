@@ -35,8 +35,9 @@ pattern_group = [
         "\[?(?P<episode>\d+(\.?\d+|-\d+|[ _]?[Vv]2)?)\]?.+?)"
         "(\.(?P<filetype>\w+)$|$)"
     ),
-    re.compile(  # Anime - Foreign Group or group list Kamigami
-        "(?P<full_name>\[(?P<group>[^\[\]]+?)\] (?P<search_name>.+?) - (?P<episode>\d+(\.?\d+|-\d+|[ _]?[Vv]2)?) \[\d+?[Pp]\])"
+    re.compile(  # Anime - Foreign Group or group list Kamigami, LoliHouse
+        "(?P<full_name>\[(?P<group>[^\[\]]+?)\] (?P<search_name>.+?) - "
+        "(?P<episode>\d+(\.?\d+|-\d+|[ _]?[Vv]2)?) \[.+?[Pp].+?\])"
         "(\.(?P<filetype>\w+)$|$)"
     ),
     re.compile(  # Anime - Normal Pattern
@@ -54,9 +55,9 @@ if __name__ == '__main__':
     test_list = r.text.split("\n")
     for test_item in test_list:
         print("Test item: {}".format(test_item))
-        for ptn in pattern_group:
+        for _id, ptn in enumerate(pattern_group):
             search = re.search(ptn, test_item)
             if search:
-                print(search.groupdict())
+                print("Match pattern id: {} , {}".format(_id, search.groupdict()))
                 break
         print()
