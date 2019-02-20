@@ -17,12 +17,8 @@ NOTICE:
 pattern_group = [
     re.compile(  # Series (Which name match with 0day Source,see https://scenerules.org/t.html?id=tvx2642k16.nfo 16.4)
         "\.?(?P<full_name>(?P<search_name>[\w\-. ]+?)[. ]"
-        "(?P<episode>([Ss]\d+)?[Ee][Pp]?\d+(-[Ee]?[Pp]?\d+)?|[Ss]\d+|Complete).+?WEB-DL.+?(-(?P<group>.+?))?)"
-        "(\.(?P<filetype>\w+)$|$)"
-    ),
-    re.compile(  # Series (Which name match with 0day Source,see https://scenerules.org/t.html?id=tvx2642k16.nfo 16.4)
-        "\.?(?P<full_name>(?P<search_name>[\w\-. ]+?)[. ]"
-        "(?P<episode>([Ss]\d+)?[Ee][Pp]?\d+(-[Ee]?[Pp]?\d+)?|[Ss]\d+|Complete).+?(-(?P<group>.+?))?)"
+        "(?P<episode>([Ss]\d+)?[Ee][Pp]?\d+(-[Ee]?[Pp]?\d+)?|[Ss]\d+|Complete).+?"
+        "(HDTV|WEB-DL|HDTVrip).+?(-(?P<group>.+?))?)"
         "(\.(?P<filetype>\w+)$|$)"
     ),
     re.compile(  # Anime - One_piece(Skytree)
@@ -36,12 +32,12 @@ pattern_group = [
         "(\.(?P<filetype>\w+)$|$)"
     ),
     re.compile(  # Anime - Foreign Group or group list Kamigami, LoliHouse
-        "(?P<full_name>\[(?P<group>[^\[\]]+?)\] (?P<search_name>.+?) - "
+        "(?P<full_name>\[(?P<group>[^\[\]]+?)\] (?P<search_name>.+) - "
         "(?P<episode>\d+(\.?\d+|-\d+|[ _]?[Vv]2)?) \[.+?[Pp].+?\])"
         "(\.(?P<filetype>\w+)$|$)"
     ),
     re.compile(  # Anime - Normal Pattern
-        "(?P<full_name>\[(?P<group>[^\[\]]+?)\](?P<n_s>\[)?(?P<search_name>[^\[\]]+?)(?(n_s)\])"
+        "(?P<full_name>\[(?P<group>[^\[\]]+?)\](?P<n_s>\[)?(?P<search_name>[^\[\]]+)(?(n_s)\])"
         "\[?(?P<episode>\d+(\.?\d+|-\d+|[ _]?[Vv]2)?)\]?.+?)"
         "(\.(?P<filetype>\w+)$|$)"
     )
