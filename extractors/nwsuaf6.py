@@ -160,6 +160,7 @@ class MTPT(NexusPHP):
             temporarily_dict["english_name"] = torrent_name_search.group("full_name")
             temporarily_dict["jidu"] = torrent_name_search.group("episode")
         elif cat == "405":  # Anime
+            temporarily_dict["subtitle_group"] = torrent_name_search.group("group")
             temporarily_dict["num"] = torrent_name_search.group("episode")
 
         # Generate new title

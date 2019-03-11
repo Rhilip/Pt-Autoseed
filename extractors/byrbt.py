@@ -246,6 +246,7 @@ class Byrbt(NexusPHP):
             if filetype:
                 raw_info["tv_filetype"] = filetype.upper()
         elif raw_info["type"] == 404:  # Anime
+            raw_info["subteam"] = torrent_name_search.group("group")
             raw_info["comic_episode"] = torrent_name_search.group("episode")
             if filetype:
                 raw_info["comic_filetype"] = filetype.upper()

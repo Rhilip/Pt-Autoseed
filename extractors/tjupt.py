@@ -110,6 +110,7 @@ class TJUPT(NexusPHP):
             raw_info["tvseasoninfo"] = torrent_name_search.group("episode")  # 集数
             raw_info["subsinfo"] = 1  # 强制更新字幕情况为"暂无字幕"
         elif type_ == 405:  # 动漫
+            raw_info["substeam"] = torrent_name_search.group("group")
             raw_info["animenum"] = torrent_name_search.group("episode")  # 动漫集数
 
         return raw_info
