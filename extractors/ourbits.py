@@ -15,14 +15,6 @@ class OurBits(NexusPHP):
     url_host = "https://ourbits.club"
     db_column = "ourbits.club"
 
-    def torrent_link(self, tid):
-        torrent_link = self.url_host + "/download.php?id={tid}&passkey={pk}".format(tid=tid, pk=self.passkey)
-        tmp_file = "/tmp/[OurBits].{}.torrent".format(tid)
-        with open(tmp_file, "wb") as torrent:
-            r = requests.get(torrent_link)
-            torrent.write(r.content)
-        return tmp_file
-
     def exist_torrent_title(self, tag):
         torrent_page = self.page_torrent_detail(tid=tag, bs=True)
         torrent_title = re.search("\[OurBits\]\.(?P<name>.+?)\.torrent", torrent_page.text).group("name")

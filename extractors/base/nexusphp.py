@@ -4,6 +4,7 @@
 
 import re
 
+import requests
 from bs4 import BeautifulSoup
 
 from extractors.base.site import Site
@@ -34,6 +35,7 @@ class NexusPHP(Site):
         4. _FORCE_JUDGE_DUPE_LOC  : default False, Judge torrent is dupe or not in location before post it to PT-site.
         5. _GET_CLONE_ID_FROM_DB  : default True,  Enable to get clone torrent's id from database first, then search.
         6. _ALLOW_CAT             : default None,  Used to limit the reseed torrent category
+        7. _DOWNLOAD_TORRENT      : default False, Download Torrent to temp folder then add to transmission
 
         """
         self._UPLVER = "yes" if kwargs.setdefault("anonymous_release", True) else "no"
@@ -42,6 +44,7 @@ class NexusPHP(Site):
         self._FORCE_JUDGE_DUPE_LOC = kwargs.setdefault("force_judge_dupe_loc", False)
         self._GET_CLONE_ID_FROM_DB = kwargs.setdefault("get_clone_id_from_db", True)
         self._ALLOW_CAT = kwargs.setdefault("allow_cat", None)
+        self._DOWNLOAD_TORRENT = kwargs.setdefault("download_torrent", False)
 
     # -*- Check login's info -*-
     def session_check(self):
@@ -54,7 +57,13 @@ class NexusPHP(Site):
         return self.status
 
     def torrent_link(self, tid):
-        return self.url_host + "/download.php?id={tid}&passkey={pk}".format(tid=tid, pk=self.passkey)
+        torrent_link = self.url_host + "/download.php?id={tid}&passkey={pk}".format(tid=tid, pk=self.passkey)
+        if self._DOWNLOAD_TORRENT:
+            tmp_file = "/tmp/[{}].{}.torrent".format(self.name, tid)
+            with open(tmp_file, "wb") as torrent:
+                r = requests.get(torrent_link)
+                torrent.write(r.content)
+            return tmp_file
 
     # -*- Torrent's download, upload and thank -*-
     def torrent_download(self, tid, **kwargs):

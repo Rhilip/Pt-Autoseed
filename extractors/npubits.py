@@ -6,6 +6,8 @@
 import base64
 import re
 
+import requests
+
 from extractors.base.nexusphp import NexusPHP
 from utils.constants import ubb_clean, episode_eng2chs
 from utils.load.handler import rootLogger as Logger

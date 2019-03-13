@@ -38,14 +38,6 @@ class TJUPT(NexusPHP):
 
         super().__init__(status, cookies, passkey, **kwargs)
 
-    def torrent_link(self, tid):
-        torrent_link = self.url_host + "/download.php?id={tid}&passkey={pk}".format(tid=tid, pk=self.passkey)
-        tmp_file = "/tmp/[TJUPT].{}.torrent".format(tid)
-        with open(tmp_file, "wb") as torrent:
-            r = requests.get(torrent_link)
-            torrent.write(r.content)
-        return tmp_file
-
     def exist_torrent_title(self, tag):
         torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
         if re.search("你没有该权限！", torrent_file_page.text):

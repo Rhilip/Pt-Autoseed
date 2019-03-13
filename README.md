@@ -91,6 +91,7 @@ if no problem or error, You can use `screen` or other software like `supervisor`
 | force_judge_dupe_loc | Boolean | False | Judge torrent is dupe or not in location before post it to PT-site. |
 | get_clone_id_from_db | Boolean | True | Enable to get clone torrent's id from database first, then search. |
 | allow_cat | List | None | Used to limit the reseed torrent category |
+| download_torrent | Boolean | False | Download Torrent to temp folder then add to transmission or feed the link |
 
 - class extractors.byrbt.Byrbt(NexusPHP)
 
