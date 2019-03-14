@@ -63,7 +63,8 @@ class NexusPHP(Site):
             with open(tmp_file, "wb") as torrent:
                 r = requests.get(torrent_link)
                 torrent.write(r.content)
-            return tmp_file
+            torrent_link = tmp_file
+        return torrent_link
 
     # -*- Torrent's download, upload and thank -*-
     def torrent_download(self, tid, **kwargs):
