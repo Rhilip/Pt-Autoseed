@@ -13,7 +13,4 @@ def cookies_raw2jar(raw: str) -> dict:
         raise ValueError("The Cookies is not allowed to be empty.")
 
     cookie = SimpleCookie(raw)
-    cookies = {}
-    for key, morsel in cookie.items():
-        cookies[key] = morsel.value
-    return cookies
+    return {key: morsel.value for key, morsel in cookie.items()}
