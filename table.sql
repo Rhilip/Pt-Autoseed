@@ -29,7 +29,7 @@ CREATE TABLE `info_list` (
   `tracker.byr.cn`         int(11)      NOT NULL DEFAULT '0',
   `npupt.com`              int(11)      NOT NULL DEFAULT '0',
   `pt.nwsuaf6.edu.cn`      int(11)      NOT NULL DEFAULT '0',
-  `pttrackertju.tjupt.org` int(11)      NOT NULL DEFAULT '0',
+  `pttracker6.tjupt.org` int(11)      NOT NULL DEFAULT '0',
   `hudbt.hust.edu.cn`      int(11)      NOT NULL DEFAULT '0',
   `tracker.whupt.net`      int(11)      NOT NULL DEFAULT '0',
   `ourbits.club`           int(11)      NOT NULL DEFAULT '0'
@@ -50,7 +50,7 @@ CREATE TABLE `seed_list` (
   `tracker.byr.cn`         int(11)      NOT NULL DEFAULT '0',
   `npupt.com`              int(11)      NOT NULL DEFAULT '0',
   `pt.nwsuaf6.edu.cn`      int(11)      NOT NULL DEFAULT '0',
-  `pttrackertju.tjupt.org` int(11)      NOT NULL DEFAULT '0',
+  `pttracker6.tjupt.org` int(11)      NOT NULL DEFAULT '0',
   `hudbt.hust.edu.cn`      int(11)      NOT NULL DEFAULT '0',
   `tracker.whupt.net`      int(11)      NOT NULL DEFAULT '0',
   `ourbits.club`           int(11)      NOT NULL DEFAULT '0'
