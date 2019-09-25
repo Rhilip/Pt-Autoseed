@@ -17,8 +17,6 @@ from utils.load.handler import rootLogger as Logger
 from utils.load.submodules import tc, db
 from utils.pattern import pattern_group as search_ptn
 
-REQUESTS_TIMEOUT = 5
-
 
 class Site(object):
     url_host = "http://www.pt_domain.com"  # No '/' at the end.
@@ -70,9 +68,7 @@ class Site(object):
         :return: bool , True if online
         """
         try:
-            # requests.head() is a little Quicker than requests.get(),( Because only ask head without body)
-            #                    but Slower than socket.create_connection(address[, timeout[, source_address]])
-            requests.head(self.url_host, timeout=REQUESTS_TIMEOUT)
+            requests.get(self.url_host, timeout=setting.REQUESTS_TIMEOUT)
         except OSError:  # requests.exceptions.RequestException
             if self.suspended == 0:
                 Logger.warning("Site: {si} is Offline now.".format(si=self.url_host))
