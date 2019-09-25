@@ -46,6 +46,8 @@ class Site(object):
         1. _EXTEND_DESCR_*        : default True, Enable to Enhanced the description of the reseed torrent,
                                      And its priority is higher than setting.extend_descr_raw[key]["status"].
         2. _ASSIST_ONLY           : default False, Enable to only assist the exist same torrent but not to reseed. 
+        3. _ASSIST_DELAY_TIME     : default 0, Delay reseed check time
+        4. _PASS_ONLINE_CHECK       : default false, Pass the online check
         """
         self._EXTEND_DESCR_BEFORE = kwargs.setdefault("extend_descr_before", True)
         self._EXTEND_DESCR_THUMBNAILS = kwargs.setdefault("extend_descr_thumbnails", True)
@@ -53,6 +55,7 @@ class Site(object):
         self._EXTEND_DESCR_CLONEINFO = kwargs.setdefault("extend_descr_cloneinfo", True)
         self._ASSIST_ONLY = kwargs.setdefault("assist_only", False)
         self._ASSIST_DELAY_TIME = kwargs.setdefault("assist_delay_time", 0)
+        self._PASS_ONLINE_CHECK = kwargs.setdefault('pass_online_check', False)
 
         # Check Site Online Status
         if self.status:
@@ -67,6 +70,9 @@ class Site(object):
 
         :return: bool , True if online
         """
+        if self._PASS_ONLINE_CHECK:
+            return True
+
         try:
             requests.get(self.url_host, timeout=setting.REQUESTS_TIMEOUT)
         except OSError:  # requests.exceptions.RequestException
