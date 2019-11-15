@@ -67,11 +67,6 @@ class TJUPT(NexusPHP):
             url = page_clone.find("input", attrs={"name": "url"})
             res_dic.update({"clone_id": tid, "type": type_value, "descr": raw_descr, "url": url["value"]})
 
-            for name in ["source_sel", "team_sel"]:
-                tag = page_clone.find("select", attrs={"name": name})
-                tag_selected = tag.find("option", selected=True)
-                res_dic.update({name: tag_selected["value"]})
-
             # Get torrent_info page and sort this page's information into the pre-reseed dict.
             catdetail_page = self.get_data(url=self.url_host + "/catdetail_edittorrents.php", params={"torid": tid},
                                            bs=True)
@@ -120,8 +115,6 @@ class TJUPT(NexusPHP):
             ("nfo", ""),  # 实际上并不是这样的，但是nfo一般没有，故这么写
             ("descr", raw_info["descr"]),  # 简介*
             ("getDescByTorrentId", ""),
-            ("source_sel", raw_info["source_sel"]),  # 质量
-            ("team_sel", raw_info["team_sel"]),  # 内容
             ("visible", self._TORRENT_VISIBLE),
             ("uplver", self._UPLVER),
         ]
