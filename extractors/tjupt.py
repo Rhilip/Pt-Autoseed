@@ -37,13 +37,8 @@ class TJUPT(NexusPHP):
         super().__init__(status, cookies, passkey, **kwargs)
 
     def exist_torrent_title(self, tag):
-        torrent_file_page = self.page_torrent_info(tid=tag, bs=True)
-        if re.search("你没有该权限！", torrent_file_page.text):
-            torrent_page = self.page_torrent_detail(tid=tag, bs=True)
-            torrent_title = re.search("\[TJUPT\]\.(?P<name>.+?)\.torrent", torrent_page.text).group("name")
-        else:  # Due to HIGH Authority (Ultimate User) asked to view this page.
-            torrent_file_info_table = torrent_file_page.find("ul", id="colapse")
-            torrent_title = re.search("\\[name\] \(\d+\): (?P<name>.+?) -", torrent_file_info_table.text).group("name")
+        torrent_page = self.page_torrent_detail(tid=tag, bs=True)
+        torrent_title = re.search("\[TJUPT\]\.(?P<name>.+?)\.torrent", torrent_page.text).group("name")
         Logger.info("The torrent name for id({id}) is \"{name}\"".format(id=tag, name=torrent_title))
         return torrent_title
 
