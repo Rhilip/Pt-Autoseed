@@ -20,6 +20,7 @@ class OurBits(NexusPHP):
         password = self.config.get('password')
 
         s = requests.Session()
+        s.cookies.update(self.cookies)
         r = s.post(self.url_host + '/takelogin.php', data={
             'username': username,
             'password': password,
