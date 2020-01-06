@@ -24,6 +24,7 @@ class Site(object):
     encode = "bbcode"  # bbcode or html
 
     suspended = 0  # 0 -> site Online, any number bigger than 0 -> Offline
+    config = {}
 
     def __init__(self, status: bool, cookies: dict or str, **kwargs):
         self.name = type(self).__name__
@@ -37,6 +38,7 @@ class Site(object):
             self.status = False
 
         # -*- Assign Enhanced Features : Site -*-
+        self.config = kwargs
         """
         Enhance Feature for `base` Reseeder.
         Those key-values will be set as default value unless you change it in your user-settings.
@@ -56,6 +58,7 @@ class Site(object):
         self._ASSIST_ONLY = kwargs.setdefault("assist_only", False)
         self._ASSIST_DELAY_TIME = kwargs.setdefault("assist_delay_time", 0)
         self._PASS_ONLINE_CHECK = kwargs.setdefault('pass_online_check', False)
+        self._AUTO_RENEW_COOKIES = kwargs.setdefault('auto_renew_cookies', False)
 
         # Check Site Online Status
         if self.status:
@@ -81,9 +84,11 @@ class Site(object):
             self.suspended += 1
         else:
             if self.suspended != 0:
-                Logger.info("The Site: {si} is Online now,after {count} times tries."
+                Logger.info("The Site: {si} is Online now, after {count} times tries."
                             "Will check the session soon.".format(si=self.url_host, count=self.suspended))
                 self.suspended = 0  # Set self.suspended as 0 first, then session_check()
+
+            if self.suspended == 0:
                 self.session_check()
         return True if self.suspended == 0 else False
 
@@ -191,6 +196,12 @@ class Site(object):
         Warning(s):
         1. You should write your code for session check, And self.status must be changed by check result in your code.
 
+        """
+        raise NotImplementedError
+
+    def update_cookies(self):
+        """
+        Login function to update cookies
         """
         raise NotImplementedError
 

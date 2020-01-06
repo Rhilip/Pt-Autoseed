@@ -15,6 +15,22 @@ class OurBits(NexusPHP):
     url_host = "https://ourbits.club"
     db_column = "ourbits.club"
 
+    def update_cookies(self):
+        username = self.config.get('username')
+        password = self.config.get('password')
+
+        s = requests.Session()
+        r = s.post(self.url_host + '/takelogin.php', data={
+            'username': username,
+            'password': password,
+            'trackerssl': 'yes'
+        })
+        if r.url.find('/index.php') > -1:
+            Logger.info('Update Cookies Successful.')
+            new_cookies = s.cookies['ourbits_jwt']
+            self.cookies = {'ourbits_jwt': new_cookies}
+            self.status = True
+
     def exist_torrent_title(self, tag):
         torrent_page = self.page_torrent_detail(tid=tag, bs=True)
         torrent_title = re.search("\[OurBits\]\.(?P<name>.+?)\.torrent", torrent_page.text).group("name")

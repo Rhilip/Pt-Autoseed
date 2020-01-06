@@ -52,8 +52,13 @@ class NexusPHP(Site):
         self.status = True if page_usercp_bs.find(id="info_block") else False
         if self.status:
             Logger.debug("Through authentication in Site: {}".format(self.name))
-        else:
+        elif self._AUTO_RENEW_COOKIES:
+            Logger.info('Update your cookies by login method in Site: {}'.format(self.name))
+            self.update_cookies()
+
+        if not self.status:
             Logger.error("Can not verify identity. Please Check your Cookies".format(mo=self.name))
+
         return self.status
 
     def torrent_link(self, tid):
