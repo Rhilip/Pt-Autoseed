@@ -50,13 +50,13 @@ class NexusPHP(Site):
     def session_check(self):
         page_usercp_bs = self.get_data(url=self.url_host + "/usercp.php", bs=True)
         self.status = True if page_usercp_bs.find(id="info_block") else False
-        if self.status:
-            Logger.debug("Through authentication in Site: {}".format(self.name))
-        elif self._AUTO_RENEW_COOKIES:
+        if not self.status and self._AUTO_RENEW_COOKIES:
             Logger.info('Update your cookies by login method in Site: {}'.format(self.name))
             self.update_cookies()
 
-        if not self.status:
+        if self.status:
+            Logger.debug("Through authentication in Site: {}".format(self.name))
+        else:
             Logger.error("Can not verify identity. Please Check your Cookies".format(mo=self.name))
 
         return self.status
